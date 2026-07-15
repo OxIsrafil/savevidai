@@ -1,11 +1,11 @@
-# SaveVid - Design Spec
+# SaveVid AI - Design Spec
 
 Date: 2026-07-16
 Status: Approved pending user review
 
 ## What
 
-SaveVid is a public, open source Twitter/X video downloader. Paste a tweet URL, see a preview, pick a quality, download. No popups, no redirects, no fake download buttons, nothing between the user and the download.
+SaveVid AI (savevidai.app) is a public, open source Twitter/X video downloader. Paste a tweet URL, see a preview, pick a quality, download. No popups, no redirects, no fake download buttons, nothing between the user and the download.
 
 ## Goals
 
@@ -28,7 +28,7 @@ SaveVid is a public, open source Twitter/X video downloader. Paste a tweet URL, 
 One repo, one Docker container. FastAPI serves the API and the built React frontend as static files. Identical artifact deploys to Render free tier (testing/staging) and a $5 VPS (production).
 
 ```
-savevid/
+savevidai/
   frontend/     Vite + React + TypeScript + Tailwind
   backend/      FastAPI + yt-dlp (Python 3.12)
   Dockerfile    multi-stage: build frontend, copy dist into backend image
@@ -108,7 +108,7 @@ Single page, whole flow on one screen, zero navigation.
 | Not a tweet URL | URL parse | "That doesn't look like a Twitter/X post link." |
 | Tweet deleted/404 | yt-dlp error class | "This post doesn't exist or was deleted." |
 | No video in tweet | yt-dlp result | "This post has no video. Photos aren't supported yet." |
-| Private/restricted | yt-dlp error class | "This post is private or age-restricted. SaveVid only works with public posts." |
+| Private/restricted | yt-dlp error class | "This post is private or age-restricted. SaveVid AI only works with public posts." |
 | Twitter rate-limits us | yt-dlp error class | "Twitter is rate-limiting right now. Try again in a minute." |
 | Unknown yt-dlp failure | catch-all | "Extraction failed. If this keeps happening, report it on GitHub." + server-side log |
 
@@ -116,7 +116,7 @@ All upstream failures logged with tweet ID and yt-dlp error so breakage from Twi
 
 ## Open source setup
 
-- MIT license, README with screenshots, self-host one-liner (`docker run -p 8000:8000 ghcr.io/<owner>/savevid`, image published from the repo's CI), Deploy-to-Render button.
+- MIT license, README with screenshots, self-host one-liner (`docker run -p 8000:8000 ghcr.io/<owner>/savevidai`, image published from the repo's CI), Deploy-to-Render button.
 - GitHub Actions: lint (ruff, eslint), backend tests, frontend build, Docker image publish to GHCR on tag.
 - CONTRIBUTING note: extraction breakages usually mean "bump yt-dlp," documented so contributors can self-serve.
 
@@ -130,7 +130,7 @@ All upstream failures logged with tweet ID and yt-dlp error so breakage from Twi
 
 - Staging: Render free tier via render.yaml. Known cold-start (~30-60 s after idle); acceptable for testing only.
 - Production: $5 VPS (Hetzner CX22 or similar), compose.yaml runs app container + Caddy with automatic HTTPS. Watchtower optional for auto-updating yt-dlp patch releases.
-- Domain: savevid.app or similar, purchased later; site functions on free subdomain meanwhile.
+- Domain: savevidai.app; site functions on a free subdomain until DNS is pointed.
 
 ## Risks
 
