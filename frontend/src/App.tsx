@@ -22,6 +22,15 @@ export default function App() {
     resolve(EXAMPLE_URL);
   }
 
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  // When a fetch lands, bring the preview card in front of the user's eyes.
+  useEffect(() => {
+    if (state.status !== "ready") return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    resultsRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }, [state.status]);
+
   // Floating nav tightens past 40px of scroll (class toggle, no re-render churn).
   useEffect(() => {
     const nav = navRef.current;
@@ -144,7 +153,7 @@ export default function App() {
         {/* No AnimatePresence here on purpose: an interrupted exit animation can wedge
             mode="wait" and block the card forever (seen live when a resolve failed while
             the backend was down). Instant swap + card entrance animation is robust. */}
-        <div aria-live="polite" className="mt-10 text-left">
+        <div ref={resultsRef} aria-live="polite" className="mt-10 scroll-mt-28 text-left">
           {state.status === "resolving" && <SkeletonCard />}
           {state.status === "ready" && <PreviewCard data={state.data} />}
         </div>

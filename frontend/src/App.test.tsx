@@ -11,13 +11,19 @@ const BODY = {
     variants: [{ label: "720p", width: 1280, height: 720, url: "https://video.twimg.com/v.mp4", size_bytes: 100 }] }],
 };
 
-test("paste-to-card flow", async () => {
+test("paste-to-card flow scrolls to the result and confirms on the button", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(BODY), { status: 200 })));
+  const scrollSpy = vi
+    .spyOn(Element.prototype, "scrollIntoView")
+    .mockImplementation(() => {});
   render(<App />);
   await userEvent.type(screen.getByRole("textbox"), "https://x.com/jack/status/20");
-  await userEvent.click(screen.getByRole("button", { name: /fetch/i }));
+  await userEvent.click(screen.getByRole("button", { name: /^fetch$/i }));
   expect(await screen.findByTestId("preview-card")).toBeInTheDocument();
   expect(screen.getByText("Jack")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /fetched/i })).toBeInTheDocument();
+  expect(scrollSpy).toHaveBeenCalled();
+  scrollSpy.mockRestore();
 });
 
 test("example chip resolves the showcase tweet and fills the input", async () => {

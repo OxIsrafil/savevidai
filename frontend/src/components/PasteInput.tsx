@@ -11,11 +11,23 @@ type Props = {
 
 export function PasteInput({ status, errorMessage, onSubmit, presetValue = null }: Props) {
   const [value, setValue] = useState("");
+  const [justFetched, setJustFetched] = useState(false);
   const busy = status === "resolving";
 
   useEffect(() => {
     if (presetValue) setValue(presetValue);
   }, [presetValue]);
+
+  // Brief success state on the button so users know the fetch landed.
+  useEffect(() => {
+    if (status !== "ready") {
+      setJustFetched(false);
+      return;
+    }
+    setJustFetched(true);
+    const t = setTimeout(() => setJustFetched(false), 2200);
+    return () => clearTimeout(t);
+  }, [status]);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -54,7 +66,16 @@ export function PasteInput({ status, errorMessage, onSubmit, presetValue = null 
           aria-busy={busy}
           className="btn"
         >
-          {busy ? <Spinner /> : "Fetch"}
+          {busy ? (
+            <Spinner />
+          ) : justFetched ? (
+            <>
+              <CheckIcon />
+              <span>Fetched</span>
+            </>
+          ) : (
+            "Fetch"
+          )}
         </motion.button>
       </div>
       {status === "error" && errorMessage && (
@@ -68,6 +89,23 @@ export function PasteInput({ status, errorMessage, onSubmit, presetValue = null 
         </motion.p>
       )}
     </form>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="check-draw size-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M4 12.5 10 18.5 20 6" />
+    </svg>
   );
 }
 

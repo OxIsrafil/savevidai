@@ -5,3 +5,6 @@ if (!URL.createObjectURL) {
   URL.createObjectURL = () => "blob:mock";
   URL.revokeObjectURL = () => {};
 }
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
