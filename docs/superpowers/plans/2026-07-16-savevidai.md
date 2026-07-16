@@ -2402,6 +2402,11 @@ export function QualityButton({
 }) {
   const [phase, setPhase] = useState<Phase>({ name: "idle" });
   const size = formatBytes(variant.size_bytes);
+  // Show the true stored resolution (e.g. "1280×720"); fall back to the "720p"
+  // label only when the API didn't give dimensions (rare, e.g. some GIFs).
+  const dims =
+    variant.width && variant.height ? `${variant.width}×${variant.height}` : variant.label;
+  const isHd = (variant.height ?? 0) >= 720;
 
   async function start() {
     if (phase.name === "downloading") return;
@@ -2452,7 +2457,12 @@ export function QualityButton({
           </span>
         ) : (
           <>
-            <span className="font-semibold">{variant.label}</span>
+            {isHd && (
+              <span className="rounded bg-cyan-400/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-cyan-300">
+                HD
+              </span>
+            )}
+            <span className="font-semibold tabular-nums">{dims}</span>
             {size && <span className="font-mono text-xs opacity-70">{size}</span>}
             {phase.name === "failed" && <span className="text-xs text-red-400">retry</span>}
           </>
