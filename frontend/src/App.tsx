@@ -27,8 +27,23 @@ export default function App() {
   // When a fetch lands, bring the preview card in front of the user's eyes.
   useEffect(() => {
     if (state.status !== "ready") return;
+    const el = resultsRef.current;
+    if (!el) return;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    resultsRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    // One frame so the card's layout exists before we aim at it.
+    const raf = requestAnimationFrame(() =>
+      el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }),
+    );
+    // Smooth scrolls get silently canceled in throttled/background tabs and on
+    // some mobile browsers; if the card still isn't in view, jump to it.
+    const fallback = setTimeout(() => {
+      const top = el.getBoundingClientRect().top;
+      if (top > 200 || top < 0) el.scrollIntoView({ behavior: "auto", block: "start" });
+    }, 700);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(fallback);
+    };
   }, [state.status]);
 
   // Floating nav tightens past 40px of scroll (class toggle, no re-render churn).
@@ -125,7 +140,7 @@ export default function App() {
         </h1>
 
         <motion.p {...fadeRise(1)} className="lede mt-6">
-          One paste. Every quality. No garbage.
+          Paste tweet URL and get the video in 2 seconds.
         </motion.p>
 
         <motion.div {...fadeRise(2)} className="mx-auto mt-9 max-w-2xl">
@@ -147,7 +162,7 @@ export default function App() {
         </motion.div>
 
         <motion.p {...fadeRise(4)} className="mt-6 text-sm text-[var(--faint)]">
-          Straight from Twitter's CDN. About two seconds per video.
+          Straight from Twitter's CDN. No popups, no fake buttons, ever.
         </motion.p>
 
         {/* No AnimatePresence here on purpose: an interrupted exit animation can wedge

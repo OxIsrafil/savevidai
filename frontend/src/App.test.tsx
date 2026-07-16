@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test, vi } from "vitest";
 import App from "./App";
@@ -22,7 +22,7 @@ test("paste-to-card flow scrolls to the result and confirms on the button", asyn
   expect(await screen.findByTestId("preview-card")).toBeInTheDocument();
   expect(screen.getByText("Jack")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /fetched/i })).toBeInTheDocument();
-  expect(scrollSpy).toHaveBeenCalled();
+  await waitFor(() => expect(scrollSpy).toHaveBeenCalled());
   scrollSpy.mockRestore();
 });
 
