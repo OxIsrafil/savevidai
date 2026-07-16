@@ -1,5 +1,12 @@
 # SaveVid AI
 
+[![Follow @israfill on X](https://img.shields.io/badge/follow-%40israfill-000000?logo=x&logoColor=white)](https://x.com/israfill)
+[![GitHub stars](https://img.shields.io/github/stars/OxIsrafil/savevidai?style=flat&logo=github&color=2997ff)](https://github.com/OxIsrafil/savevidai/stargazers)
+[![CI](https://github.com/OxIsrafil/savevidai/actions/workflows/ci.yml/badge.svg)](https://github.com/OxIsrafil/savevidai/actions)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+![SaveVid AI - paste a tweet URL, pick a quality, download the video](docs/screenshot.png)
+
 Twitter/X video downloader with none of the garbage. Paste a post link, see a preview,
 pick a quality, download. No popups, no redirects, no fake download buttons, no tracking.
 
@@ -64,3 +71,13 @@ run `goaccess /data/access.log --log-format=CADDY` for visitor counts.
 ## License
 
 MIT
+
+---
+
+<p align="center">
+  <b>SaveVid AI<span>.</span></b><br/>
+  built by <a href="https://x.com/israfill"><b>@israfill</b></a> ·
+  <a href="https://github.com/OxIsrafil">GitHub</a> ·
+  <a href="https://savevidai.app">savevidai.app</a><br/>
+  <sub>If this saved you from a popup hell site, drop it a star</sub>
+</p>
