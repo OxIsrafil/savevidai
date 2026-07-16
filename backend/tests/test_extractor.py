@@ -140,6 +140,33 @@ def test_map_vxtwitter_no_video_raises():
     assert exc.value.code == "no_video"
 
 
+def test_map_fxtwitter_skips_non_dict_elements():
+    body = {"code": 200, "tweet": {"text": "", "author": {"name": "Ada", "screen_name": "ada"},
+        "media": {"videos": [None, "junk",
+            {"type": "video", "variants": ["bad", {"url": "https://video.twimg.com/x/vid/640x360/a.mp4", "bitrate": 1, "content_type": "video/mp4"}]}]}}}
+    res = map_fxtwitter("1", body)
+    assert len(res.items) == 1
+    assert res.items[0].variants[0].label == "360p"
+
+
+def test_map_fxtwitter_dense_index_when_earlier_item_skipped():
+    # first video has only an HLS variant (no usable mp4) -> skipped; second is the only real item -> index 1
+    body = {"code": 200, "tweet": {"text": "", "author": {"name": "Ada", "screen_name": "ada"},
+        "media": {"videos": [
+            {"type": "video", "variants": [{"url": "https://video.twimg.com/x/pl/y.m3u8", "bitrate": 0, "content_type": "application/x-mpegURL"}]},
+            {"type": "video", "variants": [{"url": "https://video.twimg.com/x/vid/1280x720/b.mp4", "bitrate": 2, "content_type": "video/mp4"}]}]}}}
+    res = map_fxtwitter("1", body)
+    assert [i.index for i in res.items] == [1]
+    assert res.items[0].variants[0].label == "720p"
+
+
+def test_map_vxtwitter_skips_non_dict_media():
+    body = {"user_name": "Ada", "user_screen_name": "ada", "text": "",
+        "media_extended": [None, {"type": "video", "url": "https://video.twimg.com/x/vid/1280x720/a.mp4", "size": {"height": 720, "width": 1280}}]}
+    res = map_vxtwitter("1", body)
+    assert len(res.items) == 1 and res.items[0].variants[0].label == "720p"
+
+
 # ---- extract() network orchestration (respx-mocked) ----
 
 @respx.mock

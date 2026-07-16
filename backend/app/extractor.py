@@ -78,11 +78,13 @@ def map_fxtwitter(tweet_id: str, body: dict) -> ResolveResponse:
     tweet = body.get("tweet") or {}
     author = tweet.get("author") or {}
     items: list[MediaItem] = []
-    for i, vid in enumerate((tweet.get("media") or {}).get("videos") or [], start=1):
+    for vid in (tweet.get("media") or {}).get("videos") or []:
+        if not isinstance(vid, dict):
+            continue
         variants: list[Variant] = []
         for var in vid.get("variants") or []:
-            if var.get("content_type") != "video/mp4":
-                continue  # skip HLS playlists
+            if not isinstance(var, dict) or var.get("content_type") != "video/mp4":
+                continue  # skip non-dicts and HLS playlists
             variant = _mp4_variant(var.get("url") or "")
             if variant:
                 variants.append(variant)
@@ -90,7 +92,7 @@ def map_fxtwitter(tweet_id: str, body: dict) -> ResolveResponse:
             continue
         variants.sort(key=lambda v: (v.height or 0, v.width or 0), reverse=True)
         items.append(MediaItem(
-            index=i,
+            index=len(items) + 1,
             kind="gif" if vid.get("type") == "gif" else "video",
             thumbnail=vid.get("thumbnail_url"),
             duration_seconds=vid.get("duration"),
@@ -116,6 +118,8 @@ def map_vxtwitter(tweet_id: str, body: dict) -> ResolveResponse:
     items: list[MediaItem] = []
     index = 0
     for media in body.get("media_extended") or []:
+        if not isinstance(media, dict):
+            continue
         if media.get("type") not in ("video", "gif"):
             continue  # skip images
         variant = _mp4_variant(media.get("url") or "")
