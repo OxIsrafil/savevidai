@@ -97,7 +97,9 @@ Single page, whole flow on one screen, zero navigation.
 
 ### Design language
 
-- Typography: Geist Sans (UI) + Geist Mono (resolutions, sizes, progress numbers). Both open-license, self-hosted, no third-party font CDN.
+> **Revised 2026-07-16 (user direction):** reskinned onto the user's autopsy reference system (Apple-style): pure black / white backgrounds with drifting blue-purple aurora blobs, floating pill navbar with a filled blue CTA, giant two-tone display headline (Onest Variable, self-hosted, replaces Geist), pill mono input + blue pill Fetch button, mono feature chips, panel cards, and pill quality buttons (best variant filled blue) that keep the progress-fill behavior. Accent: #2997ff dark / #0071e3 light. The photo hero was replaced by the aurora treatment per the reference; hero.webp remains in public/ for easy revert. Everything below this note that contradicts the reference system is superseded.
+
+- Typography: Onest Variable (UI, self-hosted) + system SF Mono stack (URLs, sizes, chips). No third-party font CDN.
 - Dark-first with light mode toggle, one restrained accent color, generous whitespace.
 - Accessibility: fully keyboard-driven flow (paste, Enter, arrow between qualities, Enter to download), visible focus states styled as first-class hover-tier effects, ARIA live region announcing resolve/download/error state changes, WCAG AA contrast in both themes.
 - No client-side analytics, no cookies, no fingerprinting, and the page says so. Traffic volume (for the future ad decision) comes from server access logs via goaccess on the VPS, which keeps the promise literally true.
