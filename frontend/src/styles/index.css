@@ -146,6 +146,42 @@
   padding: 0.125rem 0.5rem;
 }
 
+/* Hero background: single swappable file (/hero.webp) behind the headline.
+   The ::after gradient is the theme-aware overlay that keeps text readable. */
+.hero-bg {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 26rem;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+}
+.hero-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+.hero-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 0.82) 0%,
+    rgb(255 255 255 / 0.92) 55%,
+    rgb(255 255 255) 100%
+  );
+}
+.dark .hero-bg::after {
+  background: linear-gradient(
+    to bottom,
+    rgb(9 9 11 / 0.8) 0%,
+    rgb(9 9 11 / 0.92) 55%,
+    rgb(9 9 11) 100%
+  );
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

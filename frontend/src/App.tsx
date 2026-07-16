@@ -30,7 +30,11 @@ export default function App() {
   }, [resolve]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center px-4">
+    <div className="relative isolate flex min-h-screen flex-col items-center px-4">
+      {/* Swap frontend/public/hero.webp to change the hero art; overlay keeps text readable in both themes */}
+      <div aria-hidden className="hero-bg">
+        <img src="/hero.webp" alt="" decoding="async" />
+      </div>
       <header className="flex w-full max-w-2xl items-center justify-between pt-4">
         <span className="font-semibold tracking-tight text-cyan-400">SaveVid AI</span>
         <ThemeToggle />
