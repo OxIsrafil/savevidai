@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { AdSlot } from "./components/AdSlot";
 import { HowToVisual } from "./components/HowToVisual";
 import { PasteInput } from "./components/PasteInput";
@@ -114,11 +114,12 @@ export default function App() {
           Straight from Twitter's CDN. About two seconds per video.
         </motion.p>
 
+        {/* No AnimatePresence here on purpose: an interrupted exit animation can wedge
+            mode="wait" and block the card forever (seen live when a resolve failed while
+            the backend was down). Instant swap + card entrance animation is robust. */}
         <div aria-live="polite" className="mt-10 text-left">
-          <AnimatePresence mode="wait">
-            {state.status === "resolving" && <SkeletonCard key="skeleton" />}
-            {state.status === "ready" && <PreviewCard key="card" data={state.data} />}
-          </AnimatePresence>
+          {state.status === "resolving" && <SkeletonCard />}
+          {state.status === "ready" && <PreviewCard data={state.data} />}
         </div>
 
         <motion.div {...fadeRise(5)}>
