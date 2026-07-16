@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
 
-from . import resolve
+from . import proxy, resolve
 from .errors import AppError
 from .limits import limiter
 
@@ -30,6 +30,7 @@ def create_app() -> FastAPI:
         return {"ok": True}
 
     app.include_router(resolve.router)
+    app.include_router(proxy.router)
 
     # Serves the built frontend in the Docker image; absent in dev, where Vite serves it.
     static_dir = os.environ.get("STATIC_DIR", "")
