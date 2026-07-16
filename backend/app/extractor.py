@@ -24,14 +24,25 @@ _TWIMG = "https://video.twimg.com/"
 def extract(tweet_id: str) -> ResolveResponse:
     """Resolve a tweet ID to its video variants. fxtwitter primary, vxtwitter fallback."""
     try:
-        return map_fxtwitter(tweet_id, _get_json(_FX_URL.format(tweet_id)))
+        return _map_guarded(map_fxtwitter, tweet_id, _get_json(_FX_URL.format(tweet_id)))
     except AppError as first:
         if first.code != UPSTREAM[0]:
             raise  # definitive not_found/private/no_video: do not retry
         try:
-            return map_vxtwitter(tweet_id, _get_json(_VX_URL.format(tweet_id)))
+            return _map_guarded(map_vxtwitter, tweet_id, _get_json(_VX_URL.format(tweet_id)))
         except AppError:
             raise first from None
+
+
+def _map_guarded(mapper, tweet_id: str, body: dict) -> ResolveResponse:
+    """Run a mapper over untrusted upstream JSON; any shape we didn't anticipate
+    becomes a clean upstream_error instead of an unhandled 500."""
+    try:
+        return mapper(tweet_id, body)
+    except AppError:
+        raise
+    except Exception as exc:
+        raise app_error(UPSTREAM) from exc
 
 
 def _get_json(url: str) -> dict:

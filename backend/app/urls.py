@@ -35,7 +35,3 @@ def parse_tweet_url(raw: str) -> str:
     if not match:
         raise InvalidTweetURL(raw)
     return match.group(1)
-
-
-def canonical_url(tweet_id: str) -> str:
-    return f"https://twitter.com/i/web/status/{tweet_id}"

@@ -20,9 +20,11 @@ can't rely on.
 
 ## New error wording
 
-`backend/app/errors.py` maps the FixTweet response `code` (and any legacy
-message substrings) to user-facing errors. Add a case + test in
-`backend/tests/test_errors.py` / `test_extractor.py`.
+`backend/app/extractor.py` (`map_fxtwitter` / `map_vxtwitter`) maps the
+FixTweet/vxtwitter response `code` to the error specs defined in
+`backend/app/errors.py`, which holds the error catalog and user-facing
+copy only. Add a case + test in `backend/tests/test_extractor.py`
+(and `backend/tests/test_errors.py` if the catalog itself changes).
 
 ## Dev setup and tests
 

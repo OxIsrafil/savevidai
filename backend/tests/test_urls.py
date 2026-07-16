@@ -1,6 +1,6 @@
 import pytest
 
-from app.urls import InvalidTweetURL, canonical_url, parse_tweet_url
+from app.urls import InvalidTweetURL, parse_tweet_url
 
 VALID = [
     ("https://twitter.com/jack/status/20", "20"),
@@ -42,7 +42,3 @@ def test_valid_urls(url, expected):
 def test_invalid_urls(url):
     with pytest.raises(InvalidTweetURL):
         parse_tweet_url(url)
-
-
-def test_canonical_url():
-    assert canonical_url("20") == "https://twitter.com/i/web/status/20"

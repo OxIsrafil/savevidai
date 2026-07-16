@@ -25,6 +25,6 @@ class ResolveResponse(BaseModel):
     id: str
     author: str
     handle: str
-    avatar_url: str | None = None  # yt-dlp does not expose avatars today; kept for the future
+    avatar_url: str | None = None  # populated from fxtwitter's author.avatar_url; vxtwitter has no avatar
     text: str = ""
     items: list[MediaItem]

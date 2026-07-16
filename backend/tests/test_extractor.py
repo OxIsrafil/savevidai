@@ -204,3 +204,25 @@ def test_extract_both_fail_raises_upstream():
     with pytest.raises(AppError) as exc:
         extract("1")
     assert exc.value.code == "upstream_error"
+
+
+@respx.mock
+def test_extract_survives_scalar_tweet_container():
+    respx.get("https://api.fxtwitter.com/i/status/1").mock(
+        return_value=httpx.Response(200, json={"code": 200, "tweet": "x"}))
+    respx.get("https://api.vxtwitter.com/i/status/1").mock(
+        return_value=httpx.Response(200, json=VX_VIDEO))
+    # malformed fx container -> clean upstream classification -> vx fallback succeeds
+    res = extract("1")
+    assert res.items[0].variants[0].label == "720p"
+
+
+@respx.mock
+def test_extract_survives_scalar_media_container_both_sources():
+    respx.get("https://api.fxtwitter.com/i/status/1").mock(
+        return_value=httpx.Response(200, json={"code": 200, "tweet": {"media": "x", "author": {}}}))
+    respx.get("https://api.vxtwitter.com/i/status/1").mock(
+        return_value=httpx.Response(200, json={"user_screen_name": "a", "media_extended": "junk"}))
+    with pytest.raises(AppError) as exc:
+        extract("1")
+    assert exc.value.code == "upstream_error"
