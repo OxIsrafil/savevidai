@@ -12,7 +12,7 @@ const RED = "#ff5148";
 
 export function HowToVisual() {
   return (
-    <figure className="mt-14 w-full sm:-mx-6 sm:w-[calc(100%+3rem)] lg:-mx-24 lg:w-[calc(100%+12rem)]">
+    <figure className="mt-14 w-full lg:-mx-24 lg:w-[calc(100%+12rem)]">
       <Landscape />
       <Stacked />
       <figcaption className="sr-only">
