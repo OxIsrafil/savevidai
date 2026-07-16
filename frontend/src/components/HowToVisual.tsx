@@ -26,7 +26,7 @@ export function HowToVisual() {
 function Landscape() {
   return (
     <svg
-      viewBox="0 0 1360 480"
+      viewBox="0 0 1360 452"
       role="img"
       aria-label="How to download: copy the post link from Twitter, paste it in the box, then pick a quality to save the video"
       className="hidden h-auto w-full sm:block"
@@ -175,7 +175,7 @@ function Landscape() {
 function Stacked() {
   return (
     <svg
-      viewBox="0 0 560 1010"
+      viewBox="0 0 560 992"
       role="img"
       aria-label="How to download: copy the post link from Twitter, paste it in the box, then pick a quality to save the video"
       className="h-auto w-full sm:hidden"

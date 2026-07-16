@@ -109,7 +109,7 @@ export default function App() {
         </span>
       </motion.nav>
 
-      <main className="w-full max-w-3xl flex-1 pb-24 pt-[clamp(140px,22vh,220px)] text-center">
+      <main className="w-full max-w-3xl flex-1 pb-10 pt-[clamp(140px,22vh,220px)] text-center">
         <div aria-hidden className="aurora">
           <div className="blob blob-a" />
           <div className="blob blob-b" />
