@@ -1,0 +1,8 @@
+savevidai.app {
+	encode zstd gzip
+	reverse_proxy app:8000
+	log {
+		output file /data/access.log
+		format json
+	}
+}

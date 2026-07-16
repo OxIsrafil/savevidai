@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: savevidai
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
