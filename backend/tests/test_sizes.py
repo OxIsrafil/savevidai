@@ -35,3 +35,15 @@ def test_failure_leaves_none():
     fill_sizes(resp)
     assert resp.items[0].variants[0].size_bytes is None
     assert resp.items[0].variants[1].size_bytes is None
+
+
+@respx.mock
+def test_malformed_content_length_leaves_none():
+    respx.head("https://video.twimg.com/v/1080.mp4").mock(
+        return_value=httpx.Response(200, headers={"content-length": "abc"}))
+    respx.head("https://video.twimg.com/v/360.mp4").mock(
+        return_value=httpx.Response(200, headers={"content-length": "1048576"}))
+    resp = _resp()
+    fill_sizes(resp)
+    assert resp.items[0].variants[0].size_bytes is None
+    assert resp.items[0].variants[1].size_bytes == 1048576

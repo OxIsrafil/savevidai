@@ -12,5 +12,5 @@ def fill_sizes(resp: ResolveResponse, timeout: float = 3.0) -> None:
                     r = client.head(variant.url)
                     length = r.headers.get("content-length")
                     variant.size_bytes = int(length) if length else None
-                except (httpx.HTTPError, ValueError):
+                except (httpx.HTTPError, httpx.InvalidURL, ValueError):
                     variant.size_bytes = None
