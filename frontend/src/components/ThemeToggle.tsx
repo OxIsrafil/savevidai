@@ -20,7 +20,7 @@ export function ThemeToggle() {
       whileTap={{ scale: 0.9 }}
       onClick={() => setDark(!dark)}
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-      className="rounded-full border border-zinc-200 p-2 text-zinc-500 transition hover:text-cyan-400 dark:border-zinc-800"
+      className="rounded-full border border-[var(--line)] p-2 text-[var(--muted)] transition hover:text-[var(--accent)]"
     >
       {dark ? <SunIcon /> : <MoonIcon />}
     </motion.button>

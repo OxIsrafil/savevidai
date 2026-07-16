@@ -29,8 +29,9 @@ export function PasteInput({ status, errorMessage, onSubmit }: Props) {
 
   return (
     <form onSubmit={submit}>
-      <div className={`input-frame ${status === "error" ? "animate-shake" : ""}`}>
+      <div className="flex flex-wrap items-stretch justify-center gap-3.5">
         <input
+          id="paste-input"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onFocus={prefillFromClipboard}
@@ -38,14 +39,14 @@ export function PasteInput({ status, errorMessage, onSubmit }: Props) {
           aria-label="Twitter/X post link"
           spellCheck={false}
           autoComplete="off"
-          className="w-full bg-transparent px-3 py-2 text-base outline-none placeholder:text-zinc-500"
+          className={`cta-input ${status === "error" ? "animate-shake" : ""}`}
         />
         <motion.button
           whileTap={{ scale: 0.97 }}
           type="submit"
           disabled={busy}
           aria-busy={busy}
-          className="shrink-0 rounded-xl bg-cyan-400 px-5 py-2 font-semibold text-zinc-950 transition hover:bg-cyan-300 disabled:opacity-60"
+          className="btn"
         >
           {busy ? <Spinner /> : "Fetch"}
         </motion.button>
@@ -55,7 +56,7 @@ export function PasteInput({ status, errorMessage, onSubmit }: Props) {
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           role="alert"
-          className="error-glow mt-3 text-sm text-red-400"
+          className="error-glow mt-4 text-sm text-[#ff453a]"
         >
           {errorMessage}
         </motion.p>

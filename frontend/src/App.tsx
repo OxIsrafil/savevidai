@@ -7,7 +7,7 @@ import { PreviewCard } from "./components/PreviewCard";
 import { SkeletonCard } from "./components/SkeletonCard";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { useResolve } from "./hooks/useResolve";
-import { fadeRise } from "./lib/motion";
+import { EASE_OUT, fadeRise } from "./lib/motion";
 
 export default function App() {
   const { state, resolve } = useResolve();
@@ -29,27 +29,61 @@ export default function App() {
     if (url) resolve(url);
   }, [resolve]);
 
-  return (
-    <div className="relative isolate flex min-h-screen flex-col items-center px-4">
-      {/* Swap frontend/public/hero.webp to change the hero art; overlay keeps text readable in both themes */}
-      <div aria-hidden className="hero-bg">
-        <img src="/hero.webp" alt="" decoding="async" />
-      </div>
-      <header className="flex w-full max-w-2xl items-center justify-between pt-4">
-        <span className="font-semibold tracking-tight text-cyan-400">SaveVid AI</span>
-        <ThemeToggle />
-      </header>
+  function focusInput() {
+    document.getElementById("paste-input")?.focus();
+  }
 
-      <main className="w-full max-w-2xl flex-1 pb-24 pt-16">
-        {/* H1 targets the search query per the spec's SEO section; the brand lives in the header */}
-        <motion.h1 {...fadeRise(0)} className="text-4xl font-bold tracking-tight">
-          Twitter Video Downloader
-        </motion.h1>
-        <motion.p {...fadeRise(1)} className="mt-3 text-lg text-zinc-500">
+  return (
+    <div className="relative isolate flex min-h-screen flex-col items-center overflow-x-clip px-4">
+      <nav className="nav-pill">
+        <span className="brand">
+          <span>SaveVid AI</span>
+          <span className="brand-dot">.</span>
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="nav-meta">Twitter/X · no login</span>
+          <ThemeToggle />
+          <button type="button" className="btn btn-small" onClick={focusInput}>
+            Download
+          </button>
+        </span>
+      </nav>
+
+      <main className="w-full max-w-3xl flex-1 pb-24 pt-[clamp(140px,22vh,220px)] text-center">
+        <div aria-hidden className="aurora">
+          <div className="blob blob-a" />
+          <div className="blob blob-b" />
+        </div>
+
+        {/* H1 targets the search query per the spec's SEO section; the brand lives in the nav */}
+        <h1 className="hero-h1">
+          <span className="word">
+            <motion.span
+              className="inline-block"
+              initial={{ y: "110%" }}
+              animate={{ y: 0 }}
+              transition={{ duration: 0.9, ease: EASE_OUT }}
+            >
+              Twitter Video
+            </motion.span>
+          </span>{" "}
+          <span className="word grey small">
+            <motion.span
+              className="inline-block"
+              initial={{ y: "110%" }}
+              animate={{ y: 0 }}
+              transition={{ duration: 0.9, ease: EASE_OUT, delay: 0.14 }}
+            >
+              Downloader
+            </motion.span>
+          </span>
+        </h1>
+
+        <motion.p {...fadeRise(1)} className="lede mt-6">
           One paste. Every quality. No garbage.
         </motion.p>
 
-        <motion.div {...fadeRise(2)} className="mt-8">
+        <motion.div {...fadeRise(2)} className="mx-auto mt-9 max-w-2xl">
           <PasteInput
             status={state.status}
             errorMessage={state.status === "error" ? state.message : null}
@@ -57,7 +91,17 @@ export default function App() {
           />
         </motion.div>
 
-        <div aria-live="polite" className="mt-8">
+        <motion.div {...fadeRise(3)} className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+          <span className="chip">no login</span>
+          <span className="chip">no watermark</span>
+          <span className="chip">original quality</span>
+        </motion.div>
+
+        <motion.p {...fadeRise(4)} className="mt-6 text-sm text-[var(--faint)]">
+          Straight from Twitter's CDN. About two seconds per video.
+        </motion.p>
+
+        <div aria-live="polite" className="mt-10 text-left">
           <AnimatePresence mode="wait">
             {state.status === "resolving" && <SkeletonCard key="skeleton" />}
             {state.status === "ready" && <PreviewCard key="card" data={state.data} />}

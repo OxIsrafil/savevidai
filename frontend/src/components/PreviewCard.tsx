@@ -7,30 +7,23 @@ import { QualityButton } from "./QualityButton";
 
 export function PreviewCard({ data }: { data: ResolveResponse }) {
   return (
-    <motion.article
-      {...cardReveal}
-      data-testid="preview-card"
-      className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-    >
+    <motion.article {...cardReveal} data-testid="preview-card" className="panel p-5">
       <motion.div {...cascade(0)} className="flex items-center gap-3">
         {data.avatar_url ? (
           <img src={data.avatar_url} alt="" className="size-10 rounded-full" />
         ) : (
-          <div
-            aria-hidden
-            className="flex size-10 items-center justify-center rounded-full bg-cyan-950 font-semibold text-cyan-300"
-          >
+          <div aria-hidden className="avatar-fallback">
             {data.handle.slice(0, 1).toUpperCase()}
           </div>
         )}
         <div className="min-w-0">
           <p className="truncate font-semibold">{data.author}</p>
-          <p className="truncate text-sm text-zinc-500">@{data.handle}</p>
+          <p className="truncate text-sm text-[var(--muted)]">@{data.handle}</p>
         </div>
       </motion.div>
 
       {data.text && (
-        <motion.p {...cascade(1)} className="mt-3 line-clamp-3 text-sm text-zinc-600 dark:text-zinc-400">
+        <motion.p {...cascade(1)} className="mt-3 line-clamp-3 text-sm text-[var(--muted)]">
           {data.text}
         </motion.p>
       )}
@@ -48,8 +41,10 @@ function MediaSection({ item, data }: { item: MediaItem; data: ResolveResponse }
   const many = data.items.length > 1;
   return (
     <section aria-label={many ? `Video ${item.index}` : "Video"}>
-      {many && <h3 className="mb-2 text-sm font-medium text-zinc-500">Video {item.index}</h3>}
-      <motion.div {...cascade(2)} className="group relative overflow-hidden rounded-xl">
+      {many && (
+        <h3 className="mb-2 text-sm font-medium text-[var(--muted)]">Video {item.index}</h3>
+      )}
+      <motion.div {...cascade(2)} className="group relative overflow-hidden rounded-2xl">
         {item.thumbnail ? (
           <img
             src={item.thumbnail}
@@ -57,7 +52,7 @@ function MediaSection({ item, data }: { item: MediaItem; data: ResolveResponse }
             className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="aspect-video w-full bg-zinc-200 dark:bg-zinc-800" />
+          <div className="aspect-video w-full bg-[var(--pill)]" />
         )}
         <div aria-hidden className="play-badge">
           <svg viewBox="0 0 24 24" className="ml-0.5 size-5" fill="currentColor">
@@ -71,7 +66,7 @@ function MediaSection({ item, data }: { item: MediaItem; data: ResolveResponse }
           )}
         </div>
       </motion.div>
-      <motion.div {...cascade(3)} className="mt-3 flex flex-wrap gap-2">
+      <motion.div {...cascade(3)} className="mt-3.5 flex flex-wrap gap-2.5">
         {item.variants.map((variant, i) => (
           <QualityButton
             key={variant.url}

@@ -7,7 +7,7 @@ export function AdSlot() {
   return (
     <aside
       aria-label="sponsor"
-      className="mt-10 rounded-xl border border-zinc-200 p-4 text-center text-sm text-zinc-500 dark:border-zinc-800"
+      className="mt-10 rounded-3xl border border-[var(--line)] p-4 text-center text-sm text-[var(--muted)]"
     >
       <div id="ad-slot" />
     </aside>

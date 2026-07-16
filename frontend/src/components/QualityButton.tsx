@@ -77,11 +77,7 @@ export function QualityButton({
           </span>
         ) : (
           <>
-            {isHd && (
-              <span className="rounded bg-cyan-400/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-cyan-300">
-                HD
-              </span>
-            )}
+            {isHd && <span className="hd-chip uppercase">HD</span>}
             <span className="font-semibold tabular-nums">{dims}</span>
             {size && <span className="font-mono text-xs opacity-70">{size}</span>}
             {phase.name === "failed" && <span className="text-xs text-red-400">retry</span>}

@@ -50,13 +50,13 @@
       try { if (localStorage.theme === "light") document.documentElement.classList.remove("dark"); } catch (e) {}
     </script>
   </head>
-  <body class="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 font-sans antialiased">
+  <body class="font-sans">
     <div id="root"></div>
 
     <!-- Static, crawlable landing content. Lives outside the React root on purpose. -->
-    <section class="mx-auto max-w-2xl px-4 py-16 border-t border-zinc-200 dark:border-zinc-800">
+    <section class="mx-auto max-w-2xl px-4 py-16 border-t border-[var(--line)]">
       <h2 class="text-2xl font-semibold tracking-tight">How to download a Twitter video</h2>
-      <ol class="mt-4 space-y-3 text-zinc-600 dark:text-zinc-400 list-decimal list-inside">
+      <ol class="mt-4 space-y-3 text-[var(--muted)] list-decimal list-inside">
         <li>Copy the link of the post that contains the video (Share, then Copy link).</li>
         <li>Paste it in the box above. The preview appears in about a second.</li>
         <li>Pick a quality and the video saves straight to your device.</li>
@@ -68,23 +68,23 @@
       <dl class="mt-4 space-y-6 text-sm">
         <div>
           <dt class="font-medium text-base">Is SaveVid AI really free and ad-free?</dt>
-          <dd class="mt-1 text-zinc-600 dark:text-zinc-400">Yes. No popups, no redirects, no fake download buttons, ever. The code is open source, so you can verify that yourself or run your own copy.</dd>
+          <dd class="mt-1 text-[var(--muted)]">Yes. No popups, no redirects, no fake download buttons, ever. The code is open source, so you can verify that yourself or run your own copy.</dd>
         </div>
         <div>
           <dt class="font-medium text-base">What quality do I get?</dt>
-          <dd class="mt-1 text-zinc-600 dark:text-zinc-400">Every quality Twitter serves, up to the original upload resolution. All options are listed with file sizes; you choose.</dd>
+          <dd class="mt-1 text-[var(--muted)]">Every quality Twitter serves, up to the original upload resolution. All options are listed with file sizes; you choose.</dd>
         </div>
         <div>
           <dt class="font-medium text-base">Do private or age-restricted posts work?</dt>
-          <dd class="mt-1 text-zinc-600 dark:text-zinc-400">No. SaveVid AI only works with public posts, and we would rather say that plainly than pretend otherwise.</dd>
+          <dd class="mt-1 text-[var(--muted)]">No. SaveVid AI only works with public posts, and we would rather say that plainly than pretend otherwise.</dd>
         </div>
         <div>
           <dt class="font-medium text-base">Is downloading Twitter videos legal?</dt>
-          <dd class="mt-1 text-zinc-600 dark:text-zinc-400">Personal use, like archiving your own posts, is generally fine. Reposting someone else's work without permission can infringe copyright. Use downloads responsibly.</dd>
+          <dd class="mt-1 text-[var(--muted)]">Personal use, like archiving your own posts, is generally fine. Reposting someone else's work without permission can infringe copyright. Use downloads responsibly.</dd>
         </div>
         <div>
           <dt class="font-medium text-base">Who runs this?</dt>
-          <dd class="mt-1 text-zinc-600 dark:text-zinc-400">SaveVid AI is an open source project. Read the code, star it, or self-host it from the <a class="link-sweep text-cyan-500" href="https://github.com/OWNER/savevidai">GitHub repository</a>.</dd>
+          <dd class="mt-1 text-[var(--muted)]">SaveVid AI is an open source project. Read the code, star it, or self-host it from the <a class="link-sweep" href="https://github.com/OWNER/savevidai">GitHub repository</a>.</dd>
         </div>
       </dl>
     </section>
