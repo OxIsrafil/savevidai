@@ -31,7 +31,7 @@ d.rectangle([0, H - 14, W, H], fill=ACCENT)
 d.text((80, 180), "SaveVid AI", font=load_font(96), fill=FG)
 d.text((80, 320), "Twitter Video Downloader", font=load_font(48), fill=ACCENT)
 d.text((80, 400), "Free. No popups. No fake buttons. Open source.", font=load_font(34), fill=MUTED)
-d.text((80, 520), "savevidai.app", font=load_font(30), fill=MUTED)
+d.text((80, 520), "savevidai.israfill.dev", font=load_font(30), fill=MUTED)
 
 out = Path(__file__).resolve().parent.parent / "frontend" / "public" / "og.png"
 img.save(out)

@@ -19,7 +19,7 @@ logger = logging.getLogger("savevidai.extractor")
 
 _FX_URL = "https://api.fxtwitter.com/i/status/{}"
 _VX_URL = "https://api.vxtwitter.com/i/status/{}"
-_UA = "SaveVidAI/1.0 (+https://savevidai.app)"
+_UA = "SaveVidAI/1.0 (+https://savevidai.israfill.dev)"
 _RES_RE = re.compile(r"/(\d+)x(\d+)/")
 _TWIMG = "https://video.twimg.com/"
 

@@ -11,7 +11,7 @@
 Twitter/X video downloader with none of the garbage. Paste a post link, see a preview,
 pick a quality, download. No popups, no redirects, no fake download buttons, no tracking.
 
-**Live site:** https://savevidai.app
+**Live site:** https://savevidai.israfill.dev
 
 ## Why another downloader
 
@@ -79,6 +79,6 @@ MIT
   <b>SaveVid AI<span>.</span></b><br/>
   built by <a href="https://x.com/israfill"><b>@israfill</b></a> ·
   <a href="https://github.com/OxIsrafil">GitHub</a> ·
-  <a href="https://savevidai.app">savevidai.app</a><br/>
+  <a href="https://savevidai.israfill.dev">savevidai.israfill.dev</a><br/>
   <sub>If this saved you from a popup hell site, drop it a star</sub>
 </p>
