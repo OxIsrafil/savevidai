@@ -25,6 +25,8 @@
   --aurora1: rgba(0, 113, 227, 0.2);
   --aurora2: rgba(120, 80, 255, 0.16);
   --pill: #eef0f3;
+  --chart-download: #1f9e52;
+  --chart-visit: #7850ff;
 }
 .dark {
   --bg: #000000;
@@ -41,6 +43,8 @@
   --aurora1: rgba(41, 151, 255, 0.22);
   --aurora2: rgba(140, 100, 255, 0.2);
   --pill: #1c1c1f;
+  --chart-download: #1f9e52;
+  --chart-visit: #9376ff;
 }
 
 body {
