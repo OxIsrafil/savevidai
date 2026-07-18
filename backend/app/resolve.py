@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Request
 
+from .analytics.service import service as analytics
 from .cache import TTLCache
-from .errors import INVALID_URL, app_error
+from .errors import INVALID_URL, AppError, app_error
 from .extractor import extract
 from .limits import limiter
 from .schemas import ResolveRequest, ResolveResponse
@@ -18,11 +19,18 @@ def resolve(request: Request, payload: ResolveRequest) -> ResolveResponse:
     try:
         tweet_id = parse_tweet_url(payload.url)
     except InvalidTweetURL as exc:
+        analytics.record_from_request(request, "fetch", "invalid_url")
         raise app_error(INVALID_URL) from exc
-    cached = cache.get(tweet_id)
-    if cached is not None:
-        return cached
-    result = extract(tweet_id)
-    fill_sizes(result)
-    cache.set(tweet_id, result)
+    try:
+        cached = cache.get(tweet_id)
+        if cached is not None:
+            analytics.record_from_request(request, "fetch", "ok")
+            return cached
+        result = extract(tweet_id)
+        fill_sizes(result)
+        cache.set(tweet_id, result)
+    except AppError as exc:
+        analytics.record_from_request(request, "fetch", exc.code)
+        raise
+    analytics.record_from_request(request, "fetch", "ok")
     return result
