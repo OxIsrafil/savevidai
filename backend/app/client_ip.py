@@ -8,7 +8,7 @@ def client_ip(request: Request) -> str:
     the direct peer. Returns "unknown" if none are available.
     """
     cf = request.headers.get("cf-connecting-ip")
-    if cf:
+    if cf and cf.strip():
         return cf.strip()
     xff = request.headers.get("x-forwarded-for")
     if xff:

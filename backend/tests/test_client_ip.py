@@ -30,3 +30,8 @@ def test_falls_back_to_client_host():
 def test_unknown_when_no_source():
     r = _req({}, client_host=None)
     assert client_ip(r) == "unknown"
+
+
+def test_blank_cf_header_falls_through():
+    r = _req({"CF-Connecting-IP": "   ", "X-Forwarded-For": "5.6.7.8"})
+    assert client_ip(r) == "5.6.7.8"
