@@ -61,3 +61,19 @@ def test_malformed_content_length_leaves_none():
     fill_sizes(resp)
     assert resp.items[0].variants[0].size_bytes is None
     assert resp.items[0].variants[1].size_bytes == 1048576
+
+
+def test_fill_sizes_skips_image_and_audio_kinds(respx_mock=None):
+    import respx
+    from app.schemas import MediaItem, ResolveResponse, Variant
+    from app.sizes import fill_sizes
+    resp = ResolveResponse(id="1", author="a", handle="h", avatar_url=None, text="", items=[
+        MediaItem(index=1, kind="image", thumbnail=None, duration_seconds=None,
+                  variants=[Variant(label="photo", url="https://p16-sign.tiktokcdn-us.com/i.jpeg")]),
+        MediaItem(index=2, kind="audio", thumbnail=None, duration_seconds=None,
+                  variants=[Variant(label="sound", url="https://www.tikwm.com/m.mp3")]),
+    ])
+    with respx.mock:  # no routes registered: any HEAD would raise
+        fill_sizes(resp)
+    assert resp.items[0].variants[0].size_bytes is None
+    assert resp.items[1].variants[0].size_bytes is None

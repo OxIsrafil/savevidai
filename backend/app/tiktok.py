@@ -61,6 +61,32 @@ def _size(value: object) -> int | None:
     return value if isinstance(value, int) and value > 0 else None
 
 
+def _map_slideshow(url_id: str, data: dict, photo_urls: list[str]) -> ResolveResponse:
+    """Map a tikwm photo post: photos 1..N, soundtrack N+1. Never video."""
+    author = data.get("author") or {}
+    handle = author.get("unique_id") or "unknown"
+    items: list[MediaItem] = [
+        MediaItem(index=n, kind="image", thumbnail=u, duration_seconds=None,
+                  variants=[Variant(label="photo", url=u)])
+        for n, u in enumerate(photo_urls, start=1)
+    ]
+    music = data.get("music")
+    if isinstance(music, str) and music.startswith("https://"):
+        items.append(MediaItem(index=len(photo_urls) + 1, kind="audio", thumbnail=None,
+                               duration_seconds=None,
+                               variants=[Variant(label="sound", url=music)]))
+    # play/hdplay/wmplay on photo posts duplicate the music URL (verified live
+    # 2026-07-22); intentionally never mapped as video here.
+    return ResolveResponse(
+        id=str(data.get("id") or url_id),
+        author=author.get("nickname") or handle,
+        handle=handle,
+        avatar_url=author.get("avatar"),
+        text=(data.get("title") or "").strip(),
+        items=items,
+    )
+
+
 def map_tiktok(url_id: str, body: dict) -> ResolveResponse:
     if body.get("code") != 0:
         msg = str(body.get("msg", "")).lower()
@@ -70,6 +96,11 @@ def map_tiktok(url_id: str, body: dict) -> ResolveResponse:
     data = body.get("data")
     if not isinstance(data, dict):
         raise app_error(UPSTREAM)
+    images = data.get("images")
+    if isinstance(images, list):
+        photo_urls = [u for u in images if isinstance(u, str) and u.startswith("https://")]
+        if photo_urls:
+            return _map_slideshow(url_id, data, photo_urls)
     author = data.get("author") or {}
     variants: list[Variant] = []
     # hdplay/play are watermark-free; wmplay carries the watermark and is never offered.

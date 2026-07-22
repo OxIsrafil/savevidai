@@ -103,3 +103,61 @@ def test_size_none_branch_when_hd_size_not_positive_int(hd_size):
     res = map_tiktok("1", body)
     assert res.items[0].variants[0].label == "hd"
     assert res.items[0].variants[0].size_bytes is None
+
+
+SLIDESHOW = {
+    "code": 0,
+    "data": {
+        "id": "7300000000000000000",
+        "title": "a slideshow",
+        "duration": 0,
+        "images": [
+            "https://p16-sign.tiktokcdn-us.com/img1.jpeg",
+            "https://p16-sign.tiktokcdn-us.com/img2.jpeg",
+            "https://p16-sign.tiktokcdn-us.com/img3.jpeg",
+        ],
+        "music": "https://sf16-sign.tiktokcdn-us.com/obj/tos-alisg-ve-2774/sound",
+        "play": "https://sf16-sign.tiktokcdn-us.com/obj/tos-alisg-ve-2774/sound",
+        "hdplay": "https://sf16-sign.tiktokcdn-us.com/obj/tos-alisg-ve-2774/sound",
+        "wmplay": "https://sf16-sign.tiktokcdn-us.com/obj/tos-alisg-ve-2774/sound",
+        "author": {"unique_id": "user", "nickname": "User Name", "avatar": "https://p19.tiktokcdn-us.com/a.jpg"},
+    },
+}
+
+
+def test_map_slideshow_photos_and_sound_never_video():
+    res = map_tiktok("7300000000000000000", SLIDESHOW)
+    kinds = [(i.index, i.kind) for i in res.items]
+    assert kinds == [(1, "image"), (2, "image"), (3, "image"), (4, "audio")]
+    photo = res.items[0]
+    assert photo.variants[0].label == "photo"
+    assert photo.variants[0].url == "https://p16-sign.tiktokcdn-us.com/img1.jpeg"
+    assert photo.thumbnail == photo.variants[0].url
+    audio = res.items[3]
+    assert audio.variants[0].label == "sound"
+    # play/hdplay/wmplay duplicate the soundtrack on photo posts; never offered as video
+    assert all(i.kind != "video" for i in res.items)
+
+
+def test_map_slideshow_without_music():
+    body = {"code": 0, "data": {**SLIDESHOW["data"]}}
+    for k in ("music", "play", "hdplay", "wmplay"):
+        body["data"].pop(k, None)
+    res = map_tiktok("1", body)
+    assert [i.kind for i in res.items] == ["image", "image", "image"]
+
+
+def test_map_slideshow_empty_images_no_video_raises():
+    body = {"code": 0, "data": {"id": "1", "title": "", "images": [],
+            "author": {"unique_id": "u", "nickname": "U"}}}
+    with pytest.raises(AppError) as exc:
+        map_tiktok("1", body)
+    assert exc.value.code == "no_video"
+
+
+def test_map_slideshow_skips_non_https_images():
+    body = {"code": 0, "data": {**SLIDESHOW["data"],
+            "images": ["http://evil/img.jpg", "https://p16-sign.tiktokcdn-us.com/ok.jpeg"]}}
+    res = map_tiktok("1", body)
+    images = [i for i in res.items if i.kind == "image"]
+    assert len(images) == 1

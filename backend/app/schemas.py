@@ -11,7 +11,7 @@ class Variant(BaseModel):
 
 class MediaItem(BaseModel):
     index: int
-    kind: str  # "video" | "gif"
+    kind: str  # "video" | "gif" | "image" | "audio"
     thumbnail: str | None = None
     duration_seconds: float | None = None
     variants: list[Variant]
