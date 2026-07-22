@@ -5,6 +5,7 @@ import { PlatformLinks } from "../components/PlatformLinks";
 import { PreviewCard } from "../components/PreviewCard";
 import { SkeletonCard } from "../components/SkeletonCard";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { TikTokHowToVisual } from "./TikTokHowToVisual";
 import { useResolve } from "../hooks/useResolve";
 import { sendEvent } from "../lib/analytics";
 import { EASE_OUT, fadeRise } from "../lib/motion";
@@ -180,6 +181,10 @@ export default function TikTokApp() {
           {state.status === "resolving" && <SkeletonCard />}
           {state.status === "ready" && <PreviewCard data={state.data} platform="tiktok" />}
         </div>
+
+        <motion.div {...fadeRise(6)}>
+          <TikTokHowToVisual />
+        </motion.div>
       </main>
     </div>
   );
