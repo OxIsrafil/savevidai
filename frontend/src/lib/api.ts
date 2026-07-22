@@ -8,7 +8,7 @@ export type Variant = {
 
 export type MediaItem = {
   index: number;
-  kind: "video" | "gif";
+  kind: "video" | "gif" | "image" | "audio";
   thumbnail: string | null;
   duration_seconds: number | null;
   variants: Variant[];

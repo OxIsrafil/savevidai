@@ -1,11 +1,20 @@
-import { afterEach, expect, test, vi } from "vitest";
-import { buildFilename, downloadVariant, proxyUrl } from "./download";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { buildFilename, buildMediaFilename, downloadVariant, proxyUrl } from "./download";
 
 afterEach(() => vi.unstubAllGlobals());
 
 test("buildFilename single and multi", () => {
   expect(buildFilename("ada", "111", "1080p", 1, 1)).toBe("ada_111_1080p.mp4");
   expect(buildFilename("ada", "222", "720p", 2, 3)).toBe("ada_222_2_720p.mp4");
+});
+
+describe("buildMediaFilename", () => {
+  test("photo filenames carry the 1-based position", () => {
+    expect(buildMediaFilename("user", "730", "photo", 2)).toBe("user_730_photo_2.jpg");
+  });
+  test("sound filename", () => {
+    expect(buildMediaFilename("user", "730", "sound")).toBe("user_730_sound.m4a");
+  });
 });
 
 test("proxyUrl encodes url and filename", () => {

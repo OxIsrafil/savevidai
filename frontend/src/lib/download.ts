@@ -11,6 +11,15 @@ export function buildFilename(
   return `${handle}_${id}${suffix}_${label}.mp4`;
 }
 
+export function buildMediaFilename(
+  handle: string,
+  id: string,
+  kind: "photo" | "sound",
+  n?: number,
+): string {
+  return kind === "photo" ? `${handle}_${id}_photo_${n}.jpg` : `${handle}_${id}_sound.m4a`;
+}
+
 export function proxyUrl(url: string, filename: string): string {
   return `/api/proxy?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
 }
@@ -29,7 +38,8 @@ async function fetchBlob(url: string, onProgress: (p: Progress) => void): Promis
     received += value.length;
     onProgress({ received, total });
   }
-  return new Blob(chunks as BlobPart[], { type: "video/mp4" });
+  const type = res.headers.get("content-type")?.split(";")[0] || "video/mp4";
+  return new Blob(chunks as BlobPart[], { type });
 }
 
 function saveBlob(blob: Blob, filename: string): void {
