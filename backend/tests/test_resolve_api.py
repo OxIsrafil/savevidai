@@ -8,6 +8,12 @@ from app.limits import limiter
 from app.main import create_app
 from app.schemas import MediaItem, ResolveResponse, Variant
 
+TT = ResolveResponse(
+    id="7280000000000000000", author="User", handle="user", avatar_url=None,
+    text="cap", items=[MediaItem(index=1, kind="video", thumbnail=None, duration_seconds=15,
+        variants=[Variant(label="hd", url="https://www.tikwm.com/v/hd.mp4")])],
+)
+
 FIXTURE = ResolveResponse(
     id="20", author="Jack", handle="jack", text="just setting up",
     items=[MediaItem(index=1, kind="video", variants=[
@@ -53,6 +59,19 @@ def test_extractor_error_passthrough(client, monkeypatch):
     res = client.post("/api/resolve", json={"url": "https://x.com/jack/status/20"})
     assert res.status_code == 403
     assert res.json()["error"] == "private_or_restricted"
+
+
+def test_resolve_routes_tiktok(monkeypatch, client):
+    monkeypatch.setattr(resolve_module, "extract_tiktok", lambda url: TT)
+    r = client.post("/api/resolve", json={"url": "https://www.tiktok.com/@user/video/7280000000000000000"})
+    assert r.status_code == 200
+    assert r.json()["items"][0]["variants"][0]["label"] == "hd"
+
+
+def test_resolve_rejects_unknown_platform(client):
+    r = client.post("/api/resolve", json={"url": "https://youtube.com/watch?v=x"})
+    assert r.status_code == 422
+    assert r.json()["error"] == "invalid_url"
 
 
 def test_rate_limit(client, monkeypatch):
