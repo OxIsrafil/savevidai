@@ -74,6 +74,17 @@ def test_resolve_rejects_unknown_platform(client):
     assert r.json()["error"] == "invalid_url"
 
 
+def test_tiktok_resolve_cached_with_short_ttl(monkeypatch, client):
+    calls = {}
+    real_set = resolve_module.cache.set
+    monkeypatch.setattr(resolve_module, "extract_tiktok", lambda url: TT)
+    monkeypatch.setattr(resolve_module.cache, "set",
+                        lambda key, value, ttl=None: calls.update(ttl=ttl) or real_set(key, value, ttl=ttl))
+    r = client.post("/api/resolve", json={"url": "https://www.tiktok.com/@user/video/7280000000000000000"})
+    assert r.status_code == 200
+    assert calls["ttl"] == 900.0
+
+
 def test_rate_limit(client, monkeypatch):
     monkeypatch.setattr(resolve_module, "extract", lambda tweet_id: FIXTURE)
     limiter.enabled = True

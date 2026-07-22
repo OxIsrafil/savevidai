@@ -26,9 +26,9 @@ class TTLCache:
             self._data.move_to_end(key)
             return value
 
-    def set(self, key: str, value: Any) -> None:
+    def set(self, key: str, value: Any, ttl: float | None = None) -> None:
         with self._lock:
-            self._data[key] = (time.monotonic() + self.ttl, value)
+            self._data[key] = (time.monotonic() + (ttl if ttl is not None else self.ttl), value)
             self._data.move_to_end(key)
             while len(self._data) > self.maxsize:
                 self._data.popitem(last=False)

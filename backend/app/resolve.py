@@ -45,7 +45,7 @@ def resolve(request: Request, payload: ResolveRequest) -> ResolveResponse:
             return cached
         result = resolver()
         fill_sizes(result)
-        cache.set(key, result)
+        cache.set(key, result, ttl=900.0 if platform == "tiktok" else None)
     except AppError as exc:
         analytics.record_from_request(request, "fetch", exc.code, platform=platform)
         raise
