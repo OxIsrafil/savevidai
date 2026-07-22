@@ -83,3 +83,27 @@ def test_proxy_rejects_tiktok_lookalike():
     assert res2.status_code == 403
     res3 = client().get("/api/proxy", params={"url": "https://tiktokcdn-us.com.evil.com/x.mp4"})
     assert res3.status_code == 403
+
+
+def test_proxy_forwards_upstream_content_type():
+    import httpx
+    import respx
+    with respx.mock:
+        respx.get("https://p16-sign.tiktokcdn-us.com/img1.jpeg").mock(
+            return_value=httpx.Response(200, content=b"jpg", headers={
+                "content-length": "3", "content-type": "image/jpeg; charset=binary"}))
+        res = client().get("/api/proxy", params={
+            "url": "https://p16-sign.tiktokcdn-us.com/img1.jpeg", "filename": "photo_1.jpg"})
+        assert res.status_code == 200
+        assert res.headers["content-type"] == "image/jpeg"
+        assert 'filename="photo_1.jpg"' in res.headers["content-disposition"]
+
+
+def test_proxy_defaults_to_mp4_without_upstream_type():
+    import httpx
+    import respx
+    with respx.mock:
+        respx.get("https://video.twimg.com/x.mp4").mock(
+            return_value=httpx.Response(200, content=b"vid", headers={"content-length": "3"}))
+        res = client().get("/api/proxy", params={"url": "https://video.twimg.com/x.mp4"})
+        assert res.headers["content-type"].startswith("video/mp4")

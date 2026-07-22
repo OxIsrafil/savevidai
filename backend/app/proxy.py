@@ -31,7 +31,7 @@ _SEM = asyncio.Semaphore(8)  # fallback path only; protects the small VPS from s
 
 
 @router.get("/api/proxy")
-@limiter.limit("20/minute")
+@limiter.limit("60/minute")
 async def proxy(request: Request, url: str, filename: str = "video.mp4"):
     if not _allowed_host(url):
         raise AppError("forbidden_url", "This URL host is not allowed.", 403)
@@ -64,4 +64,5 @@ async def proxy(request: Request, url: str, filename: str = "video.mp4"):
     length = upstream.headers.get("content-length")
     if length:
         headers["Content-Length"] = length
-    return StreamingResponse(stream(), media_type="video/mp4", headers=headers)
+    upstream_type = (upstream.headers.get("content-type") or "").split(";")[0].strip() or "video/mp4"
+    return StreamingResponse(stream(), media_type=upstream_type, headers=headers)
