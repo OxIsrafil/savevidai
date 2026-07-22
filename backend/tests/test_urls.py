@@ -1,6 +1,11 @@
 import pytest
 
-from app.urls import InvalidTweetURL, parse_tiktok_url, parse_tweet_url
+from app.urls import (
+    InvalidTweetURL,
+    parse_reddit_url,
+    parse_tiktok_url,
+    parse_tweet_url,
+)
 
 VALID = [
     ("https://twitter.com/jack/status/20", "20"),
@@ -74,3 +79,44 @@ def test_parse_tiktok_valid(url):
 def test_parse_tiktok_invalid(url):
     with pytest.raises(InvalidTweetURL):
         parse_tiktok_url(url)
+
+
+REDDIT_POST_CASES = [
+    ("https://www.reddit.com/r/aww/comments/1abc23x/cute_dog/", "1abc23x"),
+    ("https://reddit.com/r/aww/comments/1abc23x", "1abc23x"),
+    ("https://old.reddit.com/r/aww/comments/1abc23x/title/?share=1", "1abc23x"),
+    ("https://www.reddit.com/comments/1abc23x", "1abc23x"),
+    ("https://redd.it/1abc23x", "1abc23x"),
+    ("redd.it/1abc23x", "1abc23x"),
+]
+REDDIT_INVALID = [
+    "",
+    "https://reddit.com.evil.com/r/aww/comments/1abc23x",
+    "https://evilreddit.com/r/aww/comments/1abc23x",
+    "https://reddit.com/r/aww",
+    "https://reddit.com/user/someone",
+    "ftp://reddit.com/r/aww/comments/1abc23x",
+    "https://x.com/jack/status/20",
+]
+
+
+@pytest.mark.parametrize("url,expected_id", REDDIT_POST_CASES)
+def test_parse_reddit_post(url, expected_id):
+    kind, value, path = parse_reddit_url(url)
+    assert kind == "post"
+    assert value == expected_id
+    assert path.startswith("/")
+    assert expected_id in path
+
+
+def test_parse_reddit_share_link():
+    kind, value, path = parse_reddit_url("https://www.reddit.com/r/aww/s/AbCdEfGh1")
+    assert kind == "share"
+    assert value.startswith("https://www.reddit.com/r/aww/s/")
+    assert "/s/" in path
+
+
+@pytest.mark.parametrize("url", REDDIT_INVALID)
+def test_parse_reddit_invalid(url):
+    with pytest.raises(InvalidTweetURL):
+        parse_reddit_url(url)

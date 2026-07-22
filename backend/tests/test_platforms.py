@@ -18,3 +18,15 @@ CASES = [
 @pytest.mark.parametrize("url,expected", CASES)
 def test_detect_platform(url, expected):
     assert detect_platform(url) == expected
+
+
+REDDIT_DETECT = [
+    ("https://www.reddit.com/r/aww/comments/1abc23x/x/", "reddit"),
+    ("https://redd.it/1abc23x", "reddit"),
+    ("reddit.com/r/aww/comments/1abc23x", "reddit"),
+]
+
+
+@pytest.mark.parametrize("url,expected", REDDIT_DETECT)
+def test_detect_reddit(url, expected):
+    assert detect_platform(url) == expected
