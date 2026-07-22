@@ -61,3 +61,34 @@ def test_platform_column_present_and_idempotent():
     )])
     rows = s.query("SELECT platform FROM events", [])
     assert rows[0]["platform"] == "tiktok"
+
+
+def test_platform_column_alter_migration_on_legacy_table():
+    # Simulate a pre-migration DB: an events table created WITHOUT the platform
+    # column. init_schema must ALTER it in, idempotently.
+    s = SqliteStore(":memory:")
+    s._conn.execute("""CREATE TABLE events (
+        id      INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts      TEXT NOT NULL,
+        type    TEXT NOT NULL,
+        outcome TEXT,
+        country TEXT,
+        visitor TEXT NOT NULL
+    )""")
+    s._conn.commit()
+
+    cols_before = {r[1] for r in s._conn.execute("PRAGMA table_info(events)")}
+    assert "platform" not in cols_before
+
+    s.init_schema()  # exercises the ALTER TABLE ... ADD COLUMN path
+    cols_after = {r[1] for r in s._conn.execute("PRAGMA table_info(events)")}
+    assert "platform" in cols_after
+
+    s.init_schema()  # second call must be idempotent, no raise
+
+    s.execute_many([(
+        "INSERT INTO events (ts, type, outcome, country, visitor, platform) VALUES (?,?,?,?,?,?)",
+        ["2026-07-20 11:00:00", "fetch", "ok", None, "vl", "tiktok"],
+    )])
+    rows = s.query("SELECT platform FROM events", [])
+    assert rows[0]["platform"] == "tiktok"
