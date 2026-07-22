@@ -45,6 +45,14 @@ def test_download_event_accepts_tiktok_labels(enabled_client):
     assert any(r["platform"] == "tiktok" and r["outcome"] == "hd" for r in rows)
 
 
+def test_event_accepts_slideshow_labels(enabled_client):
+    client, svc, store = enabled_client
+    for q in ("photo", "album", "sound"):
+        r = client.post("/api/event", json={"type": "download", "quality": q, "platform": "tiktok"})
+        assert r.status_code == 204, q
+    assert client.post("/api/event", json={"type": "download", "quality": "photos"}).status_code == 422
+
+
 def test_event_rejects_bad_platform(enabled_client):
     client, *_ = enabled_client
     assert client.post(

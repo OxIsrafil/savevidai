@@ -15,7 +15,7 @@ from .stats import compute_stats, parse_tz
 
 router = APIRouter()
 
-_QUALITY_OK = re.compile(r"^(\d{2,4}p|video|hd|sd)$")
+_QUALITY_OK = re.compile(r"^(\d{2,4}p|video|hd|sd|photo|album|sound)$")
 COOKIE = "svid_admin"
 
 # Carry-forward fix from the Task 4 review: auth.make_cookie/verify_cookie call
