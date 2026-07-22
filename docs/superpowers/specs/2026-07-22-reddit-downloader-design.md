@@ -46,8 +46,8 @@ Adds Reddit (videos with audio, GIFs, images, galleries) as a third platform on 
 
 ## 2. Mux endpoint (`backend/app/mux.py`, route `GET /api/mux/{vid}/{height}.mp4`)
 
-- Path params validated hard: `vid` matches `[A-Za-z0-9]{8,20}`, `height` in {240,360,480,720,1080}. The server constructs both source URLs itself on `https://v.redd.it/` - no user-supplied URL ever reaches httpx. SSRF surface: zero new.
-- Fetch video `DASH_{h}.mp4`; fetch audio by trying `DASH_AUDIO_128.mp4`, then `DASH_AUDIO_64.mp4`, then legacy `DASH_audio.mp4`; if none exist, redirect the client to `/api/proxy` for the bare video.
+- Path params validated hard: `vid` matches `[A-Za-z0-9]{8,20}`, `height` in {144,240,360,480,540,720,1080}. The server fetches `https://v.redd.it/{vid}/DASHPlaylist.mpd` itself, picks the video representation matching the requested height (nearest at-or-below if exact is gone) and the audio BaseURL from the manifest, and constructs stream URLs ONLY as `https://v.redd.it/{vid}/{base_url}` where base_url is validated `^[A-Za-z0-9_.]+$`. No user-supplied URL ever reaches httpx. SSRF surface: zero new. Manifest-driven names handle both old (`DASH_720`, `audio`) and new (`DASH_720.mp4`, `DASH_AUDIO_128.mp4`) posts.
+- No audio representation in the manifest -> redirect the client to `/api/proxy` for the bare video rendition.
 - `ffmpeg -i video -i audio -c copy -movflags +faststart out.mp4` in a per-request `tempfile.TemporaryDirectory`; stream the result with Content-Length + the sanitized filename; the context manager deletes everything before the response generator closes. Nothing persists.
 - Guards: its own `asyncio.Semaphore(2)` (ffmpeg + disk), rate limit `10/minute`, per-stream size cap (~300 MB combined) enforced from Content-Length before download, 60s ffmpeg timeout -> `UPSTREAM` on failure, ffmpeg absence at boot logged loudly (health endpoint reports it).
 - Dockerfile: `apt-get install -y ffmpeg` in the backend image. CI unchanged (tests mock subprocess; one integration test runs only when ffmpeg exists locally).
