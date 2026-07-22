@@ -38,6 +38,20 @@ def test_failure_leaves_none():
 
 
 @respx.mock
+def test_prefilled_sizes_survive():
+    # TikTok variants arrive with size_bytes from the API; fill_sizes must not
+    # overwrite them or waste a HEAD request. Only the None variant is mocked,
+    # so a HEAD against the prefilled URL would raise on the unmocked route.
+    respx.head("https://video.twimg.com/v/360.mp4").mock(
+        return_value=httpx.Response(200, headers={"content-length": "1048576"}))
+    resp = _resp()
+    resp.items[0].variants[0].size_bytes = 999
+    fill_sizes(resp)
+    assert resp.items[0].variants[0].size_bytes == 999
+    assert resp.items[0].variants[1].size_bytes == 1048576
+
+
+@respx.mock
 def test_malformed_content_length_leaves_none():
     respx.head("https://video.twimg.com/v/1080.mp4").mock(
         return_value=httpx.Response(200, headers={"content-length": "abc"}))
