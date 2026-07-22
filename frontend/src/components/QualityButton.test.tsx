@@ -36,7 +36,24 @@ test("fires a download beacon with the quality label when the download starts", 
   await userEvent.click(screen.getByRole("button"));
   const beaconCall = fetchMock.mock.calls.find(([url]) => String(url) === "/api/event");
   expect(beaconCall).toBeTruthy();
-  expect(JSON.parse(String(beaconCall?.[1]?.body))).toEqual({ type: "download", quality: "720p" });
+  expect(JSON.parse(String(beaconCall?.[1]?.body))).toEqual({
+    type: "download",
+    quality: "720p",
+    platform: "twitter",
+  });
+});
+
+test("threads the platform into the download beacon", async () => {
+  const fetchMock = stubProxyAndBeacon();
+  vi.stubGlobal("fetch", fetchMock);
+  render(<QualityButton variant={variant} filename="f.mp4" platform="tiktok" />);
+  await userEvent.click(screen.getByRole("button"));
+  const beaconCall = fetchMock.mock.calls.find(([url]) => String(url) === "/api/event");
+  expect(JSON.parse(String(beaconCall?.[1]?.body))).toEqual({
+    type: "download",
+    quality: "720p",
+    platform: "tiktok",
+  });
 });
 
 test("download beacon failure does not block or alter the download", async () => {

@@ -15,10 +15,12 @@ export function QualityButton({
   variant,
   filename,
   primary = false,
+  platform = "twitter",
 }: {
   variant: Variant;
   filename: string;
   primary?: boolean;
+  platform?: "twitter" | "tiktok";
 }) {
   const [phase, setPhase] = useState<Phase>({ name: "idle" });
   const size = formatBytes(variant.size_bytes);
@@ -31,7 +33,7 @@ export function QualityButton({
   async function start() {
     if (phase.name === "downloading") return;
     setPhase({ name: "downloading", progress: { received: 0, total: variant.size_bytes } });
-    sendEvent("download", variant.label);
+    sendEvent("download", { quality: variant.label, platform });
     try {
       await downloadVariant(variant.url, filename, (progress) =>
         setPhase({ name: "downloading", progress }),

@@ -5,7 +5,13 @@ import { formatDuration } from "../lib/format";
 import { cardReveal, cascade } from "../lib/motion";
 import { QualityButton } from "./QualityButton";
 
-export function PreviewCard({ data }: { data: ResolveResponse }) {
+export function PreviewCard({
+  data,
+  platform = "twitter",
+}: {
+  data: ResolveResponse;
+  platform?: "twitter" | "tiktok";
+}) {
   return (
     <motion.article {...cardReveal} data-testid="preview-card" className="panel p-5">
       <motion.div {...cascade(0)} className="flex items-center gap-3">
@@ -30,14 +36,22 @@ export function PreviewCard({ data }: { data: ResolveResponse }) {
 
       <div className="mt-4 space-y-6">
         {data.items.map((item) => (
-          <MediaSection key={item.index} item={item} data={data} />
+          <MediaSection key={item.index} item={item} data={data} platform={platform} />
         ))}
       </div>
     </motion.article>
   );
 }
 
-function MediaSection({ item, data }: { item: MediaItem; data: ResolveResponse }) {
+function MediaSection({
+  item,
+  data,
+  platform,
+}: {
+  item: MediaItem;
+  data: ResolveResponse;
+  platform: "twitter" | "tiktok";
+}) {
   const many = data.items.length > 1;
   return (
     <section aria-label={many ? `Video ${item.index}` : "Video"}>
@@ -72,6 +86,7 @@ function MediaSection({ item, data }: { item: MediaItem; data: ResolveResponse }
             key={variant.url}
             variant={variant}
             primary={i === 0}
+            platform={platform}
             filename={buildFilename(data.handle, data.id, variant.label, item.index, data.items.length)}
           />
         ))}

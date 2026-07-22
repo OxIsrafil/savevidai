@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { AdSlot } from "./components/AdSlot";
 import { HowToVisual } from "./components/HowToVisual";
 import { PasteInput } from "./components/PasteInput";
+import { PlatformLinks } from "./components/PlatformLinks";
 import { PreviewCard } from "./components/PreviewCard";
 import { SkeletonCard } from "./components/SkeletonCard";
 import { ThemeToggle } from "./components/ThemeToggle";
@@ -35,7 +36,7 @@ export default function App() {
   useEffect(() => {
     if (visitBeaconSent) return;
     visitBeaconSent = true;
-    sendEvent("visit");
+    sendEvent("visit", { platform: "twitter" });
   }, []);
 
   // When a fetch lands, bring the preview card in front of the user's eyes.
@@ -116,6 +117,9 @@ export default function App() {
         </span>
         <span className="flex items-center gap-2">
           <span className="nav-meta">Twitter/X · no login</span>
+          <a className="nav-meta nav-link" href="/tiktokvideodownloader">
+            TikTok
+          </a>
           <ThemeToggle />
           <button type="button" className="btn btn-small" onClick={focusInput}>
             Download
@@ -179,6 +183,10 @@ export default function App() {
           Straight from Twitter's CDN. No popups, no fake buttons, ever.
         </motion.p>
 
+        <motion.div {...fadeRise(5)} className="mt-8">
+          <PlatformLinks active="twitter" />
+        </motion.div>
+
         {/* No AnimatePresence here on purpose: an interrupted exit animation can wedge
             mode="wait" and block the card forever (seen live when a resolve failed while
             the backend was down). Instant swap + card entrance animation is robust. */}
@@ -187,7 +195,7 @@ export default function App() {
           {state.status === "ready" && <PreviewCard data={state.data} />}
         </div>
 
-        <motion.div {...fadeRise(5)}>
+        <motion.div {...fadeRise(6)}>
           <HowToVisual />
         </motion.div>
 

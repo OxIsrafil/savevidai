@@ -29,6 +29,17 @@ test("fires exactly one visit beacon per page load, even with StrictMode's doubl
     return body.type === "visit";
   });
   expect(visitCalls).toHaveLength(1);
+  const visitBody = JSON.parse(String((visitCalls[0][1] as RequestInit).body));
+  expect(visitBody).toEqual({ type: "visit", platform: "twitter" });
+});
+
+test("links to the TikTok downloader page", () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 204 })));
+  render(<App />);
+  const tiktokLinks = screen
+    .getAllByRole("link")
+    .filter((el) => el.getAttribute("href") === "/tiktokvideodownloader");
+  expect(tiktokLinks.length).toBeGreaterThan(0);
 });
 
 test("paste-to-card flow scrolls to the result and confirms on the button", async () => {
