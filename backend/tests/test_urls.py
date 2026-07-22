@@ -82,12 +82,13 @@ def test_parse_tiktok_invalid(url):
 
 
 REDDIT_POST_CASES = [
-    ("https://www.reddit.com/r/aww/comments/1abc23x/cute_dog/", "1abc23x"),
-    ("https://reddit.com/r/aww/comments/1abc23x", "1abc23x"),
-    ("https://old.reddit.com/r/aww/comments/1abc23x/title/?share=1", "1abc23x"),
-    ("https://www.reddit.com/comments/1abc23x", "1abc23x"),
-    ("https://redd.it/1abc23x", "1abc23x"),
-    ("redd.it/1abc23x", "1abc23x"),
+    # slug is always dropped from built paths
+    ("https://www.reddit.com/r/aww/comments/1abc23x/cute_dog/", "1abc23x", "/r/aww/comments/1abc23x/"),
+    ("https://reddit.com/r/aww/comments/1abc23x", "1abc23x", "/r/aww/comments/1abc23x/"),
+    ("https://old.reddit.com/r/aww/comments/1abc23x/title/?share=1", "1abc23x", "/r/aww/comments/1abc23x/"),
+    ("https://www.reddit.com/comments/1abc23x", "1abc23x", "/comments/1abc23x"),
+    ("https://redd.it/1abc23x", "1abc23x", "/comments/1abc23x"),
+    ("redd.it/1abc23x", "1abc23x", "/comments/1abc23x"),
 ]
 REDDIT_INVALID = [
     "",
@@ -100,20 +101,47 @@ REDDIT_INVALID = [
 ]
 
 
-@pytest.mark.parametrize("url,expected_id", REDDIT_POST_CASES)
-def test_parse_reddit_post(url, expected_id):
+@pytest.mark.parametrize("url,expected_id,expected_path", REDDIT_POST_CASES)
+def test_parse_reddit_post(url, expected_id, expected_path):
     kind, value, path = parse_reddit_url(url)
     assert kind == "post"
     assert value == expected_id
-    assert path.startswith("/")
-    assert expected_id in path
+    assert path == expected_path
 
 
 def test_parse_reddit_share_link():
     kind, value, path = parse_reddit_url("https://www.reddit.com/r/aww/s/AbCdEfGh1")
     assert kind == "share"
     assert value.startswith("https://www.reddit.com/r/aww/s/")
-    assert "/s/" in path
+    assert path == "/r/aww/s/AbCdEfGh1"
+
+
+def test_parse_reddit_traversal_sub_drops_to_slugless_post():
+    # a path-traversal sub fails the sub regex, but the id is still valid, so we
+    # fall back to the sub-less /comments/<id> form rather than rejecting.
+    kind, value, path = parse_reddit_url("https://www.reddit.com/r/../comments/1abc23x/x/")
+    assert kind == "post"
+    assert value == "1abc23x"
+    assert path == "/comments/1abc23x"
+
+
+def test_parse_reddit_huge_slug_is_dropped():
+    huge = "a" * 5000
+    kind, value, path = parse_reddit_url(f"https://www.reddit.com/r/aww/comments/1abc23x/{huge}/")
+    assert kind == "post"
+    assert value == "1abc23x"
+    assert path == "/r/aww/comments/1abc23x/"
+
+
+def test_parse_reddit_share_junk_token_raises():
+    with pytest.raises(InvalidTweetURL):
+        parse_reddit_url("https://www.reddit.com/r/aww/s/" + "z" * 40)
+
+
+def test_parse_reddit_share_valid_builds_literal_path():
+    kind, value, path = parse_reddit_url("https://old.reddit.com/r/AskReddit/s/Xy9ZaB2c")
+    assert kind == "share"
+    assert path == "/r/AskReddit/s/Xy9ZaB2c"
 
 
 @pytest.mark.parametrize("url", REDDIT_INVALID)
