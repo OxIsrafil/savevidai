@@ -4,7 +4,7 @@
 
 **Goal:** Add TikTok photo-slideshow downloads (photo grid + Save all + soundtrack), a TikTok-specific annotated how-to graphic, and four small pre-merge improvements (HD chip, example chip, 15-min TikTok cache TTL, TikTok OG image) to the `feature/tiktok` branch.
 
-**Architecture:** The tikwm mapper grows a slideshow branch (photos as `kind="image"` items, sound as `kind="audio"`, rendered video kept when present). The proxy forwards upstream Content-Type and its rate limit rises to 60/min so Save all survives large albums. The frontend adds a PhotoGrid with per-photo save state and single-beacon-per-action analytics. Everything else is small, surgical edits.
+**Architecture:** The tikwm mapper grows a slideshow branch (photos as `kind="image"` items, sound as `kind="audio"`; play/hdplay are never video on photo posts). The proxy forwards upstream Content-Type and its rate limit rises to 60/min so Save all survives large albums. The frontend adds a PhotoGrid with per-photo save state and single-beacon-per-action analytics. Everything else is small, surgical edits.
 
 **Tech Stack:** Python 3.12, FastAPI, httpx, pytest, respx. TypeScript, Vite 6, React, Vitest.
 
@@ -13,9 +13,9 @@
 ## Global Constraints
 
 - Response shape unchanged: `ResolveResponse(id, author, handle, avatar_url, text, items[MediaItem(index, kind, thumbnail, duration_seconds, variants[Variant(label, width, height, url, size_bytes)])])`.
-- Video labels stay exactly `hd`/`sd`; the watermarked URL is never offered. New labels: `photo` (single image), `sound` (mp3). Beacon-only label: `album` (Save all, one event per action).
+- Video labels stay exactly `hd`/`sd`; the watermarked URL is never offered. New labels: `photo` (single image), `sound` (m4a soundtrack). Beacon-only label: `album` (Save all, one event per action).
 - `/api/event` quality regex becomes exactly `^(\d{2,4}p|video|hd|sd|photo|album|sound)$`.
-- Item indexes are unique per post: photos 1..N, audio N+1, rendered slideshow video N+2.
+- Item indexes are unique per post: photos 1..N, audio N+1. There is NO rendered-video item on photo posts (verified live: play/hdplay/wmplay all equal the music URL on photo posts; mapping them as video would mislabel the soundtrack).
 - Proxy host matching stays exact-host or dot-suffix, never substring; no redirect-follow; `TIKTOK_MEDIA_HOSTS` changes only with live-verified evidence (it feeds the SSRF allowlist).
 - `fill_sizes` never HEADs `image`/`audio` variants.
 - Zero-cost model: no server-side media processing, no zip, no new backend dependencies.
@@ -25,7 +25,12 @@
 
 ## Verified third-party contract
 
-The controller makes ONE real tikwm call with a public slideshow URL before Task 1 dispatches and records: the `images` key shape, the music URL key + host, image byte hosts, and whether `play`/`hdplay` exist on photo posts. Task 1's fixture mirrors that reality. Tests use fixtures only, no network. If any observed byte host falls outside the current allowlist (`tikwm.com`, `tiktokcdn.com`, `tiktokcdn-us.com`, `tiktokcdn-eu.com`, suffix-matched), widening `TIKTOK_MEDIA_HOSTS` is a security-reviewed change in Task 1 with a matching proxy test.
+VERIFIED 2026-07-22 against `@velocitydrawing/photo/7266832970353233185` (response saved at `.superpowers/sdd/tikwm-slideshow-real-response.json`):
+- `data.images` = list of https image URLs (host `p16-common-sign.tiktokcdn-us.com`, suffix-matches the existing allowlist; image bytes fetch with a plain UA, content-type image/jpeg).
+- `data.music` = string https URL (host `sf16-sign.tiktokcdn-us.com`, also allowlisted); the file is AAC in an MP4 container (content-type `audio/mp4`), so the sound filename extension is `.m4a`, NOT `.mp3`.
+- On photo posts `play`, `hdplay`, and `wmplay` are ALL byte-identical to `music` (the soundtrack). They are never mapped as video for slideshow posts.
+- `size`/`hd_size` are 0 on photo posts. `music_info.play` duplicates `music`.
+- `TIKTOK_MEDIA_HOSTS` needs NO changes. Tests use fixtures only, no network.
 
 ## File structure
 
@@ -60,9 +65,9 @@ Frontend:
 
 **Interfaces:**
 - Consumes: existing `map_tiktok`, `_map_guarded`, `_size`, `MediaItem`, `Variant`, `app_error(NO_VIDEO)`.
-- Produces: slideshow posts resolve to `items = [image x N, audio?, video?]` with indexes 1..N, N+1, N+2; `fill_sizes` skips `image`/`audio` kinds.
+- Produces: slideshow posts resolve to `items = [image x N, audio?]` with indexes 1..N, N+1; `fill_sizes` skips `image`/`audio` kinds.
 
-The controller supplies the verified real slideshow response facts in the dispatch (music key, hosts, whether `play` exists on photo posts). The fixture below uses placeholder key names matching the tikwm docs; ALIGN IT with the verified facts before writing code.
+The fixture below already mirrors the verified real response (see "Verified third-party contract" above); the saved real response is at `.superpowers/sdd/tikwm-slideshow-real-response.json`.
 
 - [ ] **Step 1: Write the failing tests** (append to `backend/tests/test_tiktok.py`)
 
@@ -78,33 +83,33 @@ SLIDESHOW = {
             "https://p16-sign.tiktokcdn-us.com/img2.jpeg",
             "https://p16-sign.tiktokcdn-us.com/img3.jpeg",
         ],
-        "music": "https://www.tikwm.com/video/music/x.mp3",
-        "play": "https://v16m.tiktokcdn-us.com/rendered/x.mp4",
+        "music": "https://sf16-sign.tiktokcdn-us.com/obj/tos-alisg-ve-2774/sound",
+        "play": "https://sf16-sign.tiktokcdn-us.com/obj/tos-alisg-ve-2774/sound",
+        "hdplay": "https://sf16-sign.tiktokcdn-us.com/obj/tos-alisg-ve-2774/sound",
+        "wmplay": "https://sf16-sign.tiktokcdn-us.com/obj/tos-alisg-ve-2774/sound",
         "author": {"unique_id": "user", "nickname": "User Name", "avatar": "https://p19.tiktokcdn-us.com/a.jpg"},
     },
 }
 
 
-def test_map_slideshow_photos_sound_and_rendered_video():
+def test_map_slideshow_photos_and_sound_never_video():
     res = map_tiktok("7300000000000000000", SLIDESHOW)
     kinds = [(i.index, i.kind) for i in res.items]
-    assert kinds[:3] == [(1, "image"), (2, "image"), (3, "image")]
-    assert (4, "audio") in kinds
-    assert (5, "video") in kinds
+    assert kinds == [(1, "image"), (2, "image"), (3, "image"), (4, "audio")]
     photo = res.items[0]
     assert photo.variants[0].label == "photo"
     assert photo.variants[0].url == "https://p16-sign.tiktokcdn-us.com/img1.jpeg"
     assert photo.thumbnail == photo.variants[0].url
-    audio = [i for i in res.items if i.kind == "audio"][0]
+    audio = res.items[3]
     assert audio.variants[0].label == "sound"
-    video = [i for i in res.items if i.kind == "video"][0]
-    assert [v.label for v in video.variants] == ["sd"]
+    # play/hdplay/wmplay duplicate the soundtrack on photo posts; never offered as video
+    assert all(i.kind != "video" for i in res.items)
 
 
-def test_map_slideshow_without_music_or_video():
+def test_map_slideshow_without_music():
     body = {"code": 0, "data": {**SLIDESHOW["data"]}}
-    body["data"].pop("music")
-    body["data"].pop("play")
+    for k in ("music", "play", "hdplay", "wmplay"):
+        body["data"].pop(k, None)
     res = map_tiktok("1", body)
     assert [i.kind for i in res.items] == ["image", "image", "image"]
 
@@ -165,7 +170,7 @@ Add the helper (module level, near `map_tiktok`):
 
 ```python
 def _map_slideshow(url_id: str, data: dict, photo_urls: list[str]) -> ResolveResponse:
-    """Map a tikwm photo post: photos 1..N, soundtrack N+1, rendered video N+2."""
+    """Map a tikwm photo post: photos 1..N, soundtrack N+1. Never video."""
     author = data.get("author") or {}
     handle = author.get("unique_id") or "unknown"
     items: list[MediaItem] = [
@@ -178,18 +183,8 @@ def _map_slideshow(url_id: str, data: dict, photo_urls: list[str]) -> ResolveRes
         items.append(MediaItem(index=len(photo_urls) + 1, kind="audio", thumbnail=None,
                                duration_seconds=None,
                                variants=[Variant(label="sound", url=music)]))
-    video_variants: list[Variant] = []
-    for key, label in (("hdplay", "hd"), ("play", "sd")):
-        u = data.get(key)
-        if isinstance(u, str) and u.startswith("https://"):
-            video_variants.append(Variant(label=label, url=u,
-                                          size_bytes=_size(data.get("hd_size" if key == "hdplay" else "size"))))
-    if video_variants:
-        dur = data.get("duration")
-        items.append(MediaItem(index=len(photo_urls) + 2, kind="video",
-                               thumbnail=data.get("cover"),
-                               duration_seconds=float(dur) if isinstance(dur, (int, float)) and dur else None,
-                               variants=video_variants))
+    # play/hdplay/wmplay on photo posts duplicate the music URL (verified live
+    # 2026-07-22); intentionally never mapped as video here.
     return ResolveResponse(
         id=str(data.get("id") or url_id),
         author=author.get("nickname") or handle,
@@ -423,7 +418,7 @@ ruff check . && cd .. && git add backend/app/cache.py backend/app/resolve.py bac
 - Test: `frontend/src/lib/download.test.ts` (extend or create following the existing lib test layout)
 
 **Interfaces:**
-- Produces: `MediaItem.kind: "video" | "gif" | "image" | "audio"`; `buildMediaFilename(handle: string, id: string, kind: "photo" | "sound", n?: number): string`; `fetchBlob` types the Blob from the response Content-Type (fallback `video/mp4`). `downloadVariant(url, filename, onProgress)` signature unchanged.
+- Produces: `MediaItem.kind: "video" | "gif" | "image" | "audio"`; `buildMediaFilename(handle: string, id: string, kind: "photo" | "sound", n?: number): string` (sound extension is `.m4a`; the verified soundtrack is AAC/MP4, not mp3); `fetchBlob` types the Blob from the response Content-Type (fallback `video/mp4`). `downloadVariant(url, filename, onProgress)` signature unchanged.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -436,7 +431,7 @@ describe("buildMediaFilename", () => {
     expect(buildMediaFilename("user", "730", "photo", 2)).toBe("user_730_photo_2.jpg");
   });
   test("sound filename", () => {
-    expect(buildMediaFilename("user", "730", "sound")).toBe("user_730_sound.mp3");
+    expect(buildMediaFilename("user", "730", "sound")).toBe("user_730_sound.m4a");
   });
 });
 ```
@@ -469,7 +464,7 @@ export function buildMediaFilename(
   kind: "photo" | "sound",
   n?: number,
 ): string {
-  return kind === "photo" ? `${handle}_${id}_photo_${n}.jpg` : `${handle}_${id}_sound.mp3`;
+  return kind === "photo" ? `${handle}_${id}_photo_${n}.jpg` : `${handle}_${id}_sound.m4a`;
 }
 ```
 
@@ -509,7 +504,7 @@ cd .. && git add frontend/src/lib/api.ts frontend/src/lib/download.ts frontend/s
 - Grid of photo thumbnails using existing card/panel tokens; per-photo save state: idle, saving, saved, failed (state visible on the tile, e.g. overlay icon).
 - Tap photo n: `sendEvent("download", { quality: "photo", platform })` once, then `downloadVariant(variant.url, buildMediaFilename(handle, id, "photo", n), ...)`; tile shows saved or failed from the promise result.
 - Save all: exactly ONE `sendEvent("download", { quality: "album", platform })`, then photos download sequentially with a ~600ms stagger, updating each tile; a failure marks that tile failed and continues.
-- Sound pill (rendered only when `audio` is non-null): one `sendEvent("download", { quality: "sound", platform })`, saves `{handle}_{id}_sound.mp3`.
+- Sound pill (rendered only when `audio` is non-null): one `sendEvent("download", { quality: "sound", platform })`, saves `{handle}_{id}_sound.m4a`.
 - No emoji in labels: buttons read "Save all", "Sound", tile states use the existing check/cross iconography.
 
 - [ ] **Step 1: Write the failing tests** (`frontend/src/components/PhotoGrid.test.tsx`, real DOM, mock `fetch` the way `QualityButton.test.tsx` mocks downloads - read that file first and mirror its stubbing approach)
@@ -518,7 +513,7 @@ Required assertions:
 1. Renders one `img` per photo (fixture: 3 photos) and a "Save all" button; "Sound" appears only when `audio` is passed.
 2. Clicking one photo fires exactly one `/api/event` beacon with body `{type:"download", quality:"photo", platform:"tiktok"}` and one proxy fetch whose URL contains `photo_2.jpg` for the second photo.
 3. Clicking "Save all" fires exactly one beacon with `quality:"album"` (not one per photo) and one proxy fetch per photo.
-4. Clicking "Sound" fires one beacon `quality:"sound"` and fetches a URL containing `sound.mp3`.
+4. Clicking "Sound" fires one beacon `quality:"sound"` and fetches a URL containing `sound.m4a`.
 
 Write these as concrete tests against the mocked `fetch` call log; use `vi.useFakeTimers()` to fast-forward the stagger in the Save all test.
 
@@ -666,7 +661,7 @@ Chip button labeled `▶ try an example` in the chip row, `runExample` mirrors h
 
 - [ ] **Step 3: FAQ flip.** In `frontend/tiktokvideodownloader.html`, update BOTH the visible `<details>` slideshow answer and the matching JSON-LD `acceptedAnswer` text to:
 
-> Yes. Photo slideshows resolve to a photo grid: save any photo, save them all in one tap, or grab the soundtrack as an mp3. Your browser may ask once to allow multiple downloads.
+> Yes. Photo slideshows resolve to a photo grid: save any photo, save them all in one tap, or grab the soundtrack as an audio file. Your browser may ask once to allow multiple downloads.
 
 Keep phrasing identical in both places apart from JSON-LD escaping. No em dashes, no emoji.
 
