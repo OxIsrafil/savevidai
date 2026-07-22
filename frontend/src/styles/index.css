@@ -217,6 +217,13 @@ a {
 .hero-h1 .small {
   font-size: 0.56em;
   letter-spacing: -0.02em;
+  /* Own block-level line so the line box uses this word's smaller font
+     strut instead of the H1's large strut, killing the dead space above
+     the wrapped "Downloader". Small negative tuck matches the tight
+     autopsy-style heroes; overflow:hidden on .word still clips the reveal. */
+  display: block;
+  line-height: 1;
+  margin-top: -0.1em;
 }
 .word {
   display: inline-block;
