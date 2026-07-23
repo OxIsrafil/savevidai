@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 
 from .errors import UPSTREAM, AppError, app_error
 from .limits import limiter
+from .reddit import REDDIT_MEDIA_HOSTS
 from .tiktok import TIKTOK_MEDIA_HOSTS
 
 router = APIRouter()
@@ -15,7 +16,9 @@ router = APIRouter()
 # Exact hosts or registrable suffixes allowed as download sources. Suffix match
 # is boundary-safe (host == d or host endswith "." + d), never substring, so
 # "video.twimg.com.evil.com" and "tikwm.com.evil.com" are rejected.
-_ALLOWED_HOSTS = ("video.twimg.com", *TIKTOK_MEDIA_HOSTS)
+# "redd.it" is a registrable suffix, so the dot-suffix rule covers both
+# v.redd.it (video) and i.redd.it (images) while rejecting "redd.it.evil.com".
+_ALLOWED_HOSTS = ("video.twimg.com", *TIKTOK_MEDIA_HOSTS, *REDDIT_MEDIA_HOSTS)
 _SAFE = re.compile(r"[^A-Za-z0-9._-]")
 
 

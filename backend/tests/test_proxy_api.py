@@ -107,3 +107,43 @@ def test_proxy_defaults_to_mp4_without_upstream_type():
             return_value=httpx.Response(200, content=b"vid", headers={"content-length": "3"}))
         res = client().get("/api/proxy", params={"url": "https://video.twimg.com/x.mp4"})
         assert res.headers["content-type"].startswith("video/mp4")
+
+
+def test_proxy_allows_vredd_host():
+    with respx.mock:
+        respx.get("https://v.redd.it/enxxsuo5xko31/DASH_720").mock(
+            return_value=httpx.Response(200, content=b"vid", headers={"content-length": "3"}))
+        res = client().get(
+            "/api/proxy",
+            params={"url": "https://v.redd.it/enxxsuo5xko31/DASH_720"})
+        assert res.status_code == 200
+        assert res.content == b"vid"
+
+
+def test_proxy_allows_iredd_host():
+    with respx.mock:
+        respx.get("https://i.redd.it/abc123.jpg").mock(
+            return_value=httpx.Response(200, content=b"jpg", headers={"content-length": "3"}))
+        res = client().get(
+            "/api/proxy",
+            params={"url": "https://i.redd.it/abc123.jpg"})
+        assert res.status_code == 200
+        assert res.content == b"jpg"
+
+
+def test_proxy_allows_redd_it_exact_host():
+    with respx.mock:
+        respx.get("https://redd.it/x").mock(
+            return_value=httpx.Response(200, content=b"ok", headers={"content-length": "2"}))
+        res = client().get("/api/proxy", params={"url": "https://redd.it/x"})
+        assert res.status_code == 200
+        assert res.content == b"ok"
+
+
+def test_proxy_rejects_redd_it_lookalike():
+    res = client().get("/api/proxy", params={"url": "https://redd.it.evil.com/x.mp4"})
+    assert res.status_code == 403
+    res2 = client().get("/api/proxy", params={"url": "https://vredd.it/x.mp4"})
+    assert res2.status_code == 403
+    res3 = client().get("/api/proxy", params={"url": "https://notredd.it/x"})
+    assert res3.status_code == 403
