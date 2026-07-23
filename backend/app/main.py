@@ -54,8 +54,10 @@ def create_app() -> FastAPI:
             # The maintenance page's own assets must load, so let them fall through.
             # The cookie-authed admin API must also stay reachable, otherwise the
             # operator is locked out and can never toggle maintenance back off.
+            # The /admin dashboard page itself is exempt for the same reason: a
+            # fresh visit must load the login/toggle UI, not the maintenance page.
             if (
-                path != "/api/health"
+                path not in ("/api/health", "/admin")
                 and not path.startswith("/maintenance/")
                 and not path.startswith("/api/admin/")
             ):

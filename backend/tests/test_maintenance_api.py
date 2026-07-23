@@ -11,6 +11,9 @@ from app.main import create_app
 
 def _make_static(tmp_path):
     (tmp_path / "index.html").write_text("<!doctype html><title>home</title>")
+    (tmp_path / "admin.html").write_text(
+        "<!doctype html><title>Admin</title><h1>Admin dashboard</h1>"
+    )
     (tmp_path / "maintenance.html").write_text(
         "<!doctype html><title>Under maintenance</title><h1>Under maintenance</h1>"
     )
@@ -59,6 +62,35 @@ def test_toggle_maintenance_flow(enabled_client):
         assert r.status_code == 200
         assert r.json() == {"on": False, "forced_by_env": False}
 
+        assert client.get("/").status_code == 200
+    finally:
+        maintenance.set_on(False)
+
+
+def test_admin_page_reachable_during_maintenance(enabled_client):
+    # With maintenance ON via the in-memory flag, the /admin dashboard page must
+    # still load so the owner can log in and toggle maintenance back off. Every
+    # other page route stays blocked with the 503 maintenance page.
+    client, *_ = enabled_client
+    try:
+        maintenance.set_on(True)
+
+        # A normal page route is still blocked.
+        root = client.get("/")
+        assert root.status_code == 503
+        assert "Under maintenance" in root.text
+
+        # The admin dashboard page loads and serves admin.html, not the 503 page.
+        admin = client.get("/admin")
+        assert admin.status_code == 200
+        assert "Admin dashboard" in admin.text
+        assert "Under maintenance" not in admin.text
+
+        # The cookie-authed admin API stays reachable (401 without a cookie, not 503).
+        assert client.get("/api/admin/maintenance").status_code == 401
+
+        # Toggling maintenance off restores the public site.
+        maintenance.set_on(False)
         assert client.get("/").status_code == 200
     finally:
         maintenance.set_on(False)
