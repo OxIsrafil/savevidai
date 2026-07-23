@@ -174,41 +174,10 @@
         font-size: 1.05rem;
         line-height: 1.55;
       }
-      .push {
-        margin-top: 18px;
-        display: inline-flex;
-        align-items: center;
-        gap: 9px;
-        padding: 9px 16px;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: var(--panel);
-        color: var(--fg);
-        font-size: 0.95rem;
-      }
-      .live-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--accent);
-        box-shadow: 0 0 0 0 rgba(41, 151, 255, 0.6);
-        animation: blink 1.4s ease-in-out infinite;
-      }
-      @keyframes blink {
-        0%,
-        100% {
-          box-shadow: 0 0 0 0 rgba(41, 151, 255, 0.55);
-          opacity: 1;
-        }
-        50% {
-          box-shadow: 0 0 0 7px rgba(41, 151, 255, 0);
-          opacity: 0.7;
-        }
-      }
       .eta {
         margin-top: 12px;
-        color: var(--faint);
-        font-size: 0.92rem;
+        color: var(--muted);
+        font-size: 1rem;
       }
       footer {
         position: relative;
@@ -230,7 +199,6 @@
         .blob-a,
         .blob-b,
         .pulse,
-        .live-dot,
         .dots::after {
           animation: none;
         }
@@ -251,20 +219,15 @@
         <div id="lottie" role="img" aria-label="Maintenance in progress"></div>
       </div>
 
-      <h1>Under maintenance<span class="dots" aria-hidden="true"></span></h1>
+      <h1>be right back<span class="dots" aria-hidden="true"></span></h1>
 
-      <p class="sub">SaveVid AI will be live again shortly.</p>
+      <p class="sub">i'm pushing an update right now.</p>
 
-      <div class="push">
-        <span class="live-dot" aria-hidden="true"></span>
-        Israfil is pushing some updates right now
-      </div>
-
-      <p class="eta">This usually takes a few minutes.</p>
+      <p class="eta">give it a few minutes, then refresh.</p>
     </main>
 
     <footer>
-      Thank you for using our open source tool.<br />
+      thanks for using it. it's open source, always.<br />
       <a href="https://github.com/OxIsrafil/savevidai" rel="noopener">github.com/OxIsrafil/savevidai</a>
     </footer>
 
