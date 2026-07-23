@@ -80,6 +80,17 @@ def create_app() -> FastAPI:
             return FileResponse(path)
         raise HTTPException(status_code=404)
 
+    @app.get("/redditvideodownloader")
+    def reddit_page():
+        from fastapi import HTTPException
+        from fastapi.responses import FileResponse
+
+        sd = os.environ.get("STATIC_DIR", "")
+        path = os.path.join(sd, "redditvideodownloader.html")
+        if sd and os.path.isfile(path):
+            return FileResponse(path)
+        raise HTTPException(status_code=404)
+
     # Serves the built frontend in the Docker image; absent in dev, where Vite serves it.
     static_dir = os.environ.get("STATIC_DIR", "")
     if static_dir and os.path.isdir(static_dir):

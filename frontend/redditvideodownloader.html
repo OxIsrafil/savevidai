@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reddit Video Downloader - With Audio, Free | SaveVid AI</title>
+    <meta name="description" content="Download Reddit videos with the audio merged in, in original quality. No popups, no redirects, no fake download buttons. Free, open source, and instant." />
+    <link rel="canonical" href="https://savevidai.israfill.dev/redditvideodownloader" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://savevidai.israfill.dev/redditvideodownloader" />
+    <meta property="og:title" content="Reddit Video Downloader - With Audio, Free | SaveVid AI" />
+    <meta property="og:description" content="Paste a Reddit post link, get the video with audio, in seconds. No popups, no fake buttons, open source." />
+    <meta property="og:image" content="https://savevidai.israfill.dev/og-reddit.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Reddit Video Downloader - With Audio, Free | SaveVid AI" />
+    <meta name="twitter:description" content="Paste a Reddit post link, get the video with audio, in seconds. No popups, no fake buttons, open source." />
+    <meta name="twitter:image" content="https://savevidai.israfill.dev/og-reddit.png" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Does the Reddit video download come with audio?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Reddit stores video and audio as separate streams, and SaveVid AI merges them automatically so you get one file with sound." }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I download Reddit galleries?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Not yet. Reddit galleries are coming; videos, GIFs, and single images work today." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the Reddit downloader really free?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. No popups, no redirects, and no fake download buttons, ever. The code is open source, so you can verify that yourself or run your own copy." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it safe to use SaveVid AI for Reddit?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. There is no login, no account, and no tracking. Nothing is installed on your device, and the code is open source so you can read exactly what it does." }
+        }
+      ]
+    }
+    </script>
+    <script>
+      try { if (localStorage.theme === "light") document.documentElement.classList.remove("dark"); } catch (e) {}
+    </script>
+  </head>
+  <body class="font-sans">
+    <div id="root"></div>
+
+    <!-- Static, crawlable landing content. Lives outside the React root on purpose. -->
+    <section class="mx-auto max-w-3xl px-4 pt-8 pb-6">
+      <p class="kicker">how it works</p>
+      <h2 class="section-title">Three steps, no accounts</h2>
+      <div class="steps-grid mt-7">
+        <div class="step-card">
+          <span class="step-num" aria-hidden="true">1</span>
+          <h3>Open the Reddit post</h3>
+          <p>On the post you want, tap Share, then Copy link. Works with reddit.com links and the short redd.it share links.</p>
+        </div>
+        <div class="step-card">
+          <span class="step-num" aria-hidden="true">2</span>
+          <h3>Paste it above</h3>
+          <p>The preview appears in about a second, with the video ready to save.</p>
+        </div>
+        <div class="step-card">
+          <span class="step-num" aria-hidden="true">3</span>
+          <h3>Download</h3>
+          <p>The video saves straight to your device with the audio merged in and a clean filename.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-3xl px-4 py-12">
+      <p class="kicker">questions</p>
+      <h2 class="section-title">Frequently asked questions</h2>
+      <div class="faq mt-7">
+        <details>
+          <summary>Does the Reddit video download come with audio?</summary>
+          <p>Yes. Reddit stores video and audio as separate streams, and SaveVid AI merges them automatically so you get one file with sound.</p>
+        </details>
+        <details>
+          <summary>Can I download Reddit galleries?</summary>
+          <p>Not yet. Reddit galleries are coming; videos, GIFs, and single images work today.</p>
+        </details>
+        <details>
+          <summary>Is the Reddit downloader really free?</summary>
+          <p>Yes. No popups, no redirects, and no fake download buttons, ever. The code is open source, so you can verify that yourself or run your own copy.</p>
+        </details>
+        <details>
+          <summary>Is it safe to use SaveVid AI for Reddit?</summary>
+          <p>Yes. There is no login, no account, and no tracking. Nothing is installed on your device, and the code is open source so you can read exactly what it does.</p>
+        </details>
+        <details>
+          <summary>Who runs this?</summary>
+          <p>SaveVid AI is an open source project by <a href="https://x.com/israfill" target="_blank" rel="noopener">@israfill</a>. Read the code, star it, or self-host it from the <a href="https://github.com/OxIsrafil/savevidai" target="_blank" rel="noopener">GitHub repository</a>.</p>
+        </details>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div class="fwrap mx-auto max-w-3xl px-4">
+        <div>
+          <p class="footer-brand">SaveVid AI<span class="brand-dot">.</span></p>
+          <p class="footer-desc">Open source Reddit video downloader. No popups, no fake buttons, no tracking. One paste, audio merged in.</p>
+        </div>
+        <nav class="footer-links" aria-label="SaveVid AI links">
+          <a href="https://x.com/israfill" target="_blank" rel="noopener">X · @israfill</a>
+          <a href="https://github.com/OxIsrafil/savevidai" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/OxIsrafil/savevidai#self-host" target="_blank" rel="noopener">Self-host</a>
+        </nav>
+      </div>
+      <div class="credit-row mx-auto max-w-3xl px-4">
+        <span class="credit">built by <a href="https://x.com/israfill" target="_blank" rel="noopener">@israfill</a> · MIT licensed</span>
+        <span class="credit">© 2026 SaveVid AI</span>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/reddit/main.tsx"></script>
+  </body>
+</html>
