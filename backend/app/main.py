@@ -34,6 +34,23 @@ def create_app() -> FastAPI:
     app = FastAPI(title="SaveVid AI", docs_url=None, redoc_url=None, lifespan=_lifespan)
     app.state.limiter = limiter
 
+    @app.middleware("http")
+    async def cache_headers(request: Request, call_next):
+        # Set Cache-Control on outgoing responses so hashed assets cache forever
+        # while HTML pages are always revalidated (a deploy is picked up at once).
+        response = await call_next(request)
+        path = request.url.path
+        if path.startswith("/api/"):
+            # API responses (health, resolve, mux, proxy, event) are left untouched.
+            return response
+        if path.startswith("/assets/") or path.startswith("/fonts/"):
+            # Hashed filenames never change under a given name; safe to cache forever.
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif response.headers.get("content-type", "").startswith("text/html"):
+            # Pages and the SPA index must always revalidate to avoid stale deploys.
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     @app.exception_handler(AppError)
     async def on_app_error(request: Request, exc: AppError):
         return JSONResponse(status_code=exc.status, content={"error": exc.code, "message": exc.message})
