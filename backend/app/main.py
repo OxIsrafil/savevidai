@@ -56,10 +56,18 @@ def create_app() -> FastAPI:
             # operator is locked out and can never toggle maintenance back off.
             # The /admin dashboard page itself is exempt for the same reason: a
             # fresh visit must load the login/toggle UI, not the maintenance page.
+            # /assets/ and /fonts/ are exempt too: the admin shell is a Vite SPA
+            # whose login/toggle UI only boots once its hashed JS/CSS chunks (and
+            # fonts) load, so blocking them would relock the owner out of the
+            # toggle. These are immutable hashed bundles with no secrets, and the
+            # public app's HTML entry ("/") stays blocked, so regular visitors
+            # still see the maintenance page and never boot the main app.
             if (
                 path not in ("/api/health", "/admin")
                 and not path.startswith("/maintenance/")
                 and not path.startswith("/api/admin/")
+                and not path.startswith("/assets/")
+                and not path.startswith("/fonts/")
             ):
                 if path.startswith("/api/"):
                     return JSONResponse(

@@ -96,6 +96,40 @@ def test_admin_page_reachable_during_maintenance(enabled_client):
         maintenance.set_on(False)
 
 
+def test_admin_spa_assets_served_during_maintenance(tmp_path, monkeypatch, enabled_client):
+    # The /admin page serves the SPA shell, but the shell only boots once its
+    # hashed JS/CSS chunks under /assets/ (and any /fonts/) load. Those requests
+    # must fall through during maintenance, otherwise a fresh visit or hard
+    # refresh hits the 503 page, the SPA never boots, and the owner is locked
+    # out of the toggle with no way back short of a redeploy.
+    client, *_ = enabled_client
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "admin-abc.js").write_text("console.log('admin spa');")
+    fonts = tmp_path / "fonts"
+    fonts.mkdir()
+    (fonts / "inter.woff2").write_bytes(b"woff2data")
+    try:
+        maintenance.set_on(True)
+
+        # A normal page route is still blocked so real visitors see maintenance.
+        assert client.get("/").status_code == 503
+
+        # The admin shell loads.
+        assert client.get("/admin").status_code == 200
+
+        # The SPA's hashed asset chunks serve, not the 503 maintenance page.
+        js = client.get("/assets/admin-abc.js")
+        assert js.status_code == 200
+        assert "admin spa" in js.text
+        assert "Under maintenance" not in js.text
+
+        font = client.get("/fonts/inter.woff2")
+        assert font.status_code == 200
+    finally:
+        maintenance.set_on(False)
+
+
 def test_no_cookie_unauthorized(enabled_client):
     client, *_ = enabled_client
     try:
