@@ -92,3 +92,52 @@ def test_platform_column_alter_migration_on_legacy_table():
     )])
     rows = s.query("SELECT platform FROM events", [])
     assert rows[0]["platform"] == "tiktok"
+
+
+def test_source_and_visitor_kind_columns_present_and_idempotent():
+    s = SqliteStore(":memory:")
+    s.init_schema()
+    s.init_schema()  # second call must not raise (migration idempotent)
+    s.execute_many([(
+        "INSERT INTO events (ts, type, outcome, country, visitor, source, visitor_kind) "
+        "VALUES (?,?,?,?,?,?,?)",
+        ["2026-07-20 10:00:00", "fetch", "ok", None, "vh", "twitter", "returning"],
+    )])
+    rows = s.query("SELECT source, visitor_kind FROM events", [])
+    assert rows[0]["source"] == "twitter"
+    assert rows[0]["visitor_kind"] == "returning"
+
+
+def test_source_and_visitor_kind_alter_migration_on_legacy_table():
+    # Simulate a pre-migration DB: an events table created WITHOUT the source and
+    # visitor_kind columns. init_schema must ALTER them in, idempotently.
+    s = SqliteStore(":memory:")
+    s._conn.execute("""CREATE TABLE events (
+        id      INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts      TEXT NOT NULL,
+        type    TEXT NOT NULL,
+        outcome TEXT,
+        country TEXT,
+        visitor TEXT NOT NULL
+    )""")
+    s._conn.commit()
+
+    cols_before = {r[1] for r in s._conn.execute("PRAGMA table_info(events)")}
+    assert "source" not in cols_before
+    assert "visitor_kind" not in cols_before
+
+    s.init_schema()  # exercises the ALTER TABLE ... ADD COLUMN path
+    cols_after = {r[1] for r in s._conn.execute("PRAGMA table_info(events)")}
+    assert "source" in cols_after
+    assert "visitor_kind" in cols_after
+
+    s.init_schema()  # second call must be idempotent, no raise
+
+    s.execute_many([(
+        "INSERT INTO events (ts, type, outcome, country, visitor, source, visitor_kind) "
+        "VALUES (?,?,?,?,?,?,?)",
+        ["2026-07-20 11:00:00", "fetch", "ok", None, "vl", "twitter", "new"],
+    )])
+    rows = s.query("SELECT source, visitor_kind FROM events", [])
+    assert rows[0]["source"] == "twitter"
+    assert rows[0]["visitor_kind"] == "new"

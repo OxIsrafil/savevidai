@@ -12,7 +12,9 @@ SCHEMA: list[str] = [
         outcome TEXT,
         country TEXT,
         visitor TEXT NOT NULL,
-        platform TEXT
+        platform TEXT,
+        source TEXT,
+        visitor_kind TEXT
     )""",
     "CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts)",
     "CREATE INDEX IF NOT EXISTS idx_events_type_ts ON events(type, ts)",
@@ -22,6 +24,16 @@ SCHEMA: list[str] = [
 def _ensure_platform_column(existing_cols: set[str]) -> list[str]:
     """Return the ALTER statements needed to add the platform column, or []."""
     return [] if "platform" in existing_cols else ["ALTER TABLE events ADD COLUMN platform TEXT"]
+
+
+def _ensure_source_column(existing_cols: set[str]) -> list[str]:
+    """Return the ALTER statements needed to add the source column, or []."""
+    return [] if "source" in existing_cols else ["ALTER TABLE events ADD COLUMN source TEXT"]
+
+
+def _ensure_visitor_kind_column(existing_cols: set[str]) -> list[str]:
+    """Return the ALTER statements needed to add the visitor_kind column, or []."""
+    return [] if "visitor_kind" in existing_cols else ["ALTER TABLE events ADD COLUMN visitor_kind TEXT"]
 
 
 class Store(Protocol):
@@ -44,7 +56,12 @@ class SqliteStore:
             for stmt in SCHEMA:
                 self._conn.execute(stmt)
             cols = {r[1] for r in self._conn.execute("PRAGMA table_info(events)")}
-            for stmt in _ensure_platform_column(cols):
+            migrations = (
+                _ensure_platform_column(cols)
+                + _ensure_source_column(cols)
+                + _ensure_visitor_kind_column(cols)
+            )
+            for stmt in migrations:
                 self._conn.execute(stmt)
             self._conn.commit()
 
@@ -101,7 +118,11 @@ class TursoStore:
     def init_schema(self) -> None:
         self._pipeline([(stmt, []) for stmt in SCHEMA])
         cols = {r["name"] for r in self.query("PRAGMA table_info(events)", [])}
-        migration = _ensure_platform_column(cols)
+        migration = (
+            _ensure_platform_column(cols)
+            + _ensure_source_column(cols)
+            + _ensure_visitor_kind_column(cols)
+        )
         if migration:
             self._pipeline([(stmt, []) for stmt in migration])
 
