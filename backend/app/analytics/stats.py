@@ -136,6 +136,38 @@ def compute_stats(store: Store, days: int, tz: int) -> dict:
     platforms = [{"platform": r["platform"], "fetches": r["fetches"] or 0,
                   "downloads": r["downloads"] or 0} for r in platform_rows]
 
+    # avg_active: mean daily unique visitors over FIXED 7- and 30-local-day
+    # windows, independent of the `days` argument. Convention (pinned): sum of
+    # per-day COUNT(DISTINCT visitor) over the window divided by the window
+    # length (7 or 30), so days with no visits contribute 0 uniques, then round
+    # to nearest int. The per-day distinct-visitor count matches the series
+    # `uniques` query (DISTINCT visitor across all event types), keeping
+    # avg_active consistent with series[].uniques. The lower bound is built the
+    # same local-calendar-date way as `window`, just with 7/30.
+    def _avg_active(window_days: int) -> int:
+        bound = f"date({local}) >= date(datetime('now','{tzmod}'), '-{window_days} days')"
+        rows = store.query(
+            f"SELECT COUNT(DISTINCT visitor) AS n FROM events "
+            f"WHERE {bound} GROUP BY date({local})", [],
+        )
+        return round(sum(r["n"] for r in rows) / window_days)
+
+    avg_active = {"d7": _avg_active(7), "d30": _avg_active(30)}
+
+    source_rows = store.query(
+        f"SELECT source, COUNT(*) AS count FROM events "
+        f"WHERE {window} AND type='visit' AND source IS NOT NULL "
+        f"GROUP BY source ORDER BY count DESC", [],
+    )
+    sources = [{"source": r["source"], "count": r["count"]} for r in source_rows]
+
+    kind_rows = store.query(
+        f"SELECT visitor_kind, COUNT(*) AS count FROM events "
+        f"WHERE {window} AND type='visit' GROUP BY visitor_kind", [],
+    )
+    kind_counts = {r["visitor_kind"]: r["count"] for r in kind_rows}
+    visitors = {"new": kind_counts.get("new", 0), "returning": kind_counts.get("returning", 0)}
+
     return {
         "totals": {
             "fetches": fetches,
@@ -152,4 +184,7 @@ def compute_stats(store: Store, days: int, tz: int) -> dict:
         "errors": errors,
         "hours": hours,
         "platforms": platforms,
+        "avg_active": avg_active,
+        "sources": sources,
+        "visitors": visitors,
     }

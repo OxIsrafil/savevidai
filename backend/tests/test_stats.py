@@ -282,3 +282,119 @@ def test_platforms_breakdown_ordered_by_fetches_desc():
     out = compute_stats(s, days=30, tz=0)
     order = [p["platform"] for p in out["platforms"]]
     assert order == ["tiktok", "instagram", "twitter"]
+
+
+def _day_ts(offset_days: int, hour: int = 12) -> str:
+    d = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=offset_days)
+    return d.replace(hour=hour, minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def test_avg_active_d7_d30_daily_uniques_over_fixed_window():
+    # avg_active convention: sum of per-day distinct-visitor counts over the
+    # FIXED 7 / 30 local-day window, divided by 7 / 30 (missing days count as
+    # 0 uniques), rounded to nearest int. Independent of the `days` argument.
+    s = SqliteStore(":memory:")
+    s.init_schema()
+    rows = []
+    # last-7-day window: day -1 => 10 distinct, day -2 => 20, day -3 => 30.
+    for offset, n in ((1, 10), (2, 20), (3, 30)):
+        for i in range(n):
+            rows.append((_day_ts(offset), "visit", None, "BD", f"a{offset}_{i}", None, None, None))
+    # inside 30d but outside 7d: day -15 => 40 distinct.
+    for i in range(40):
+        rows.append((_day_ts(15), "visit", None, "BD", f"b_{i}", None, None, None))
+    s.execute_many([
+        ("INSERT INTO events (ts,type,outcome,country,visitor,platform,source,visitor_kind) "
+         "VALUES (?,?,?,?,?,?,?,?)", list(r))
+        for r in rows
+    ])
+    stats = compute_stats(s, days=7, tz=0)
+    assert stats["avg_active"]["d7"] == round((10 + 20 + 30) / 7)
+    assert stats["avg_active"]["d30"] == round((10 + 20 + 30 + 40) / 30)
+
+
+def test_avg_active_empty_is_zero():
+    s = SqliteStore(":memory:")
+    s.init_schema()
+    stats = compute_stats(s, days=30, tz=0)
+    assert stats["avg_active"] == {"d7": 0, "d30": 0}
+
+
+def test_avg_active_nonzero_tz_local_day_bucketing():
+    # Pins the local-day bucketing of the fixed 7-day window. A boundary-day of
+    # distinct visitors sits BEFORE the would-be buggy UTC-instant cutoff
+    # (ts >= datetime('now','-7 days')) but INSIDE the correct local-date
+    # window. Counting it makes d7 = round(4/7) = 1; a UTC rewrite yields 0.
+    tz = 360
+    window_days = 7
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    local_now = now + timedelta(minutes=tz)
+    earliest_local_day = (local_now - timedelta(days=window_days)).date()
+    earliest_local_midnight_utc = datetime.combine(earliest_local_day, time.min) - timedelta(minutes=tz)
+
+    buggy_cutoff = now - timedelta(days=window_days)
+    gap = buggy_cutoff - earliest_local_midnight_utc
+    assert gap > timedelta(0), "test must not run exactly at local midnight"
+
+    boundary_event_ts = earliest_local_midnight_utc + gap / 2
+    assert boundary_event_ts < buggy_cutoff
+    assert (boundary_event_ts + timedelta(minutes=tz)).date() == earliest_local_day
+
+    def fmt(dt: datetime) -> str:
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    s = SqliteStore(":memory:")
+    s.init_schema()
+    # 4 distinct visitors, all on the boundary local day, nothing else.
+    s.execute_many([
+        ("INSERT INTO events (ts,type,outcome,country,visitor,platform,source,visitor_kind) "
+         "VALUES (?,?,?,?,?,?,?,?)",
+         [fmt(boundary_event_ts), "visit", None, "BD", f"bv{i}", None, None, None])
+        for i in range(4)
+    ])
+
+    stats = compute_stats(s, days=window_days, tz=tz)
+    assert stats["avg_active"]["d7"] == 1
+
+
+def test_sources_grouped_and_ordered_desc():
+    s = SqliteStore(":memory:")
+    s.init_schema()
+    rows = [
+        ("2026-07-20 10:00:00", "visit", None, "BD", "v1", None, "search", None),
+        ("2026-07-20 10:01:00", "visit", None, "BD", "v2", None, "search", None),
+        ("2026-07-20 10:02:00", "visit", None, "US", "v3", None, "direct", None),
+        # non-visit with a source must not be counted
+        ("2026-07-20 10:03:00", "fetch", "ok", "US", "v3", None, "search", None),
+        # visit with NULL source must not be counted
+        ("2026-07-20 10:04:00", "visit", None, "US", "v4", None, None, None),
+    ]
+    s.execute_many([
+        ("INSERT INTO events (ts,type,outcome,country,visitor,platform,source,visitor_kind) "
+         "VALUES (?,?,?,?,?,?,?,?)", list(r))
+        for r in rows
+    ])
+    stats = compute_stats(s, days=30, tz=0)
+    assert stats["sources"] == [{"source": "search", "count": 2}, {"source": "direct", "count": 1}]
+
+
+def test_visitors_new_vs_returning_split():
+    s = SqliteStore(":memory:")
+    s.init_schema()
+    rows = [
+        ("2026-07-20 10:00:00", "visit", None, "BD", "v1", None, None, "new"),
+        ("2026-07-20 10:01:00", "visit", None, "BD", "v2", None, None, "new"),
+        ("2026-07-20 10:02:00", "visit", None, "US", "v3", None, None, "new"),
+        ("2026-07-20 10:03:00", "visit", None, "US", "v4", None, None, "returning"),
+        ("2026-07-20 10:04:00", "visit", None, "US", "v5", None, None, "returning"),
+        # non-visit rows carry no visitor_kind and must be ignored
+        ("2026-07-20 10:05:00", "fetch", "ok", "US", "v1", None, None, None),
+    ]
+    s.execute_many([
+        ("INSERT INTO events (ts,type,outcome,country,visitor,platform,source,visitor_kind) "
+         "VALUES (?,?,?,?,?,?,?,?)", list(r))
+        for r in rows
+    ])
+    stats = compute_stats(s, days=30, tz=0)
+    assert stats["visitors"] == {"new": 3, "returning": 2}
