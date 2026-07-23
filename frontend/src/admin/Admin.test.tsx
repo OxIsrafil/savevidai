@@ -40,6 +40,12 @@ const STATS: Stats = {
     { platform: "twitter", fetches: 10, downloads: 8 },
     { platform: "tiktok", fetches: 4, downloads: 3 },
   ],
+  avg_active: { d7: 340, d30: 300 },
+  sources: [
+    { source: "search", count: 120 },
+    { source: "direct", count: 90 },
+  ],
+  visitors: { new: 200, returning: 140 },
 };
 
 test("shows login first, then dashboard after auth", async () => {
@@ -132,6 +138,51 @@ test("dashboard renders tiles, totals, and bar lists from a stats fixture", asyn
   expect(platformPanel.getByText(/3 downloads/i)).toBeInTheDocument();
   // Empty series/hours fall back to the same "No data yet." empty state as BarList.
   expect(screen.getAllByText(/no data yet/i).length).toBeGreaterThanOrEqual(2);
+});
+
+test("shows avg-active tiles, traffic sources, and new vs returning", async () => {
+  render(<Dashboard stats={STATS} />);
+  await screen.findByText("Live"); // flush SiteControls' mount fetch
+
+  // Avg-active tiles.
+  expect(screen.getByText("Avg/day (7d)")).toBeInTheDocument();
+  expect(screen.getByText("340")).toBeInTheDocument();
+  expect(screen.getByText("Avg/day (30d)")).toBeInTheDocument();
+  expect(screen.getByText("300")).toBeInTheDocument();
+
+  // Traffic sources panel: label per source with its count.
+  const sourcesPanel = within(screen.getByText("Traffic sources").closest(".panel") as HTMLElement);
+  expect(sourcesPanel.getByText("search")).toBeInTheDocument();
+  expect(sourcesPanel.getByText("120")).toBeInTheDocument();
+  expect(sourcesPanel.getByText("direct")).toBeInTheDocument();
+  expect(sourcesPanel.getByText("90")).toBeInTheDocument();
+
+  // New vs returning panel: both counts plus the privacy caption.
+  const nvrPanel = within(screen.getByText("New vs returning").closest(".panel") as HTMLElement);
+  expect(nvrPanel.getByText("200")).toBeInTheDocument();
+  expect(nvrPanel.getByText("140")).toBeInTheDocument();
+  expect(nvrPanel.getByText(/browser-based estimate, privacy-safe/i)).toBeInTheDocument();
+});
+
+test("older-deploy stats without the new keys still render without throwing", async () => {
+  // Simulate a stats payload from a backend that predates avg_active/sources/
+  // visitors; the Dashboard's read-site guards must default them to 0/[].
+  const legacy = {
+    totals: STATS.totals,
+    active_now: STATS.active_now,
+    series: STATS.series,
+    countries: STATS.countries,
+    qualities: STATS.qualities,
+    errors: STATS.errors,
+    hours: STATS.hours,
+    platforms: STATS.platforms,
+  } as Stats;
+  render(<Dashboard stats={legacy} />);
+  await screen.findByText("Live"); // flush SiteControls' mount fetch
+  expect(screen.getByText("New vs returning")).toBeInTheDocument();
+  expect(screen.getByText("Traffic sources")).toBeInTheDocument();
+  // Guards default avg-active to 0/0 rather than crashing on the missing key.
+  expect(screen.getByText("Avg/day (7d)")).toBeInTheDocument();
 });
 
 test("collapses a long qualities list behind a show-all toggle", async () => {

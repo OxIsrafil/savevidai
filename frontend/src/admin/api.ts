@@ -10,6 +10,9 @@ export type Stats = {
   errors: Array<{ code: string; count: number }>;
   hours: Array<{ hour: number; count: number }>;
   platforms: Array<{ platform: string; fetches: number; downloads: number }>;
+  avg_active: { d7: number; d30: number };
+  sources: Array<{ source: string; count: number }>;
+  visitors: { new: number; returning: number };
 };
 type Period = { today: number; d7: number; d30: number; all_time: number };
 

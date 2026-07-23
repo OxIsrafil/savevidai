@@ -84,7 +84,7 @@ run `goaccess /data/access.log --log-format=CADDY` for visitor counts.
 
 ## Analytics (optional, privacy-first)
 
-The hosted site records aggregate usage so the maintainer can see growth and spot extraction breakage. What is stored: per-event timestamp, type (visit/fetch/download), outcome (quality label or error code), a 2-letter country (from Cloudflare, when proxied), and a daily-rotating HMAC hash used to estimate unique visitors. What is not stored: IP addresses, any identifier that survives a day, cookies for visitors, or anything that identifies a person. Events are pruned after 90 days.
+The hosted site records aggregate usage so the maintainer can see growth and spot extraction breakage. What is stored: per-event timestamp, type (visit/fetch/download), outcome (quality label or error code), a 2-letter country (from Cloudflare, when proxied), and a daily-rotating HMAC hash used to estimate unique visitors. What is not stored: IP addresses, any identifier that survives a day, cookies for visitors, or anything that identifies a person. Two coarse buckets aid triage without weakening this: `source` (a browser-categorized traffic bucket such as search or direct, derived on the client with no referrer URL kept) and `visitor_kind` (new vs returning, a localStorage-based estimate consistent with the no-tracking stance, with no cross-day ID stored). Events are pruned after 90 days.
 
 Analytics is off by default. It activates only when all of `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `ADMIN_PASSWORD`, and `ANALYTICS_SALT` are set, so self-hosted instances collect nothing unless you deliberately configure them. The admin dashboard lives at `/admin` behind a password.
 

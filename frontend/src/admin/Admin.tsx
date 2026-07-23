@@ -342,8 +342,34 @@ function HourStrip({ hours }: { hours: Stats["hours"] }) {
   );
 }
 
+function NewVsReturning({ visitors }: { visitors: Stats["visitors"] }) {
+  const cells: Array<{ label: string; value: number }> = [
+    { label: "New", value: visitors.new },
+    { label: "Returning", value: visitors.returning },
+  ];
+  return (
+    <div className="panel p-4">
+      <h2 className="font-semibold">New vs returning</h2>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        {cells.map((c) => (
+          <div key={c.label}>
+            <p className="text-sm text-[var(--muted)]">{c.label}</p>
+            <p className="mt-1 font-mono text-2xl font-semibold">{c.value}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-[var(--faint)]">Browser-based estimate, privacy-safe.</p>
+    </div>
+  );
+}
+
 export function Dashboard({ stats }: { stats: Stats }) {
   const t = stats.totals;
+  // Older backends predate these keys; default at the read site so a stale
+  // deploy renders zeros instead of crashing (mirrors `platforms ?? []`).
+  const avgActive = stats.avg_active ?? { d7: 0, d30: 0 };
+  const sources = stats.sources ?? [];
+  const visitors = stats.visitors ?? { new: 0, returning: 0 };
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="flex items-center justify-between gap-4">
@@ -359,6 +385,13 @@ export function Dashboard({ stats }: { stats: Stats }) {
         <Tile label="Success rate" value={`${Math.round(t.success_rate * 100)}%`} />
         <Tile label="Conversion" value={`${Math.round(t.conversion * 100)}%`} />
       </div>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <Tile label="Avg/day (7d)" value={avgActive.d7} />
+        <Tile label="Avg/day (30d)" value={avgActive.d30} />
+      </div>
+      <p className="mt-2 text-xs text-[var(--faint)]">
+        Average daily unique visitors over the last N complete days (today excluded).
+      </p>
       <div className="mt-4">
         <TotalsTable totals={t} />
       </div>
@@ -375,6 +408,8 @@ export function Dashboard({ stats }: { stats: Stats }) {
         />
         <BarList title="Top qualities" rows={stats.qualities.map((q) => ({ label: q.quality, count: q.count }))} maxRows={8} />
         <BarList title="Errors (FixTweet health)" rows={stats.errors.map((e) => ({ label: e.code, count: e.count }))} />
+        <BarList title="Traffic sources" rows={sources.map((s) => ({ label: s.source, count: s.count }))} />
+        <NewVsReturning visitors={visitors} />
         <HourStrip hours={stats.hours} />
       </div>
       <p className="mt-6 text-xs text-[var(--faint)]">Daily-unique basis · your local time · refreshes every 60s</p>
