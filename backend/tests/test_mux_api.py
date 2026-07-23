@@ -148,13 +148,79 @@ def test_nearest_below_height(fake_ffmpeg):
     assert route.called  # the 480 rendition was fetched, not 720
 
 
+# Non-ladder manifest: portrait/odd source heights (270, 540) that never appear in
+# the fixed rendition ladder. Reddit's DASH manifests carry these for non-16:9
+# sources, and the mappers emit a quality button per manifest rendition.
+ODD_MPD = """<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" type="static">
+    <Period>
+        <AdaptationSet>
+            <Representation height="540" id="V-1" mimeType="video/mp4" width="304">
+                <BaseURL>DASH_540.mp4</BaseURL>
+            </Representation>
+            <Representation height="270" id="V-2" mimeType="video/mp4" width="152">
+                <BaseURL>DASH_270.mp4</BaseURL>
+            </Representation>
+        </AdaptationSet>
+        <AdaptationSet>
+            <Representation id="A-1" mimeType="audio/mp4">
+                <BaseURL>DASH_AUDIO_128.mp4</BaseURL>
+            </Representation>
+        </AdaptationSet>
+    </Period>
+</MPD>"""
+
+
 def test_bad_vid_too_short():
     res = client().get("/api/mux/short/720.mp4")
     assert res.status_code == 422
 
 
-def test_bad_height():
-    res = client().get(f"/api/mux/{VID}/999.mp4")
+@respx.mock
+def test_non_ladder_height_in_manifest_ok(fake_ffmpeg):
+    # Regression: a non-ladder height (270) that IS a real rendition in the manifest
+    # must resolve, not 422 at the path gate. The mapper emits this button straight
+    # from the manifest, so clicking it must reach a real download.
+    respx.get(MANIFEST_URL).mock(return_value=httpx.Response(200, text=ODD_MPD))
+    route = respx.get(f"https://v.redd.it/{VID}/DASH_270.mp4").mock(
+        return_value=httpx.Response(200, content=b"vvvv", headers={"content-length": "4"}))
+    respx.get(f"https://v.redd.it/{VID}/DASH_AUDIO_128.mp4").mock(
+        return_value=httpx.Response(200, content=b"aaaa", headers={"content-length": "4"}))
+    res = client().get(f"/api/mux/{VID}/270.mp4")
+    assert res.status_code == 200
+    assert route.called  # the exact 270 rendition was fetched
+
+
+@respx.mock
+def test_in_range_height_not_in_manifest_picks_nearest_below(fake_ffmpeg):
+    # An in-range height (500) with no exact rendition still falls to nearest-below
+    # (480) per _pick_rendition, rather than 422-ing at the path gate.
+    respx.get(MANIFEST_URL).mock(return_value=httpx.Response(200, text=OLD_MPD))
+    route = respx.get(f"https://v.redd.it/{VID}/DASH_480").mock(
+        return_value=httpx.Response(200, content=b"vvvv", headers={"content-length": "4"}))
+    respx.get(f"https://v.redd.it/{VID}/audio").mock(
+        return_value=httpx.Response(200, content=b"aaaa", headers={"content-length": "4"}))
+    res = client().get(f"/api/mux/{VID}/500.mp4")
+    assert res.status_code == 200
+    assert route.called  # nearest-below 480 fetched
+
+
+def test_height_zero_out_of_range():
+    res = client().get(f"/api/mux/{VID}/0.mp4")
+    assert res.status_code == 422
+
+
+def test_height_too_large_out_of_range():
+    res = client().get(f"/api/mux/{VID}/5000.mp4")
+    assert res.status_code == 422
+
+
+def test_height_negative_out_of_range():
+    res = client().get(f"/api/mux/{VID}/-10.mp4")
+    assert res.status_code == 422
+
+
+def test_height_non_integer_422():
+    res = client().get(f"/api/mux/{VID}/abc.mp4")
     assert res.status_code == 422
 
 

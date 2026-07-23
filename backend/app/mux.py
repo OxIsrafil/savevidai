@@ -39,9 +39,16 @@ router = APIRouter()
 # length bounds). Re-checked here because the id is spliced into byte-fetch URLs.
 _VID_RE = re.compile(r"[A-Za-z0-9]{8,20}")
 
-# The rendition ladder the endpoint will serve. A request outside this set is a
-# 422 rather than a silent nearest-match, so callers only ever ask for real rungs.
-_HEIGHTS = frozenset({144, 240, 360, 480, 540, 720, 1080})
+# Bounded sanity range on the requested height. Mappers emit one quality button
+# per manifest rendition, using the raw manifest height, and reddit DASH manifests
+# carry non-ladder heights for non-16:9 sources (portrait clips, odd heights like
+# 270 or 96). So the path param cannot be pinned to a fixed ladder; it is validated
+# only as a plausible pixel height (1..4320, i.e. up to 8K). The manifest re-read
+# plus _pick_rendition then resolves the exact rendition (normally present, since
+# the height came from the manifest) or the nearest rung below it. Garbage (0,
+# negative, absurdly large, non-integer) still 422s here or at FastAPI's int typing.
+_MIN_HEIGHT = 1
+_MAX_HEIGHT = 4320
 
 # Content-Disposition filename is attacker-influenced (query param), so it is
 # reduced to a bare filename charset, matching /api/proxy's sanitiser exactly.
@@ -112,7 +119,7 @@ async def _write_stream(resp: httpx.Response, dest: str, budget: list[int]) -> N
 @router.get("/api/mux/{vid}/{height}.mp4")
 @limiter.limit("10/minute")
 async def mux(request: Request, vid: str, height: int, filename: str = "video.mp4"):
-    if not _VID_RE.fullmatch(vid) or height not in _HEIGHTS:
+    if not _VID_RE.fullmatch(vid) or not (_MIN_HEIGHT <= height <= _MAX_HEIGHT):
         raise app_error(INVALID_URL)
 
     manifest = reddit.fetch_manifest(vid)
