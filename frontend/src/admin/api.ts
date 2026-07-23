@@ -29,3 +29,21 @@ export async function fetchStats(days = 30): Promise<Stats | "unauthorized" | "e
   if (!r.ok) return "error";
   return (await r.json()) as Stats;
 }
+
+export type Maintenance = { on: boolean; forced_by_env: boolean };
+
+export async function getMaintenance(): Promise<Maintenance> {
+  const r = await fetch("/api/admin/maintenance");
+  if (!r.ok) throw new Error(`maintenance fetch failed: ${r.status}`);
+  return (await r.json()) as Maintenance;
+}
+
+export async function setMaintenance(on: boolean): Promise<Maintenance> {
+  const r = await fetch("/api/admin/maintenance", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ on }),
+  });
+  if (!r.ok) throw new Error(`maintenance update failed: ${r.status}`);
+  return (await r.json()) as Maintenance;
+}
