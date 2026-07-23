@@ -411,6 +411,11 @@ _OAUTH_LADDER = (1080, 720, 480, 360, 240)
 # validated (bare alphanumerics) before use, same defense-in-depth as vredd ids.
 _MEDIA_ID_RE = re.compile(r"[A-Za-z0-9]{1,32}")
 
+# The extension derived from the upstream media_metadata "m" is likewise spliced
+# into the i.redd.it URL, so it is charset-validated (bare lowercase alnum) too:
+# a crafted subtype like "jpg/../evil" would otherwise inject a path traversal.
+_EXT_RE = re.compile(r"[a-z0-9]{1,8}")
+
 _token_cache: dict = {}
 _token_lock = threading.Lock()
 
@@ -574,8 +579,9 @@ def _oauth_video_item(source: dict, *, kind: str, use_mux: bool) -> MediaItem:
 def _oauth_gallery_items(post: dict) -> list[MediaItem]:
     """Build ordered image MediaItems from a gallery post (the TikTok-slideshow
     shape). Items follow gallery_data.items order; entries whose media_metadata
-    status is not "valid", whose extension can't be derived, or whose media_id
-    fails the charset check are skipped. Indices are 1..N over what survives."""
+    status is not "valid", whose extension can't be derived or fails the
+    extension charset check, or whose media_id fails the charset check are
+    skipped. Indices are 1..N over what survives."""
     entries = (post.get("gallery_data") or {}).get("items") or []
     metadata = post.get("media_metadata") or {}
     items: list[MediaItem] = []
@@ -587,7 +593,7 @@ def _oauth_gallery_items(post: dict) -> list[MediaItem]:
         if not media_id or not _MEDIA_ID_RE.fullmatch(media_id):
             continue
         ext = _ext_from_mime(meta.get("m"))
-        if not ext:
+        if not ext or not _EXT_RE.fullmatch(ext):
             continue
         url = f"https://i.redd.it/{media_id}.{ext}"
         items.append(MediaItem(

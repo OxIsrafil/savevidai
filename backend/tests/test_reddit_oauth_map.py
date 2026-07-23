@@ -52,6 +52,29 @@ GALLERY_POST = {
     },
 }
 
+# Gallery mixing a malformed "m" (charset-hostile), a missing "m", and valid
+# entries: only the valid ones survive, contiguously indexed 1..N.
+MALFORMED_GALLERY_POST = {
+    "id": "1mgl00",
+    "author": "galer",
+    "title": "mixed gallery",
+    "is_gallery": True,
+    "gallery_data": {"items": [
+        {"media_id": "aaa111", "id": 1},
+        {"media_id": "bad222", "id": 2},
+        {"media_id": "ccc333", "id": 3},
+        {"media_id": "mis444", "id": 4},
+        {"media_id": "ddd555", "id": 5},
+    ]},
+    "media_metadata": {
+        "aaa111": {"status": "valid", "e": "Image", "m": "image/jpg"},
+        "bad222": {"status": "valid", "e": "Image", "m": "image/jpg/../evil"},
+        "ccc333": {"status": "valid", "e": "Image", "m": "image/png"},
+        "mis444": {"status": "valid", "e": "Image"},
+        "ddd555": {"status": "valid", "e": "Image", "m": "image/jpeg"},
+    },
+}
+
 # Single image on i.redd.it.
 IMAGE_POST = {
     "id": "1img00",
@@ -128,6 +151,22 @@ def test_gallery_items_ext_derivation_and_invalid_skipped():
     ]
     assert [it.index for it in resp.items] == [1, 2, 3]
     assert all(it.kind == "image" for it in resp.items)
+
+
+def test_gallery_skips_malformed_and_missing_mime():
+    resp = map_reddit_oauth("1mgl00", MALFORMED_GALLERY_POST)
+    urls = [it.variants[0].url for it in resp.items]
+    # bad222 (charset-hostile "m") and mis444 (missing "m") are dropped; the
+    # three well-formed entries survive with correct extensions.
+    assert urls == [
+        "https://i.redd.it/aaa111.jpg",
+        "https://i.redd.it/ccc333.png",
+        "https://i.redd.it/ddd555.jpg",  # jpeg -> jpg
+    ]
+    # No emitted url ever carries a traversal/slash from the hostile subtype.
+    assert all(".." not in u and u.count("/") == 3 for u in urls)
+    # Indices stay contiguous 1..N over the survivors, not the source positions.
+    assert [it.index for it in resp.items] == [1, 2, 3]
 
 
 def test_single_image_host_gated_ok():
