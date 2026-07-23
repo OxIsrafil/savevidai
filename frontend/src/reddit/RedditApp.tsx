@@ -116,9 +116,11 @@ export default function RedditApp() {
           <span className="brand-dot">.</span>
         </span>
         <span className="flex items-center gap-2">
-          <span className="nav-meta">Reddit · no login</span>
           <a className="nav-meta nav-link" href="/">
             Twitter/X
+          </a>
+          <a className="nav-meta nav-link" href="/tiktokvideodownloader">
+            TikTok
           </a>
           <ThemeToggle />
           <button type="button" className="btn btn-small" onClick={focusInput}>
