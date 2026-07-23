@@ -10,6 +10,9 @@ _MAX_TZ = 840  # +/- 14 hours
 # each become their own row in the dashboard's "Top qualities" panel. We snap
 # each raw height to the nearest rung for display; named labels (hd/sd/photo/...
 # from TikTok) are not heights and pass through untouched.
+# Note: the label is the source HEIGHT, so tall portrait clips bias upward (a
+# 720x1280 portrait video is height 1280 and snaps to 1440p, not 1080p). That is
+# inherent to bucketing by height, not a snapping bug.
 _TIER_LADDER = (144, 240, 360, 480, 720, 1080, 1440, 2160)
 _HEIGHT_LABEL = re.compile(r"^(\d+)p$")
 

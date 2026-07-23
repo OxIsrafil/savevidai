@@ -467,6 +467,9 @@ def test_qualities_bucketed_and_reaggregated():
         ("2026-07-18 03:04:00", "download", "720p", "BD", "v5"),
         # a named tiktok label, untouched
         ("2026-07-18 03:05:00", "download", "hd", "BD", "v6"),
+        # a download whose quality was never sent -> NULL outcome, must be
+        # excluded from the panel (not surfaced as a bare null row)
+        ("2026-07-18 03:06:00", "download", None, "BD", "v7"),
     ]
     s.execute_many([
         ("INSERT INTO events (ts,type,outcome,country,visitor) VALUES (?,?,?,?,?)", list(r))
@@ -475,6 +478,9 @@ def test_qualities_bucketed_and_reaggregated():
     stats = compute_stats(s, days=30, tz=0)
     qualities = {q["quality"]: q["count"] for q in stats["qualities"]}
     assert qualities == {"1080p": 3, "720p": 2, "hd": 1}
+    # a null-outcome download (quality was never sent) is excluded, not shown as
+    # a bare null row in the panel
+    assert None not in qualities
     # sorted by count descending (highest bucket first)
     assert [q["count"] for q in stats["qualities"]] == sorted(
         (q["count"] for q in stats["qualities"]), reverse=True
