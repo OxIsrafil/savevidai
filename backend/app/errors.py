@@ -22,6 +22,7 @@ PRIVATE = (
 )
 UPSTREAM = ("upstream_error", "Extraction failed. If this keeps happening, report it on GitHub.", 502)
 UNSUPPORTED_POST = ("unsupported_post", "Reddit galleries are not supported yet.", 422)
+NOT_CONFIGURED = ("not_configured", "Reddit support is not configured on this server.", 503)
 
 
 def app_error(spec: tuple[str, str, int]) -> AppError:

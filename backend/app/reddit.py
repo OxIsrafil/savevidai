@@ -22,13 +22,24 @@ import html
 import logging
 import os
 import re
+import threading
+import time
 from dataclasses import dataclass
 from urllib.parse import parse_qs, urlparse
 from xml.etree import ElementTree as ET
 
 import httpx
 
-from .errors import NO_VIDEO, NOT_FOUND, UNSUPPORTED_POST, UPSTREAM, AppError, app_error
+from .errors import (
+    NO_VIDEO,
+    NOT_CONFIGURED,
+    NOT_FOUND,
+    PRIVATE,
+    UNSUPPORTED_POST,
+    UPSTREAM,
+    AppError,
+    app_error,
+)
 from .schemas import MediaItem, ResolveResponse, Variant
 
 logger = logging.getLogger("savevidai.reddit")
@@ -377,10 +388,278 @@ def is_configured() -> bool:
     return bool(os.environ.get("REDDIT_CLIENT_ID") and os.environ.get("REDDIT_CLIENT_SECRET"))
 
 
+# --- OAuth upgrade path (env-gated) --------------------------------------------
+# When REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET are set, resolve through Reddit's
+# own API instead of the anonymous vxreddit path. This unlocks galleries and
+# proper share-link resolution. Anonymous server access to reddit JSON is blocked
+# (403), so a free "script" app's client-credentials token is required.
+
+# Reddit's OAuth endpoints. The token host is www.reddit.com; all API reads go
+# through oauth.reddit.com with a bearer token. The OAuth UA is the same
+# SaveVidAI identity used for the anonymous v.redd.it manifest fetch.
+_OAUTH_UA = _MANIFEST_UA
+_TOKEN_URL = "https://www.reddit.com/api/v1/access_token"
+_OAUTH_API = "https://oauth.reddit.com"
+
+# Standard Reddit rendition heights, best first. The OAuth path trusts the post's
+# reported height and emits every ladder rung at or below it; the /api/mux
+# endpoint re-reads the manifest and picks the nearest-at-or-below rendition, so
+# a rung the manifest happens to lack still resolves correctly.
+_OAUTH_LADDER = (1080, 720, 480, 360, 240)
+
+# A gallery media_id is pasted into an i.redd.it path segment, so it is charset-
+# validated (bare alphanumerics) before use, same defense-in-depth as vredd ids.
+_MEDIA_ID_RE = re.compile(r"[A-Za-z0-9]{1,32}")
+
+_token_cache: dict = {}
+_token_lock = threading.Lock()
+
+
+def _oauth_client() -> httpx.Client:
+    """An httpx client carrying the SaveVidAI OAuth UA. Module-level construction
+    keeps every OAuth request interceptable by respx in tests."""
+    return httpx.Client(timeout=12.0, headers={"User-Agent": _OAUTH_UA})
+
+
+def _get_token(force: bool = False) -> str:
+    """Return a cached bearer token, fetching a fresh one when missing, expired
+    (within 60s of expiry), or ``force``-refreshed after a 401. Thread-safe."""
+    if not is_configured():
+        raise app_error(NOT_CONFIGURED)
+    with _token_lock:
+        if not force and _token_cache.get("expires", 0) > time.time() + 60:
+            return _token_cache["token"]
+        try:
+            with _oauth_client() as c:
+                r = c.post(
+                    _TOKEN_URL,
+                    auth=(os.environ["REDDIT_CLIENT_ID"], os.environ["REDDIT_CLIENT_SECRET"]),
+                    data={"grant_type": "client_credentials"},
+                )
+            body = r.json()
+            token = body["access_token"]
+            _token_cache.update(token=token, expires=time.time() + float(body.get("expires_in", 3600)))
+            return token
+        except (httpx.HTTPError, KeyError, ValueError) as exc:
+            logger.warning("reddit token fetch failed: %r", exc)
+            raise app_error(UPSTREAM) from exc
+
+
+def _oauth_get(path: str, token: str) -> httpx.Response:
+    with _oauth_client() as c:
+        return c.get(f"{_OAUTH_API}{path}", headers={"Authorization": f"bearer {token}"})
+
+
+def fetch_post(post_id: str) -> dict:
+    """Fetch a post's ``data`` dict via the OAuth API, or raise the mapped error.
+
+    A 401 refreshes the token once and retries. 404 -> not_found, 403 ->
+    private_or_restricted, anything else non-200 (including a persistent 401) ->
+    upstream_error. A malformed listing shape is also upstream_error.
+    """
+    token = _get_token()
+    try:
+        r = _oauth_get(f"/comments/{post_id}?raw_json=1&limit=1", token)
+        if r.status_code == 401:
+            r = _oauth_get(f"/comments/{post_id}?raw_json=1&limit=1", _get_token(force=True))
+    except httpx.HTTPError as exc:
+        logger.warning("reddit fetch failed for %s: %r", post_id, exc)
+        raise app_error(UPSTREAM) from exc
+    if r.status_code == 404:
+        raise app_error(NOT_FOUND)
+    if r.status_code == 403:
+        raise app_error(PRIVATE)
+    if r.status_code != 200:
+        raise app_error(UPSTREAM)
+    try:
+        body = r.json()
+        listing = body[0] if isinstance(body, list) else body
+        return listing["data"]["children"][0]["data"]
+    except (ValueError, KeyError, IndexError, TypeError) as exc:
+        raise app_error(UPSTREAM) from exc
+
+
+def resolve_share_link(url: str) -> str:
+    """Follow a ``/s/`` share link (authenticated, no auto-redirects) to its post
+    id. A missing/non-redirect response, or a redirect that is not a post link,
+    maps to not_found."""
+    from .urls import InvalidTweetURL, parse_reddit_url
+    token = _get_token()
+    try:
+        with _oauth_client() as c:
+            r = c.get(url, headers={"Authorization": f"bearer {token}"}, follow_redirects=False)
+    except httpx.HTTPError as exc:
+        logger.warning("reddit share resolution failed for %s: %r", url, exc)
+        raise app_error(UPSTREAM) from exc
+    loc = r.headers.get("location", "")
+    if r.status_code not in (301, 302, 303, 307, 308) or not loc:
+        raise app_error(NOT_FOUND)
+    try:
+        kind, value, _path = parse_reddit_url(loc)
+    except InvalidTweetURL as exc:
+        raise app_error(NOT_FOUND) from exc
+    if kind != "post":
+        raise app_error(NOT_FOUND)
+    return value
+
+
+def _vredd_from_fallback(fallback_url: str | None) -> str | None:
+    """Recover a v.redd.it video id from a reddit_video ``fallback_url``.
+
+    The url is upstream-controlled and the id is later pasted into a byte-fetch
+    URL, so the host must be exactly v.redd.it and the first path segment must
+    match the id charset; anything else yields None."""
+    if not fallback_url:
+        return None
+    parsed = urlparse(fallback_url)
+    if (parsed.hostname or "").lower() != "v.redd.it":
+        return None
+    segments = [p for p in parsed.path.split("/") if p]
+    if not segments or not _VREDD_ID_RE.fullmatch(segments[0]):
+        return None
+    return segments[0]
+
+
+def _ext_from_mime(mime: str | None) -> str | None:
+    """Map a media_metadata ``m`` value ("image/jpg") to a file extension.
+
+    jpeg/jpg both collapse to "jpg"; other known image subtypes pass through.
+    A value without a subtype yields None (caller skips the entry)."""
+    if not mime or "/" not in mime:
+        return None
+    subtype = mime.split("/", 1)[1].strip().lower()
+    if not subtype:
+        return None
+    if subtype in ("jpg", "jpeg"):
+        return "jpg"
+    return subtype
+
+
+def _oauth_video_item(source: dict, *, kind: str, use_mux: bool) -> MediaItem:
+    """Build a single video/gif MediaItem from a reddit_video-shaped ``source``.
+
+    Emits the standard height ladder at or below the reported height. ``use_mux``
+    routes audio-bearing videos through /api/mux (server-side remux); otherwise
+    variants point straight at the direct v.redd.it DASH byte URLs."""
+    vid = _vredd_from_fallback(source.get("fallback_url"))
+    if not vid:
+        raise app_error(UPSTREAM)
+    height = source.get("height")
+    height = int(height) if isinstance(height, int) or (isinstance(height, str) and height.isdigit()) else 0
+    heights = [h for h in _OAUTH_LADDER if h <= height]
+    if not heights:
+        # A positive-but-tiny source height falls below the ladder; keep the
+        # source rung itself rather than emitting an empty variant list.
+        heights = [height] if height > 0 else []
+    variants = [
+        Variant(
+            label=f"{h}p",
+            height=h,
+            url=(f"/api/mux/{vid}/{h}.mp4" if use_mux else f"https://v.redd.it/{vid}/DASH_{h}.mp4"),
+        )
+        for h in heights
+    ]
+    if not variants:
+        raise app_error(UPSTREAM)
+    duration = source.get("duration")
+    return MediaItem(
+        index=1,
+        kind=kind,
+        thumbnail=None,
+        duration_seconds=float(duration) if isinstance(duration, (int, float)) else None,
+        variants=variants,
+    )
+
+
+def _oauth_gallery_items(post: dict) -> list[MediaItem]:
+    """Build ordered image MediaItems from a gallery post (the TikTok-slideshow
+    shape). Items follow gallery_data.items order; entries whose media_metadata
+    status is not "valid", whose extension can't be derived, or whose media_id
+    fails the charset check are skipped. Indices are 1..N over what survives."""
+    entries = (post.get("gallery_data") or {}).get("items") or []
+    metadata = post.get("media_metadata") or {}
+    items: list[MediaItem] = []
+    for entry in entries:
+        media_id = (entry or {}).get("media_id")
+        meta = metadata.get(media_id) or {}
+        if meta.get("status") != "valid":
+            continue
+        if not media_id or not _MEDIA_ID_RE.fullmatch(media_id):
+            continue
+        ext = _ext_from_mime(meta.get("m"))
+        if not ext:
+            continue
+        url = f"https://i.redd.it/{media_id}.{ext}"
+        items.append(MediaItem(
+            index=len(items) + 1, kind="image", thumbnail=None, duration_seconds=None,
+            variants=[Variant(label="photo", url=url)],
+        ))
+    return items
+
+
+def map_reddit_oauth(post_id: str, post: dict) -> ResolveResponse:
+    """Map an OAuth post ``data`` dict to a ResolveResponse. Pure.
+
+    Handles hosted video (secure_media.reddit_video), galleries, hosted-preview
+    gifs, and single images. handle is the bare author; author is "u/<handle>";
+    text is the post title; avatar is None. Nothing downloadable -> NO_VIDEO."""
+    handle = post.get("author") or "unknown"
+    common = {
+        "id": post_id,
+        "author": f"u/{handle}",
+        "handle": handle,
+        "avatar_url": None,
+        "text": post.get("title") or "",
+    }
+
+    reddit_video = (post.get("secure_media") or {}).get("reddit_video")
+    if post.get("is_video") and reddit_video:
+        use_mux = bool(reddit_video.get("has_audio"))
+        item = _oauth_video_item(reddit_video, kind="video", use_mux=use_mux)
+        return ResolveResponse(items=[item], **common)
+
+    if post.get("is_gallery"):
+        items = _oauth_gallery_items(post)
+        if items:
+            return ResolveResponse(items=items, **common)
+        raise app_error(NO_VIDEO)
+
+    preview_video = (post.get("preview") or {}).get("reddit_video_preview")
+    if preview_video or post.get("is_gif"):
+        source = preview_video or reddit_video
+        if source:
+            item = _oauth_video_item(source, kind="gif", use_mux=False)
+            return ResolveResponse(items=[item], **common)
+
+    dest = post.get("url_overridden_by_dest") or ""
+    if dest and _is_reddit_image_host(dest):
+        item = MediaItem(index=1, kind="image", thumbnail=None, duration_seconds=None,
+                         variants=[Variant(label="photo", url=dest)])
+        return ResolveResponse(items=[item], **common)
+
+    raise app_error(NO_VIDEO)
+
+
+def _map_oauth_guarded(post_id: str, post: dict) -> ResolveResponse:
+    """Run the OAuth mapper over an untrusted upstream shape; any unanticipated
+    structure becomes a clean upstream_error instead of an unhandled 500."""
+    try:
+        return map_reddit_oauth(post_id, post)
+    except AppError:
+        raise
+    except Exception as exc:
+        logger.warning("reddit oauth mapping failed for %s: %r", post_id, exc)
+        raise app_error(UPSTREAM) from exc
+
+
 def _extract_oauth(parsed: tuple) -> ResolveResponse:
-    # TODO(Task 5): OAuth path - replace this stub with a direct Reddit API call
-    # that upgrades/replaces the anonymous result (galleries, crossposts, etc.).
-    raise app_error(UPSTREAM)
+    """Resolve a parsed reddit link through the OAuth API. Share links resolve to
+    a post id first; post links fetch directly. The result is mapped under the
+    guard so a surprising post shape degrades to upstream_error, not a 500."""
+    kind, ident, _path = parsed
+    post_id = resolve_share_link(ident) if kind == "share" else ident
+    post = fetch_post(post_id)
+    return _map_oauth_guarded(post_id, post)
 
 
 def extract_reddit(parsed: tuple) -> ResolveResponse:

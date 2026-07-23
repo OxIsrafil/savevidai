@@ -205,11 +205,22 @@ def test_extract_reddit_share_failure_maps_not_found(monkeypatch):
 
 
 @respx.mock
-def test_extract_reddit_oauth_stub_when_configured(monkeypatch):
+def test_extract_reddit_uses_oauth_when_configured(monkeypatch):
+    import app.reddit as reddit_mod
     monkeypatch.setenv("REDDIT_CLIENT_ID", "id")
     monkeypatch.setenv("REDDIT_CLIENT_SECRET", "secret")
-    # Configured -> OAuth stub (Task 5) which currently raises upstream; no
-    # anonymous HTTP is issued (respx would error on an unexpected call).
-    with pytest.raises(AppError) as exc:
-        extract_reddit(("post", "d8qo81", "/comments/d8qo81"))
-    assert exc.value.code == "upstream_error"
+    reddit_mod._token_cache.clear()
+    # Configured -> OAuth path. Only the OAuth token + post endpoints are mocked;
+    # any anonymous vxreddit call would raise (respx errors on unexpected hosts),
+    # proving the anonymous path is not taken.
+    respx.post("https://www.reddit.com/api/v1/access_token").mock(
+        return_value=httpx.Response(200, json={
+            "access_token": "tok", "token_type": "bearer", "expires_in": 3600}))
+    respx.get(url__startswith="https://oauth.reddit.com/comments/d8qo81").mock(
+        return_value=httpx.Response(200, json={"data": {"children": [{"data": {
+            "id": "d8qo81", "author": "someone", "title": "hi",
+            "post_hint": "image", "url_overridden_by_dest": "https://i.redd.it/pic1.jpg",
+        }}]}}))
+    resp = extract_reddit(("post", "d8qo81", "/comments/d8qo81"))
+    assert resp.handle == "someone"
+    assert resp.items[0].variants[0].url == "https://i.redd.it/pic1.jpg"
