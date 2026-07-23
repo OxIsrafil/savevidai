@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -7,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
 
-from . import proxy, resolve
+from . import mux, proxy, resolve
 from .analytics import service as analytics_service
 from .analytics.config import load_config
 from .analytics.recorder import Recorder
@@ -46,10 +47,13 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     def health():
-        return {"ok": True}
+        # ffmpeg presence is reported so the mux endpoint's core dependency is
+        # observable without exercising a real merge.
+        return {"ok": True, "ffmpeg": shutil.which("ffmpeg") is not None}
 
     app.include_router(resolve.router)
     app.include_router(proxy.router)
+    app.include_router(mux.router)
 
     # Analytics enablement must never be able to take the public site down.
     # cfg load, store construction, init_schema, and recorder start are all

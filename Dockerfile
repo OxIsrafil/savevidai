@@ -9,6 +9,9 @@ RUN npm run build
 # Stage 2: backend + static files
 FROM python:3.12-slim
 WORKDIR /srv
+# ffmpeg is a runtime dependency of the /api/mux endpoint (stream-copy remux of
+# reddit's split video+audio tracks).
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 COPY backend/ backend/
 RUN pip install --no-cache-dir ./backend
 COPY --from=web /web/dist static/

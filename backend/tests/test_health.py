@@ -7,7 +7,9 @@ def test_health():
     client = TestClient(create_app())
     res = client.get("/api/health")
     assert res.status_code == 200
-    assert res.json() == {"ok": True}
+    body = res.json()
+    assert body["ok"] is True
+    assert isinstance(body["ffmpeg"], bool)
 
 
 def test_app_error_shape():
