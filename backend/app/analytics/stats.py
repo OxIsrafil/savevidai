@@ -136,16 +136,25 @@ def compute_stats(store: Store, days: int, tz: int) -> dict:
     platforms = [{"platform": r["platform"], "fetches": r["fetches"] or 0,
                   "downloads": r["downloads"] or 0} for r in platform_rows]
 
-    # avg_active: mean daily unique visitors over FIXED 7- and 30-local-day
-    # windows, independent of the `days` argument. Convention (pinned): sum of
-    # per-day COUNT(DISTINCT visitor) over the window divided by the window
-    # length (7 or 30), so days with no visits contribute 0 uniques, then round
-    # to nearest int. The per-day distinct-visitor count matches the series
-    # `uniques` query (DISTINCT visitor across all event types), keeping
-    # avg_active consistent with series[].uniques. The lower bound is built the
-    # same local-calendar-date way as `window`, just with 7/30.
+    # avg_active: mean daily unique visitors over the last N COMPLETE local days
+    # (today excluded as partial; unique_today / active_now already show today's
+    # live numbers). Fixed 7- and 30-day windows, independent of the `days`
+    # argument. Convention (pinned): sum of per-day COUNT(DISTINCT visitor) over
+    # the window divided by the window length (7 or 30), so days with no visits
+    # contribute 0 uniques, then round to nearest int. The per-day
+    # distinct-visitor count matches the series `uniques` query (DISTINCT visitor
+    # across all event types), keeping avg_active consistent with
+    # series[].uniques. The bounds are built the same local-calendar-date way as
+    # `window`: [today-N, today) local, i.e. today-N through today-1 = exactly N
+    # complete days.
     def _avg_active(window_days: int) -> int:
-        bound = f"date({local}) >= date(datetime('now','{tzmod}'), '-{window_days} days')"
+        # Average of daily unique visitors over the last N COMPLETE local days
+        # (today excluded as partial). Range is [today-N, today) local: the
+        # `< date(now-local)` upper bound drops today, yielding exactly N days.
+        bound = (
+            f"date({local}) >= date(datetime('now','{tzmod}'), '-{window_days} days') "
+            f"AND date({local}) < date(datetime('now','{tzmod}'))"
+        )
         rows = store.query(
             f"SELECT COUNT(DISTINCT visitor) AS n FROM events "
             f"WHERE {bound} GROUP BY date({local})", [],

@@ -291,8 +291,10 @@ def _day_ts(offset_days: int, hour: int = 12) -> str:
 
 def test_avg_active_d7_d30_daily_uniques_over_fixed_window():
     # avg_active convention: sum of per-day distinct-visitor counts over the
-    # FIXED 7 / 30 local-day window, divided by 7 / 30 (missing days count as
-    # 0 uniques), rounded to nearest int. Independent of the `days` argument.
+    # FIXED 7 / 30 local-day window [today-N, today), divided by 7 / 30 (missing
+    # days count as 0 uniques), rounded to nearest int. Independent of the `days`
+    # argument. All fixtures sit at offsets >= 1 (never today), so the
+    # today-excluded upper bound leaves every one of them inside the window.
     s = SqliteStore(":memory:")
     s.init_schema()
     rows = []
@@ -320,41 +322,57 @@ def test_avg_active_empty_is_zero():
     assert stats["avg_active"] == {"d7": 0, "d30": 0}
 
 
-def test_avg_active_nonzero_tz_local_day_bucketing():
-    # Pins the local-day bucketing of the fixed 7-day window. A boundary-day of
-    # distinct visitors sits BEFORE the would-be buggy UTC-instant cutoff
-    # (ts >= datetime('now','-7 days')) but INSIDE the correct local-date
-    # window. Counting it makes d7 = round(4/7) = 1; a UTC rewrite yields 0.
-    tz = 360
+def test_avg_active_excludes_today_and_buckets_by_local_day():
+    # avg_active averages the last N COMPLETE local days, EXCLUDING today (today
+    # is partial; the unique_today / active_now tiles carry the live number).
+    # Two invariants are pinned here with a nonzero tz:
+    #   1. local-day bucketing: the today-1 visitors are logged at an instant
+    #      that reads as "today" in naive UTC but "yesterday" in the local tz, so
+    #      a UTC-vs-local rewrite would misbucket them onto today and drop them.
+    #   2. today is excluded: a pile of visitors on the local current day must
+    #      NOT count toward avg_active.
+    tz = -360  # local is 6h BEHIND UTC, so early-UTC-today is local yesterday
     window_days = 7
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     local_now = now + timedelta(minutes=tz)
-    earliest_local_day = (local_now - timedelta(days=window_days)).date()
-    earliest_local_midnight_utc = datetime.combine(earliest_local_day, time.min) - timedelta(minutes=tz)
+    local_today = local_now.date()
 
-    buggy_cutoff = now - timedelta(days=window_days)
-    gap = buggy_cutoff - earliest_local_midnight_utc
-    assert gap > timedelta(0), "test must not run exactly at local midnight"
-
-    boundary_event_ts = earliest_local_midnight_utc + gap / 2
-    assert boundary_event_ts < buggy_cutoff
-    assert (boundary_event_ts + timedelta(minutes=tz)).date() == earliest_local_day
+    # An instant on local (today-1) whose UTC calendar date is local_today: a
+    # naive UTC read buckets it on "today" (excluded); the correct local read
+    # buckets it on "today-1" (included). Both dates are fixed offsets off
+    # local_today, so this is deterministic (no midnight flake).
+    yday_local = datetime.combine(local_today, time.min) - timedelta(hours=1)  # (today-1) 23:00 local
+    yday_utc = yday_local - timedelta(minutes=tz)  # convert local -> UTC
+    assert yday_local.date() == local_today - timedelta(days=1)  # local -> yesterday (included)
+    assert yday_utc.date() == local_today  # naive UTC -> today (would be excluded)
 
     def fmt(dt: datetime) -> str:
         return dt.strftime("%Y-%m-%d %H:%M:%S")
 
     s = SqliteStore(":memory:")
     s.init_schema()
-    # 4 distinct visitors, all on the boundary local day, nothing else.
-    s.execute_many([
-        ("INSERT INTO events (ts,type,outcome,country,visitor,platform,source,visitor_kind) "
-         "VALUES (?,?,?,?,?,?,?,?)",
-         [fmt(boundary_event_ts), "visit", None, "BD", f"bv{i}", None, None, None])
-        for i in range(4)
-    ])
+    events = []
+    # 10 distinct visitors on local today-1 -> INCLUDED in the window.
+    for i in range(10):
+        events.append((
+            "INSERT INTO events (ts,type,outcome,country,visitor,platform,source,visitor_kind) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            [fmt(yday_utc), "visit", None, "BD", f"y{i}", None, None, None],
+        ))
+    # 100 distinct visitors on local today (ts = now) -> EXCLUDED as partial.
+    for i in range(100):
+        events.append((
+            "INSERT INTO events (ts,type,outcome,country,visitor,platform,source,visitor_kind) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            [fmt(now), "visit", None, "BD", f"t{i}", None, None, None],
+        ))
+    s.execute_many(events)
 
     stats = compute_stats(s, days=window_days, tz=tz)
+    # Only the 10 today-1 visitors count: round(10 / 7) == 1.
+    #   old (no upper bound) counted today too    -> round(110 / 7) == 16
+    #   a UTC-date rewrite drops the today-1 group -> round(0 / 7) == 0
     assert stats["avg_active"]["d7"] == 1
 
 
