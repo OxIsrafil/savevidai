@@ -20,6 +20,7 @@ Stdlib only for parsing (regex over meta tags plus html.unescape); no new deps.
 """
 import html
 import logging
+import os
 import re
 from dataclasses import dataclass
 from urllib.parse import parse_qs, urlparse
@@ -27,9 +28,18 @@ from xml.etree import ElementTree as ET
 
 import httpx
 
-from .errors import NO_VIDEO, UPSTREAM, app_error
+from .errors import NO_VIDEO, NOT_FOUND, UNSUPPORTED_POST, UPSTREAM, AppError, app_error
+from .schemas import MediaItem, ResolveResponse, Variant
 
 logger = logging.getLogger("savevidai.reddit")
+
+# Byte hosts the /api/proxy allowlist must accept for Reddit media. Reddit serves
+# both video segments (v.redd.it) and still images (i.redd.it) from *.redd.it, so
+# a single registrable suffix covers both (the proxy suffix-matches host ==
+# "redd.it" or host.endswith(".redd.it")).
+# NOTE: this tuple feeds the /api/proxy SSRF allowlist (Task 7), so widening it
+# widens what the proxy will fetch on the server's behalf - change with care.
+REDDIT_MEDIA_HOSTS = ("redd.it",)
 
 _VX_BASE = "https://www.vxreddit.com"
 # vxreddit serves og tags to Discord's link unfurler; a browser-like UA gets a
@@ -290,3 +300,115 @@ def fetch_manifest(vid: str) -> Manifest:
         logger.warning("v.redd.it manifest non-200 (%s) for %s", resp.status_code, vid)
         raise app_error(UPSTREAM)
     return _parse_manifest(resp.text)
+
+
+def _is_reddit_image_host(url: str) -> bool:
+    """True when ``url``'s host is i.redd.it or any ``.redd.it`` subdomain.
+
+    The og:image is upstream-controlled, so a foreign host must never be mapped
+    (it would be handed to /api/proxy later). The suffix check requires a literal
+    ``.redd.it`` tail so lookalikes like ``evilredd.it`` are rejected; a bare
+    ``redd.it`` host is not an image host and also falls through.
+    """
+    host = (urlparse(url).hostname or "").lower()
+    return host == "i.redd.it" or host.endswith(".redd.it")
+
+
+def map_reddit_vx(post_id: str, vx: dict, manifest: Manifest | None) -> ResolveResponse:
+    """Map an anonymous vxreddit result (+manifest) to a ResolveResponse. Pure.
+
+    A ``vredd_id`` with a manifest is a video: one item, one Variant per rendition
+    (best first). When the manifest carries audio, variants point at /api/mux so
+    the server can remux the split video+audio tracks; a silent clip has no audio
+    track and its variants point straight at the direct v.redd.it byte URL. With
+    no video but an og:image on a genuine redd.it host, it is a single image item.
+    Anything else (gallery/text, or an image on a foreign host we refuse to trust)
+    is an unsupported_post. og:image is never used as a video thumbnail: vxreddit's
+    value is a low-fidelity preview, so thumbnail is left None.
+    """
+    handle = vx.get("author") or "unknown"
+    common = {
+        "id": post_id,
+        "author": f"u/{handle}",
+        "handle": handle,
+        "avatar_url": None,
+        "text": vx.get("title") or "",
+    }
+    vredd_id = vx.get("vredd_id")
+    if vredd_id and manifest is not None:
+        variants = [
+            Variant(
+                label=f"{r.height}p",
+                width=r.width,
+                height=r.height,
+                url=(f"/api/mux/{vredd_id}/{r.height}.mp4" if manifest.audio_base
+                     else f"https://v.redd.it/{vredd_id}/{r.base_url}"),
+            )
+            for r in manifest.videos
+        ]
+        item = MediaItem(index=1, kind="video", thumbnail=None,
+                         duration_seconds=None, variants=variants)
+        return ResolveResponse(items=[item], **common)
+
+    image_url = vx.get("image_url")
+    if not vredd_id and image_url and _is_reddit_image_host(image_url):
+        item = MediaItem(index=1, kind="image", thumbnail=None, duration_seconds=None,
+                         variants=[Variant(label="photo", url=image_url)])
+        return ResolveResponse(items=[item], **common)
+
+    raise app_error(UNSUPPORTED_POST)
+
+
+def _map_guarded(post_id: str, vx: dict, manifest: Manifest | None) -> ResolveResponse:
+    """Run the mapper over an untrusted upstream shape; anything we didn't
+    anticipate becomes a clean upstream_error instead of an unhandled 500
+    (mirrors the tiktok/extractor guard)."""
+    try:
+        return map_reddit_vx(post_id, vx, manifest)
+    except AppError:
+        raise
+    except Exception as exc:
+        logger.warning("reddit mapping failed for %s: %r", post_id, exc)
+        raise app_error(UPSTREAM) from exc
+
+
+def is_configured() -> bool:
+    """True when both Reddit OAuth credentials are set (enables the Task 5 path)."""
+    return bool(os.environ.get("REDDIT_CLIENT_ID") and os.environ.get("REDDIT_CLIENT_SECRET"))
+
+
+def _extract_oauth(parsed: tuple) -> ResolveResponse:
+    # TODO(Task 5): OAuth path - replace this stub with a direct Reddit API call
+    # that upgrades/replaces the anonymous result (galleries, crossposts, etc.).
+    raise app_error(UPSTREAM)
+
+
+def extract_reddit(parsed: tuple) -> ResolveResponse:
+    """Resolve a parsed reddit link to media. Hybrid: OAuth when configured, else
+    the anonymous vxreddit path.
+
+    ``parsed`` is ``("post", id, path)`` or ``("share", url, path)`` from
+    ``parse_reddit_url``. On the anonymous path a known post is fetched via its
+    slugless comments path; a ``vredd_id`` triggers a manifest fetch for the video
+    renditions, otherwise the image/unsupported branches run with no manifest.
+    Share links can't be followed anonymously (fetch is redirect-averse), so a
+    failed/no-og share fetch surfaces as not_found rather than a raw upstream.
+    """
+    kind, ident, path = parsed
+    if is_configured():
+        return _extract_oauth(parsed)
+
+    if kind == "share":
+        try:
+            vx = fetch_vx(path)
+        except AppError as exc:
+            logger.info("anonymous share resolution failed for %s: %r", path, exc)
+            raise app_error(NOT_FOUND) from exc
+        # No real post id is available for a share link; use the validated token.
+        share_id = path.rstrip("/").rsplit("/", 1)[-1]
+        manifest = fetch_manifest(vx["vredd_id"]) if vx["vredd_id"] else None
+        return _map_guarded(share_id, vx, manifest)
+
+    vx = fetch_vx(path)
+    manifest = fetch_manifest(vx["vredd_id"]) if vx["vredd_id"] else None
+    return _map_guarded(ident, vx, manifest)
