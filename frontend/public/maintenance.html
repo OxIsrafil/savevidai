@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Under maintenance - SaveVid AI</title>
+    <style>
+      @font-face {
+        font-family: "Onest";
+        src: url("/maintenance/onest.woff2") format("woff2-variations");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      :root {
+        --bg: #07070b;
+        --panel: #0e0e14;
+        --fg: #f4f4f6;
+        --muted: #9b9ba6;
+        --faint: #6a6a76;
+        --accent: #2997ff;
+        --line: rgba(255, 255, 255, 0.08);
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        min-height: 100%;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 20px;
+        overflow: hidden;
+        text-align: center;
+      }
+      /* Ambient aurora, same idea as the main site hero. Pure CSS so it never
+         depends on the animation loading. */
+      .aurora {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        filter: blur(80px);
+        opacity: 0.5;
+      }
+      .blob {
+        position: absolute;
+        border-radius: 50%;
+      }
+      .blob-a {
+        width: 46vw;
+        height: 46vw;
+        top: -8vw;
+        left: -6vw;
+        background: #1d4ed8;
+        animation: drift-a 14s ease-in-out infinite;
+      }
+      .blob-b {
+        width: 40vw;
+        height: 40vw;
+        bottom: -10vw;
+        right: -6vw;
+        background: #4c1d95;
+        animation: drift-b 18s ease-in-out infinite;
+      }
+      @keyframes drift-a {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        50% {
+          transform: translate(6vw, 4vw) scale(1.12);
+        }
+      }
+      @keyframes drift-b {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        50% {
+          transform: translate(-5vw, -3vw) scale(1.1);
+        }
+      }
+      .card {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 560px;
+      }
+      .brand {
+        font-weight: 700;
+        font-size: 1.15rem;
+        letter-spacing: -0.01em;
+        margin-bottom: 8px;
+      }
+      .brand span {
+        color: var(--accent);
+      }
+      /* The Lottie sits in a fixed box; a CSS pulse ring shows underneath so the
+         area is never a blank hole if the animation fails to load. */
+      .anim-wrap {
+        position: relative;
+        width: 260px;
+        height: 260px;
+        margin: 6px auto 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #lottie {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+      }
+      .pulse {
+        position: absolute;
+        z-index: 1;
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(41, 151, 255, 0.35), rgba(41, 151, 255, 0));
+        animation: pulse 2.2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(0.85);
+          opacity: 0.55;
+        }
+        50% {
+          transform: scale(1.35);
+          opacity: 0.9;
+        }
+      }
+      h1 {
+        font-size: clamp(1.9rem, 6vw, 2.6rem);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.05;
+      }
+      .dots::after {
+        content: "";
+        animation: dots 1.6s steps(4, end) infinite;
+      }
+      @keyframes dots {
+        0% {
+          content: "";
+        }
+        25% {
+          content: ".";
+        }
+        50% {
+          content: "..";
+        }
+        75% {
+          content: "...";
+        }
+      }
+      .sub {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 1.05rem;
+        line-height: 1.55;
+      }
+      .push {
+        margin-top: 18px;
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        padding: 9px 16px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--fg);
+        font-size: 0.95rem;
+      }
+      .live-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 0 rgba(41, 151, 255, 0.6);
+        animation: blink 1.4s ease-in-out infinite;
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(41, 151, 255, 0.55);
+          opacity: 1;
+        }
+        50% {
+          box-shadow: 0 0 0 7px rgba(41, 151, 255, 0);
+          opacity: 0.7;
+        }
+      }
+      .eta {
+        margin-top: 12px;
+        color: var(--faint);
+        font-size: 0.92rem;
+      }
+      footer {
+        position: relative;
+        z-index: 1;
+        margin-top: 34px;
+        color: var(--faint);
+        font-size: 0.9rem;
+        line-height: 1.6;
+      }
+      footer a {
+        color: var(--muted);
+        text-decoration: none;
+        border-bottom: 1px solid var(--line);
+      }
+      footer a:hover {
+        color: var(--fg);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .blob-a,
+        .blob-b,
+        .pulse,
+        .live-dot,
+        .dots::after {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="aurora" aria-hidden="true">
+      <div class="blob blob-a"></div>
+      <div class="blob blob-b"></div>
+    </div>
+
+    <main class="card">
+      <div class="brand">SaveVid AI<span>.</span></div>
+
+      <div class="anim-wrap">
+        <div class="pulse" aria-hidden="true"></div>
+        <div id="lottie" role="img" aria-label="Maintenance in progress"></div>
+      </div>
+
+      <h1>Under maintenance<span class="dots" aria-hidden="true"></span></h1>
+
+      <p class="sub">SaveVid AI will be live again shortly.</p>
+
+      <div class="push">
+        <span class="live-dot" aria-hidden="true"></span>
+        Israfil is pushing some updates right now
+      </div>
+
+      <p class="eta">This usually takes a few minutes.</p>
+    </main>
+
+    <footer>
+      Thank you for using our open source tool.<br />
+      <a href="https://github.com/OxIsrafil/savevidai" rel="noopener">github.com/OxIsrafil/savevidai</a>
+    </footer>
+
+    <script src="/maintenance/lottie.min.js"></script>
+    <script>
+      // Best-effort: if the player or JSON fails, the CSS pulse ring stays as a
+      // graceful fallback, so the page never shows an empty box.
+      try {
+        if (window.lottie) {
+          window.lottie.loadAnimation({
+            container: document.getElementById("lottie"),
+            renderer: "svg",
+            loop: true,
+            autoplay: true,
+            path: "/maintenance/maintenance.json",
+          });
+        }
+      } catch (e) {
+        /* CSS fallback remains visible */
+      }
+    </script>
+  </body>
+</html>

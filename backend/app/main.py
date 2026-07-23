@@ -4,7 +4,7 @@ import shutil
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
 
@@ -18,6 +18,10 @@ from .errors import AppError
 from .limits import limiter
 
 logger = logging.getLogger("savevidai.analytics")
+
+
+def _maintenance_on() -> bool:
+    return os.environ.get("MAINTENANCE_MODE", "").strip().lower() in ("1", "true", "yes", "on")
 
 
 @asynccontextmanager
@@ -36,6 +40,39 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def cache_headers(request: Request, call_next):
+        # Maintenance short-circuit: when MAINTENANCE_MODE is truthy the whole site
+        # serves the maintenance page. Read per-request so a redeploy can toggle it.
+        if _maintenance_on():
+            path = request.url.path
+            # /api/health must stay 200 so Render's health check keeps the deploy
+            # live (a failing check would mark the deploy failed and roll back).
+            # The maintenance page's own assets must load, so let them fall through.
+            if path != "/api/health" and not path.startswith("/maintenance/"):
+                if path.startswith("/api/"):
+                    return JSONResponse(
+                        status_code=503,
+                        content={
+                            "error": "maintenance",
+                            "message": "SaveVid AI is briefly down for maintenance. Try again in a few minutes.",
+                        },
+                        headers={"Retry-After": "120"},
+                    )
+                sd = os.environ.get("STATIC_DIR", "")
+                page = os.path.join(sd, "maintenance.html")
+                if sd and os.path.isfile(page):
+                    return FileResponse(
+                        page,
+                        status_code=503,
+                        headers={"Retry-After": "120", "Cache-Control": "no-store"},
+                    )
+                return HTMLResponse(
+                    "<!doctype html><meta charset=utf-8><title>Under maintenance</title>"
+                    "<h1>Under maintenance</h1>"
+                    "<p>SaveVid AI will be live again shortly.</p>",
+                    status_code=503,
+                    headers={"Retry-After": "120", "Cache-Control": "no-store"},
+                )
+
         # Set Cache-Control on outgoing responses so hashed assets cache forever
         # while HTML pages are always revalidated (a deploy is picked up at once).
         response = await call_next(request)

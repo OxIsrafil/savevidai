@@ -42,6 +42,17 @@ Open http://localhost:8000. That's the whole setup.
 Or deploy your own: use `render.yaml` (free tier) or `compose.yaml` + `Caddyfile`
 on any VPS (edit the domain in the Caddyfile).
 
+### Maintenance mode
+
+To take the site down cleanly for an update, set `MAINTENANCE_MODE=1` in the Render
+env. That triggers a redeploy and the whole site starts serving a branded animated
+maintenance page (503 with a `Retry-After` header); API calls return a 503 JSON
+`{"error": "maintenance"}`. Push your update as normal, which redeploys again with
+maintenance still shown. When you are ready to go live, remove `MAINTENANCE_MODE`
+(or set it to `0`), which redeploys once more and the site is back. The flag is read
+per request, so every redeploy picks up the current value. `/api/health` stays 200
+throughout, so Render does not mark the deploy failed or roll it back.
+
 ## Development
 
 ```bash
