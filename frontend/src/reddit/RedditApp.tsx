@@ -184,7 +184,7 @@ export default function RedditApp() {
         </motion.div>
 
         <motion.p {...fadeRise(4)} className="mt-6 text-sm text-[var(--faint)]">
-          Video and audio merged into one file. No popups, no fake buttons, ever.
+          Video and audio merged into one file. No fake buttons, one real click.
         </motion.p>
 
         <motion.div {...fadeRise(5)} className="mt-8">

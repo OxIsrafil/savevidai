@@ -182,7 +182,7 @@ export default function App() {
         </motion.div>
 
         <motion.p {...fadeRise(4)} className="mt-6 text-sm text-[var(--faint)]">
-          Straight from Twitter's CDN. No popups, no fake buttons, ever.
+          Straight from Twitter's CDN. No fake buttons, one real click.
         </motion.p>
 
         <motion.div {...fadeRise(5)} className="mt-8">
