@@ -2,25 +2,21 @@
 
 <p align="center">
   <a href="https://x.com/israfill"><img src="https://img.shields.io/badge/follow%20%40israfill%20on%20x-000000?style=for-the-badge&logo=x&logoColor=white" alt="Follow @israfill on X" /></a>
-  <a href="https://github.com/OxIsrafil/savevidai/stargazers"><img src="https://img.shields.io/github/stars/OxIsrafil/savevidai?style=for-the-badge&logo=github&color=blue" alt="GitHub stars" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="License: MIT" /></a>
 </p>
 
 ![SaveVid AI - paste a tweet URL, pick a quality, download the video](docs/screenshot.png)
 
-Twitter/X video downloader with none of the garbage. Paste a post link, see a preview,
-pick a quality, download. No popups, no redirects, no fake download buttons, no tracking.
+Twitter/X video downloader. Paste a post link, see a preview, pick a quality, and
+download. No fake download buttons, and the download is never gated or delayed.
 
 **Live site:** https://savevidai.israfill.dev
 
-## Why another downloader
+## How it works
 
-Every existing Twitter video downloader is buried in popunders and fake buttons.
-SaveVid AI is the opposite: open source, one passive ad slot at most (off by default),
-and the download is never gated or delayed. Tweet metadata is resolved via the FixTweet
-API; the video itself is streamed through a locked-down proxy (Twitter's CDN refuses
-cross-origin browser reads), which is what makes the in-page progress bar and clean
-filenames possible.
+Tweet metadata is resolved via the FixTweet API; the video itself is streamed through a
+locked-down proxy (Twitter's CDN refuses cross-origin browser reads), which is what makes
+the in-page progress bar and clean filenames possible.
 
 ## Features
 
@@ -75,7 +71,7 @@ SaveVid AI resolves videos through the FixTweet public API (`api.fxtwitter.com`)
 with `api.vxtwitter.com` as a fallback, because Twitter closed anonymous video
 access to yt-dlp. If resolving stops working, first check whether FixTweet itself
 is up, then check whether their JSON shape changed (`backend/app/extractor.py`
-maps it). Run the smoke test to confirm. See CONTRIBUTING for details.
+maps it). Run the smoke test to confirm.
 
 ## Traffic stats without tracking
 
@@ -111,7 +107,5 @@ MIT
 <p align="center">
   <b>SaveVid AI<span>.</span></b><br/>
   built by <a href="https://x.com/israfill"><b>@israfill</b></a> ·
-  <a href="https://github.com/OxIsrafil">GitHub</a> ·
-  <a href="https://savevidai.israfill.dev">savevidai.israfill.dev</a><br/>
-  <sub>If this saved you from a popup hell site, drop it a star</sub>
+  <a href="https://savevidai.israfill.dev">savevidai.israfill.dev</a>
 </p>

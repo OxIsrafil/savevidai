@@ -26,7 +26,7 @@ VARIANTS = {
     "default": {
         "filename": "og.png",
         "title": "Twitter Video Downloader",
-        "subtitle": "Free. No popups. No fake buttons. Open source.",
+        "subtitle": "Free. No fake buttons. One real click.",
     },
     "tiktok": {
         "filename": "og-tiktok.png",
