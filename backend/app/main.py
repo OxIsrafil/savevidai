@@ -17,6 +17,7 @@ from .analytics.store import make_store
 from .envutil import env_truthy
 from .errors import AppError
 from .limits import limiter
+from .pages import PageRenderer, load_ad_config
 
 logger = logging.getLogger("savevidai.analytics")
 
@@ -140,27 +141,27 @@ def create_app() -> FastAPI:
         logger.warning("analytics disabled: init failed: %r", exc)
     app.include_router(analytics_router)
 
-    @app.get("/tiktokvideodownloader")
-    def tiktok_page():
-        from fastapi import HTTPException
-        from fastapi.responses import FileResponse
+    # Public pages go through the ad-aware renderer. The raw .html paths are
+    # routed too; otherwise the static mount would serve the file as-is and
+    # leak the literal <!--ADS--> marker (or dodge ads entirely). /admin is
+    # deliberately NOT here: it is served by the explicit route in
+    # analytics/router.py and must never pass through the renderer.
+    renderer = PageRenderer(load_ad_config())
 
-        sd = os.environ.get("STATIC_DIR", "")
-        path = os.path.join(sd, "tiktokvideodownloader.html")
-        if sd and os.path.isfile(path):
-            return FileResponse(path)
-        raise HTTPException(status_code=404)
+    @app.get("/")
+    @app.get("/index.html")
+    def home_page():
+        return renderer.render("index.html")
+
+    @app.get("/tiktokvideodownloader")
+    @app.get("/tiktokvideodownloader.html")
+    def tiktok_page():
+        return renderer.render("tiktokvideodownloader.html")
 
     @app.get("/redditvideodownloader")
+    @app.get("/redditvideodownloader.html")
     def reddit_page():
-        from fastapi import HTTPException
-        from fastapi.responses import FileResponse
-
-        sd = os.environ.get("STATIC_DIR", "")
-        path = os.path.join(sd, "redditvideodownloader.html")
-        if sd and os.path.isfile(path):
-            return FileResponse(path)
-        raise HTTPException(status_code=404)
+        return renderer.render("redditvideodownloader.html")
 
     # Serves the built frontend in the Docker image; absent in dev, where Vite serves it.
     static_dir = os.environ.get("STATIC_DIR", "")
