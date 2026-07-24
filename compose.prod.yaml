@@ -11,7 +11,10 @@ services:
     build: .
     restart: unless-stopped
     env_file:
-      - ./deploy/app.env
+      # format: raw disables compose's $-interpolation so minified ad
+      # snippets containing $ are passed through byte-for-byte.
+      - path: ./deploy/app.env
+        format: raw
     expose:
       - "8000"
 

@@ -14,6 +14,7 @@ from .analytics.config import load_config
 from .analytics.recorder import Recorder
 from .analytics.router import router as analytics_router
 from .analytics.store import make_store
+from .envutil import env_truthy
 from .errors import AppError
 from .limits import limiter
 
@@ -21,12 +22,7 @@ logger = logging.getLogger("savevidai.analytics")
 
 
 def _maintenance_on() -> bool:
-    return maintenance.is_on() or os.environ.get("MAINTENANCE_MODE", "").strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
+    return maintenance.is_on() or env_truthy("MAINTENANCE_MODE")
 
 
 @asynccontextmanager
