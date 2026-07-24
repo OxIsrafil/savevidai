@@ -11,4 +11,5 @@ coverage/
 .claude/
 .env
 backend/.env
+deploy/app.env
 assets/
