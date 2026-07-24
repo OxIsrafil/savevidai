@@ -320,7 +320,7 @@ function PeakChart({ series }: { series: Stats["peak_active"]["series"] }) {
   if (points.length === 0) {
     return (
       <div className="panel p-4 sm:col-span-2">
-        <h2 className="font-semibold">Peak concurrent per day</h2>
+        <h2 className="font-semibold">Peak concurrent per day (last 90 days)</h2>
         <p className="mt-3 text-sm text-[var(--muted)]">No data yet.</p>
       </div>
     );
@@ -344,7 +344,7 @@ function PeakChart({ series }: { series: Stats["peak_active"]["series"] }) {
 
   return (
     <div className="panel p-4 sm:col-span-2">
-      <h2 className="font-semibold">Peak concurrent per day</h2>
+      <h2 className="font-semibold">Peak concurrent per day (last 90 days)</h2>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         role="img"

@@ -252,7 +252,7 @@ test("shows the peak concurrent tile with caption and the peak chart", async () 
   // 21:15 renders as 9:15pm; month wording is locale-formatted, so pin only
   // the clock and the honesty caption.
   expect(tile.getByText(/9:15pm - last 90 days/)).toBeInTheDocument();
-  expect(screen.getByText("Peak concurrent per day")).toBeInTheDocument();
+  expect(screen.getByText("Peak concurrent per day (last 90 days)")).toBeInTheDocument();
   expect(
     screen.getByRole("img", { name: /line chart of daily peak concurrent visitors/i }),
   ).toBeInTheDocument();
@@ -264,6 +264,6 @@ test("peak concurrent tile shows a dash when there is no record", async () => {
   const tile = within(screen.getByText("Peak concurrent").closest(".panel") as HTMLElement);
   expect(tile.getAllByText("-").length).toBeGreaterThanOrEqual(1);
   // Empty series falls back to the shared "No data yet." empty state.
-  const chartPanel = within(screen.getByText("Peak concurrent per day").closest(".panel") as HTMLElement);
+  const chartPanel = within(screen.getByText("Peak concurrent per day (last 90 days)").closest(".panel") as HTMLElement);
   expect(chartPanel.getByText(/no data yet/i)).toBeInTheDocument();
 });
