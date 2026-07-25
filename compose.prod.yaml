@@ -17,6 +17,10 @@ services:
         format: raw
     expose:
       - "8000"
+    volumes:
+      # Local analytics SQLite file (ANALYTICS_DB_PATH=/data/analytics.db).
+      # Named volumes survive `up -d --build`, so the DB outlives every deploy.
+      - analytics_data:/data
 
   caddy:
     image: caddy:2-alpine
@@ -32,5 +36,6 @@ services:
       - app
 
 volumes:
+  analytics_data:
   caddy_data:
   caddy_config:
