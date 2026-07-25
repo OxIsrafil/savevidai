@@ -147,4 +147,11 @@ class TursoStore:
 
 
 def make_store(cfg) -> Store:
-    return TursoStore(cfg.turso_url, cfg.turso_token)
+    """Storage selection mirrors load_config: Turso wins when both are set.
+
+    Construction only. service.init() is the one place that calls
+    init_schema(), do not add it here.
+    """
+    if cfg.turso_url and cfg.turso_token:
+        return TursoStore(cfg.turso_url, cfg.turso_token)
+    return SqliteStore(cfg.db_path)

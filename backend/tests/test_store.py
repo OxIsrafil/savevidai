@@ -1,6 +1,12 @@
 import pytest
 
-from app.analytics.store import SqliteStore, _raise_on_pipeline_errors
+from app.analytics.config import AnalyticsConfig
+from app.analytics.store import (
+    SqliteStore,
+    TursoStore,
+    _raise_on_pipeline_errors,
+    make_store,
+)
 
 
 def test_schema_and_roundtrip():
@@ -141,3 +147,29 @@ def test_source_and_visitor_kind_alter_migration_on_legacy_table():
     rows = s.query("SELECT source, visitor_kind FROM events", [])
     assert rows[0]["source"] == "twitter"
     assert rows[0]["visitor_kind"] == "new"
+
+
+def test_make_store_turso_cfg_returns_turso_store():
+    cfg = AnalyticsConfig(turso_url="libsql://db.turso.io", turso_token="tok",
+                          admin_password="pw-long", salt="s")
+    assert isinstance(make_store(cfg), TursoStore)
+
+
+def test_make_store_local_cfg_returns_sqlite_store(tmp_path):
+    cfg = AnalyticsConfig(admin_password="pw-long", salt="s",
+                          db_path=str(tmp_path / "analytics.db"))
+    assert isinstance(make_store(cfg), SqliteStore)
+
+
+def test_make_store_local_cfg_roundtrip_on_real_file(tmp_path):
+    db = tmp_path / "analytics.db"
+    cfg = AnalyticsConfig(admin_password="pw-long", salt="s", db_path=str(db))
+    store = make_store(cfg)
+    store.init_schema()
+    store.execute_many([
+        ("INSERT INTO events (ts, type, outcome, country, visitor) VALUES (?,?,?,?,?)",
+         ["2026-07-25 10:00:00", "fetch", "ok", "BD", "vh"]),
+    ])
+    rows = store.query("SELECT type, outcome, country, visitor FROM events", [])
+    assert rows == [{"type": "fetch", "outcome": "ok", "country": "BD", "visitor": "vh"}]
+    assert db.exists()
