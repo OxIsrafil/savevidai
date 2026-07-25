@@ -14,6 +14,10 @@ WORKDIR /srv
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 COPY backend/ backend/
 RUN pip install --no-cache-dir ./backend
+# The one-time analytics migration runs inside the container:
+#   docker compose -f compose.prod.yaml run --rm ... app python scripts/migrate_analytics.py
+# The app package above is pip-installed, so its imports resolve in-container.
+COPY scripts/ scripts/
 COPY --from=web /web/dist static/
 ENV STATIC_DIR=/srv/static
 EXPOSE 8000
