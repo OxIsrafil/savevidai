@@ -8,12 +8,23 @@ test("buildFilename single and multi", () => {
   expect(buildFilename("ada", "222", "720p", 2, 3)).toBe("ada_222_2_720p.mp4");
 });
 
+// Instagram is metadata-light: handle and id are both the shortcode, so the
+// plain handle_id stem would stutter ("DbKoX9xTgPz_DbKoX9xTgPz_hd.mp4").
+test("buildFilename does not repeat the stem when handle and id are the same", () => {
+  expect(buildFilename("DbKoX9xTgPz", "DbKoX9xTgPz", "hd", 1, 1)).toBe("DbKoX9xTgPz_hd.mp4");
+});
+
 describe("buildMediaFilename", () => {
   test("photo filenames carry the 1-based position", () => {
     expect(buildMediaFilename("user", "730", "photo", 2)).toBe("user_730_photo_2.jpg");
   });
   test("sound filename", () => {
     expect(buildMediaFilename("user", "730", "sound")).toBe("user_730_sound.m4a");
+  });
+  test("does not repeat the stem when handle and id are the same", () => {
+    expect(buildMediaFilename("DbKoX9xTgPz", "DbKoX9xTgPz", "photo", 1)).toBe(
+      "DbKoX9xTgPz_photo_1.jpg",
+    );
   });
 });
 

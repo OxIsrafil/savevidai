@@ -1,5 +1,14 @@
 export type Progress = { received: number; total: number | null };
 
+/**
+ * `handle_id`, unless they are the same string. Instagram is metadata-light:
+ * there is no author to report, so handle and id are both the shortcode, and a
+ * naive join would stutter ("DbKoX9xTgPz_DbKoX9xTgPz_hd.mp4").
+ */
+function stem(handle: string, id: string): string {
+  return handle === id ? id : `${handle}_${id}`;
+}
+
 export function buildFilename(
   handle: string,
   id: string,
@@ -8,7 +17,7 @@ export function buildFilename(
   totalItems: number,
 ): string {
   const suffix = totalItems > 1 ? `_${index}` : "";
-  return `${handle}_${id}${suffix}_${label}.mp4`;
+  return `${stem(handle, id)}${suffix}_${label}.mp4`;
 }
 
 export function buildMediaFilename(
@@ -17,7 +26,8 @@ export function buildMediaFilename(
   kind: "photo" | "sound",
   n?: number,
 ): string {
-  return kind === "photo" ? `${handle}_${id}_photo_${n}.jpg` : `${handle}_${id}_sound.m4a`;
+  const base = stem(handle, id);
+  return kind === "photo" ? `${base}_photo_${n}.jpg` : `${base}_sound.m4a`;
 }
 
 export function proxyUrl(url: string, filename: string): string {

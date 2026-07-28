@@ -32,3 +32,29 @@ test("marks reddit active and links twitter and tiktok", () => {
     "/tiktokvideodownloader",
   );
 });
+
+test("renders an instagram link with the exact href on every other page", () => {
+  for (const active of ["twitter", "tiktok", "reddit"] as const) {
+    const { unmount } = render(<PlatformLinks active={active} />);
+    expect(screen.getByRole("link", { name: /instagram/i })).toHaveAttribute(
+      "href",
+      "/instagramvideodownloader",
+    );
+    unmount();
+  }
+});
+
+test("marks instagram active and links the other three", () => {
+  render(<PlatformLinks active="instagram" />);
+  expect(screen.getByText(/instagram/i)).toHaveAttribute("aria-current", "page");
+  expect(screen.queryByRole("link", { name: /instagram/i })).toBeNull();
+  expect(screen.getByRole("link", { name: /twitter/i })).toHaveAttribute("href", "/");
+  expect(screen.getByRole("link", { name: /tiktok/i })).toHaveAttribute(
+    "href",
+    "/tiktokvideodownloader",
+  );
+  expect(screen.getByRole("link", { name: /reddit/i })).toHaveAttribute(
+    "href",
+    "/redditvideodownloader",
+  );
+});
