@@ -30,3 +30,14 @@ REDDIT_DETECT = [
 @pytest.mark.parametrize("url,expected", REDDIT_DETECT)
 def test_detect_reddit(url, expected):
     assert detect_platform(url) == expected
+
+
+INSTAGRAM_DETECT = [
+    ("https://www.instagram.com/reel/DbKoX9xTgPz", "instagram"),
+    ("instagr.am/p/DbKoX9xTgPz", "instagram"),
+]
+
+
+@pytest.mark.parametrize("url,expected", INSTAGRAM_DETECT)
+def test_detect_instagram(url, expected):
+    assert detect_platform(url) == expected

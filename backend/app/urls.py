@@ -119,3 +119,42 @@ def parse_reddit_url(raw: str) -> tuple[str, str, str]:
     else:
         path = f"/comments/{post_id}"
     return ("post", post_id, path)
+
+
+INSTAGRAM_HOSTS = {
+    "instagram.com", "www.instagram.com", "m.instagram.com",
+    "instagr.am", "www.instagr.am",
+}
+
+_IG_CODE = re.compile(r"[A-Za-z0-9_-]{5,20}")
+_IG_USER = re.compile(r"[A-Za-z0-9._]{1,30}")
+_IG_KINDS = ("p", "reel", "reels", "tv")
+
+
+def parse_instagram_url(raw: str) -> str:
+    """Return the shortcode for /p|reel|reels|tv/<code>, optionally username-prefixed.
+
+    The shortcode is the only thing ever forwarded to the third-party resolver,
+    and it is charset-validated here, so an arbitrary user URL (or path) can
+    never reach it. We host-allowlist first, same rule as tiktok/reddit.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        raise InvalidTweetURL("empty input")
+    if "://" not in raw:
+        raw = "https://" + raw
+    parsed = urlparse(raw)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise InvalidTweetURL(raw)
+    if parsed.hostname.lower() not in INSTAGRAM_HOSTS:
+        raise InvalidTweetURL(raw)
+    parts = [p for p in parsed.path.split("/") if p]
+    if len(parts) >= 2 and parts[0] in _IG_KINDS:
+        code = parts[1]
+    elif len(parts) >= 3 and parts[1] in _IG_KINDS and _IG_USER.fullmatch(parts[0]):
+        code = parts[2]
+    else:
+        raise InvalidTweetURL(raw)
+    if not _IG_CODE.fullmatch(code):
+        raise InvalidTweetURL(raw)
+    return code
