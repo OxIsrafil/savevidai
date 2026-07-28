@@ -14,6 +14,8 @@ PUBLIC_PATHS = [
     ("/tiktokvideodownloader.html", "tiktokvideodownloader.html"),
     ("/redditvideodownloader", "redditvideodownloader.html"),
     ("/redditvideodownloader.html", "redditvideodownloader.html"),
+    ("/instagramvideodownloader", "instagramvideodownloader.html"),
+    ("/instagramvideodownloader.html", "instagramvideodownloader.html"),
 ]
 
 
@@ -86,10 +88,11 @@ def test_maintenance_on_serves_maintenance_page_without_ads(tmp_path, monkeypatc
     _ads_on(monkeypatch)
     monkeypatch.setenv("MAINTENANCE_MODE", "1")
     client = TestClient(create_app())
-    res = client.get("/")
-    assert res.status_code == 503
-    assert "brb" in res.text
-    assert "ad-slot" not in res.text and POP not in res.text
+    for path, _ in PUBLIC_PATHS:
+        res = client.get(path)
+        assert res.status_code == 503, path
+        assert "brb" in res.text, path
+        assert "ad-slot" not in res.text and POP not in res.text, path
 
 
 def test_root_404_without_static_dir(monkeypatch):
