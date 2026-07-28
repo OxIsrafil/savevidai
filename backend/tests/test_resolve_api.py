@@ -21,6 +21,12 @@ RED = ResolveResponse(
         variants=[Variant(label="720p", url="/api/mux/vidid1234/720.mp4")])],
 )
 
+IG = ResolveResponse(
+    id="DbKoX9xTgPz", author="Instagram", handle="DbKoX9xTgPz", avatar_url=None,
+    text="", items=[MediaItem(index=1, kind="video", thumbnail=None, duration_seconds=None,
+        variants=[Variant(label="hd", url="https://scontent.cdninstagram.com/x.mp4")])],
+)
+
 FIXTURE = ResolveResponse(
     id="20", author="Jack", handle="jack", text="just setting up",
     items=[MediaItem(index=1, kind="video", variants=[
@@ -80,6 +86,33 @@ def test_resolve_routes_reddit(monkeypatch, client):
     r = client.post("/api/resolve", json={"url": "https://www.reddit.com/r/aww/comments/abc123/cute/"})
     assert r.status_code == 200
     assert r.json()["items"][0]["variants"][0]["label"] == "720p"
+
+
+def test_resolve_routes_instagram(monkeypatch, client):
+    calls = {}
+    monkeypatch.setattr(resolve_module, "extract_instagram",
+                        lambda shortcode: calls.update(sc=shortcode) or IG)
+    r = client.post("/api/resolve", json={"url": "https://www.instagram.com/reel/DbKoX9xTgPz"})
+    assert r.status_code == 200
+    assert calls["sc"] == "DbKoX9xTgPz"
+    assert r.json()["items"][0]["variants"][0]["label"] == "hd"
+
+
+def test_instagram_resolve_cached_with_short_ttl(monkeypatch, client):
+    seen = {}
+    real_set = resolve_module.cache.set
+    monkeypatch.setattr(resolve_module, "extract_instagram", lambda shortcode: IG)
+    monkeypatch.setattr(resolve_module.cache, "set",
+                        lambda key, value, ttl=None: seen.update({key: ttl}) or real_set(key, value, ttl=ttl))
+    r = client.post("/api/resolve", json={"url": "https://www.instagram.com/reel/DbKoX9xTgPz"})
+    assert r.status_code == 200
+    assert seen["instagram:DbKoX9xTgPz"] == 600.0
+
+
+def test_instagram_invalid_url(client):
+    r = client.post("/api/resolve", json={"url": "https://www.instagram.com/"})
+    assert r.status_code == 422
+    assert r.json()["error"] == "invalid_url"
 
 
 def test_reddit_fetch_event_tagged_platform(monkeypatch, client):
