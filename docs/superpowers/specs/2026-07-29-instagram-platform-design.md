@@ -13,6 +13,10 @@ kkinstagram.com is a pure redirect service: `GET https://kkinstagram.com/reel/<s
 returns `302` with `Location:` pointing at a direct progressive MP4 (or image) on
 `scontent.cdninstagram.com`. Facts verified by probe:
 
+- The media 302 is gated on the User-Agent: only embed-crawler UAs get it, everything
+  else (plain custom UA, browser UA, no UA) gets a 301 to a `kkclip.com` "open in app"
+  page, and `curl/*` gets a 404. The UA therefore carries a `Discordbot/2.0` token
+  alongside our own name and contact URL (verified live 2026-07-29).
 - `/reel/<code>`, `/reels/<code>`, `/p/<code>` all resolve; indexed carousel forms
   (`/p/<code>/2`) 404. One media item per shortcode, no way to reach carousel items 2..N.
 - Media is progressive (single file), NOT DASH. No muxing, no temp files, no disk.
@@ -53,7 +57,8 @@ returns `302` with `Location:` pointing at a direct progressive MP4 (or image) o
   boundary-safe suffix match happens in proxy.py. NOTE: feeds the /api/proxy SSRF
   allowlist; widening it widens what the proxy fetches (same warning comment as tiktok).
 - `_FIXER = "https://kkinstagram.com"`; request `GET {_FIXER}/reel/{shortcode}` with
-  the SaveVidAI UA, `timeout=12.0`, `follow_redirects=False`.
+  `_UA = "SaveVidAI/1.0 (compatible; Discordbot/2.0; +https://savevidai.israfill.dev)"`,
+  `timeout=12.0`, `follow_redirects=False`.
 - Mapping:
   - transport error, or any unanticipated exception while mapping -> `UPSTREAM`
     (guarded mapper, mirrors `_map_guarded` in tiktok.py)

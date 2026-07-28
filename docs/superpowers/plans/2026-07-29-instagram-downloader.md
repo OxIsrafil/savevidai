@@ -265,7 +265,9 @@ the CDN allows cross-origin fetches, so the browser downloads directly and
 /api/proxy is only a fallback. CDN URLs are signed with a short expiry, so
 resolve.py caches instagram with a reduced TTL. Single volunteer-run
 dependency, like tikwm; a fallback fixer can slot in here later (mirrors
-fxtwitter -> vxtwitter).
+fxtwitter -> vxtwitter). kkinstagram gates the media redirect on embed-crawler
+user agents, so the UA carries the Discordbot token alongside our own identity;
+if resolves start failing with upstream_error, check this gate first.
 """
 import base64
 import json
@@ -280,7 +282,10 @@ from .schemas import MediaItem, ResolveResponse, Variant
 logger = logging.getLogger("savevidai.instagram")
 
 _FIXER = "https://kkinstagram.com"
-_UA = "SaveVidAI/1.0 (+https://savevidai.israfill.dev)"
+# The Discordbot token is load-bearing: kkinstagram serves the media 302 only to
+# embed-crawler UAs and 301s everything else to an "open in app" page (verified
+# live 2026-07-29). Our own name and contact URL stay in the string.
+_UA = "SaveVidAI/1.0 (compatible; Discordbot/2.0; +https://savevidai.israfill.dev)"
 # Registrable suffixes the redirect may land on (scontent*.cdninstagram.com,
 # scontent*.fbcdn.net). NOTE: this tuple feeds the /api/proxy SSRF allowlist,
 # so widening it widens what the proxy will fetch on the server's behalf -
@@ -622,7 +627,7 @@ print('duration:', r.items[0].duration_seconds)
 "
 ```
 
-Expected: prints a `https://scontent...cdninstagram.com` URL and `duration: 37.0`. (If kkinstagram is down, note it in the report; do not fake the pass.)
+Expected: prints a `https://scontent...cdninstagram.com` URL and `duration: 37.0`. (If kkinstagram is down, note it in the report; do not fake the pass.) If the Location is a `kkclip.com` "open in app" URL instead, the crawler-UA gate is what failed: kkinstagram serves the media 302 only to embed-crawler user agents, so `_UA` must keep its `Discordbot/2.0` token (verified live 2026-07-29). `tests/test_instagram.py::test_request_pins_crawler_ua_and_no_redirect_follow` pins that string.
 - [ ] **Step 4: Local end-to-end** - run backend (`uvicorn app.main:app --port 8000`) + `npm run dev`, browse `http://localhost:5173/instagramvideodownloader.html`, paste `https://www.instagram.com/reel/DbKoX9xTgPz`, confirm the card renders and the download button yields an mp4. Screenshot for the report.
 - [ ] **Step 5: Update ledger** - append an `## Instagram downloader (feature/instagram-downloader, plan 2026-07-29)` section to `.superpowers/sdd/progress.md` summarizing task completions.
 - [ ] **Step 6: Commit any gate fixes + ledger**

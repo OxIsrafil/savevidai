@@ -9,7 +9,9 @@ the CDN allows cross-origin fetches, so the browser downloads directly and
 /api/proxy is only a fallback. CDN URLs are signed with a short expiry, so
 resolve.py caches instagram with a reduced TTL. Single volunteer-run
 dependency, like tikwm; a fallback fixer can slot in here later (mirrors
-fxtwitter -> vxtwitter).
+fxtwitter -> vxtwitter). kkinstagram gates the media redirect on embed-crawler
+user agents, so the UA carries the Discordbot token alongside our own identity;
+if resolves start failing with upstream_error, check this gate first.
 """
 import base64
 import json
@@ -24,7 +26,10 @@ from .schemas import MediaItem, ResolveResponse, Variant
 logger = logging.getLogger("savevidai.instagram")
 
 _FIXER = "https://kkinstagram.com"
-_UA = "SaveVidAI/1.0 (+https://savevidai.israfill.dev)"
+# The Discordbot token is load-bearing: kkinstagram serves the media 302 only to
+# embed-crawler UAs and 301s everything else to an "open in app" page (verified
+# live 2026-07-29). Our own name and contact URL stay in the string.
+_UA = "SaveVidAI/1.0 (compatible; Discordbot/2.0; +https://savevidai.israfill.dev)"
 # Registrable suffixes the redirect may land on (scontent*.cdninstagram.com,
 # scontent*.fbcdn.net). NOTE: this tuple feeds the /api/proxy SSRF allowlist,
 # so widening it widens what the proxy will fetch on the server's behalf -

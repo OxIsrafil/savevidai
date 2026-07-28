@@ -1,6 +1,7 @@
 import base64
 import json
 
+import httpx
 import pytest
 
 from app.errors import AppError
@@ -66,6 +67,31 @@ def test_malformed_efg_degrades_to_no_duration():
 def test_unknown_extension_defaults_to_video():
     res = map_instagram(SC, 302, "https://scontent.cdninstagram.com/o1/v/stream")
     assert res.items[0].kind == "video"
+
+
+def test_request_pins_crawler_ua_and_no_redirect_follow(monkeypatch):
+    # kkinstagram serves the media 302 only to embed-crawler UAs; anything else gets a
+    # 301 to an "open in app" page. Pin the exact request so that gate breaking is a
+    # test failure, not a silent live-only outage. follow_redirects must stay False:
+    # the Location header IS the payload.
+    import app.instagram as ig
+
+    seen: dict = {}
+
+    def fake_get(url, **kwargs):
+        seen["url"] = url
+        seen.update(kwargs)
+        return httpx.Response(302, headers={"location": VIDEO})
+
+    monkeypatch.setattr(ig.httpx, "get", fake_get)
+    res = ig.extract_instagram(SC)
+    assert res.items[0].variants[0].url == VIDEO
+    assert seen["url"] == f"https://kkinstagram.com/reel/{SC}"
+    assert seen["headers"] == {
+        "User-Agent": "SaveVidAI/1.0 (compatible; Discordbot/2.0; +https://savevidai.israfill.dev)"
+    }
+    assert seen["follow_redirects"] is False
+    assert seen["timeout"] == 12.0
 
 
 def test_guarded_mapper_never_500s(monkeypatch):
