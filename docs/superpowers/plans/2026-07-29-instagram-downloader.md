@@ -641,4 +641,4 @@ git commit -m "chore(instagram): final gate fixes and ledger"
 
 ## Post-merge (owner runbook, not part of this branch)
 
-Deploy: `ssh root@159.195.159.26`, `cd /opt/savevidai`, `git pull && docker compose -f compose.prod.yaml up -d --build`. Then prod-verify: `curl -s https://savevidai.israfill.dev/instagramvideodownloader | grep -c ADS` -> 0 (marker consumed), resolve a real reel through the live UI, check `/admin` shows instagram in platforms.
+Deploy: `ssh root@159.195.159.26`, `cd /opt/savevidai`, `git pull && docker compose -f compose.prod.yaml up -d --build`. Then prod-verify: `curl -s https://savevidai.israfill.dev/instagramvideodownloader | grep -c ADS` -> 0 (marker consumed), then resolve a real reel through the live UI AND click the HD save button and confirm the file actually lands on disk (non-zero bytes, plays). A resolve that returns 200 while the download 502s is a real failure mode from the VPS's datacenter IP, so a resolve-only check is not enough. Also resolve one public photo post (`/p/<code>`) the same way and confirm the photo saves. Finally check `/admin` shows instagram in platforms.
