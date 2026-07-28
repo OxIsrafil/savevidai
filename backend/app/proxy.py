@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
 from .errors import UPSTREAM, AppError, app_error
+from .instagram import INSTAGRAM_MEDIA_HOSTS
 from .limits import limiter
 from .reddit import REDDIT_MEDIA_HOSTS
 from .tiktok import TIKTOK_MEDIA_HOSTS
@@ -18,7 +19,14 @@ router = APIRouter()
 # "video.twimg.com.evil.com" and "tikwm.com.evil.com" are rejected.
 # "redd.it" is a registrable suffix, so the dot-suffix rule covers both
 # v.redd.it (video) and i.redd.it (images) while rejecting "redd.it.evil.com".
-_ALLOWED_HOSTS = ("video.twimg.com", *TIKTOK_MEDIA_HOSTS, *REDDIT_MEDIA_HOSTS)
+# Instagram media lives on rotating regional shards (scontent-mad1-1.cdninstagram.com,
+# scontent.xx.fbcdn.net), so both are registrable suffixes under the same dot-suffix rule.
+_ALLOWED_HOSTS = (
+    "video.twimg.com",
+    *TIKTOK_MEDIA_HOSTS,
+    *REDDIT_MEDIA_HOSTS,
+    *INSTAGRAM_MEDIA_HOSTS,
+)
 _SAFE = re.compile(r"[^A-Za-z0-9._-]")
 
 

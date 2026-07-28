@@ -147,3 +147,43 @@ def test_proxy_rejects_redd_it_lookalike():
     assert res2.status_code == 403
     res3 = client().get("/api/proxy", params={"url": "https://notredd.it/x"})
     assert res3.status_code == 403
+
+
+def test_proxy_allows_instagram_cdn_hosts():
+    with respx.mock:
+        respx.get("https://scontent.cdninstagram.com/o1/v/x.mp4").mock(
+            return_value=httpx.Response(200, content=b"vid", headers={"content-length": "3"}))
+        res = client().get(
+            "/api/proxy",
+            params={"url": "https://scontent.cdninstagram.com/o1/v/x.mp4"})
+        assert res.status_code == 200
+        assert res.content == b"vid"
+
+    with respx.mock:
+        respx.get("https://scontent-mad1-1.cdninstagram.com/v/x.jpg").mock(
+            return_value=httpx.Response(200, content=b"jpg", headers={"content-length": "3"}))
+        res2 = client().get(
+            "/api/proxy",
+            params={"url": "https://scontent-mad1-1.cdninstagram.com/v/x.jpg"})
+        assert res2.status_code == 200
+        assert res2.content == b"jpg"
+
+    with respx.mock:
+        respx.get("https://scontent.xx.fbcdn.net/v/x.mp4").mock(
+            return_value=httpx.Response(200, content=b"fb", headers={"content-length": "2"}))
+        res3 = client().get(
+            "/api/proxy",
+            params={"url": "https://scontent.xx.fbcdn.net/v/x.mp4"})
+        assert res3.status_code == 200
+        assert res3.content == b"fb"
+
+
+def test_proxy_rejects_instagram_lookalikes_and_hijack_targets():
+    res = client().get("/api/proxy", params={"url": "https://cdninstagram.com.evil.com/x.mp4"})
+    assert res.status_code == 403
+    res2 = client().get("/api/proxy", params={"url": "https://evilfbcdn.net/x.mp4"})
+    assert res2.status_code == 403
+    res3 = client().get("/api/proxy", params={"url": "https://www.effectivegatecpm.com/nf52nwk7"})
+    assert res3.status_code == 403
+    res4 = client().get("/api/proxy", params={"url": "http://scontent.cdninstagram.com/x.mp4"})
+    assert res4.status_code == 403
