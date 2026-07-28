@@ -15,6 +15,7 @@ export default defineConfig({
         main: entry("./index.html"),
         admin: entry("./admin.html"),
         tiktok: entry("./tiktokvideodownloader.html"),
+        instagram: entry("./instagramvideodownloader.html"),
         reddit: entry("./redditvideodownloader.html"),
       },
     },
