@@ -135,7 +135,7 @@ export default function InstagramApp() {
         </div>
 
         {/* H1 targets the search query per the spec's SEO section; the brand lives in the nav.
-            Lowercase on purpose: owner voice (see the maintenance page for the register). */}
+            Title case and the two-word split match the other three platform pages on purpose. */}
         <h1 className="hero-h1">
           <span className="word">
             <motion.span
@@ -144,7 +144,7 @@ export default function InstagramApp() {
               animate={{ y: 0 }}
               transition={{ duration: 0.9, ease: EASE_OUT }}
             >
-              instagram reel
+              Instagram Reel
             </motion.span>
           </span>{" "}
           <span className="word grey small">
@@ -154,7 +154,7 @@ export default function InstagramApp() {
               animate={{ y: 0 }}
               transition={{ duration: 0.9, ease: EASE_OUT, delay: 0.14 }}
             >
-              downloader
+              Downloader
             </motion.span>
           </span>
         </h1>
