@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 
 class InvalidTweetURL(ValueError):
@@ -158,3 +158,66 @@ def parse_instagram_url(raw: str) -> str:
     if not _IG_CODE.fullmatch(code):
         raise InvalidTweetURL(raw)
     return code
+
+
+FACEBOOK_HOSTS = {
+    "facebook.com", "www.facebook.com", "m.facebook.com", "web.facebook.com",
+    "fb.com", "www.fb.com", "fb.watch",
+}
+
+_FB_ID = re.compile(r"[0-9]{5,20}")
+_FB_TOKEN = re.compile(r"[A-Za-z0-9]{1,32}")
+_FB_PAGE = re.compile(r"[A-Za-z0-9.]{1,60}")
+
+
+def parse_facebook_url(raw: str) -> tuple[str, str]:
+    """Return (id, path) for a supported Facebook video URL, else raise.
+
+    The path is what the resolver appends to facebed.com and is built ONLY from
+    validated pieces (mirrors parse_reddit_url). Page/videos and the legacy
+    video.php/story.php shapes normalize to /watch/?v=<id>. fb.watch hosts are
+    detected (so analytics attribute them to facebook) but rejected here: v1
+    does not follow the facebook.com redirect they require. We host-allowlist
+    first, same rule as every platform.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        raise InvalidTweetURL("empty input")
+    if "://" not in raw:
+        raw = "https://" + raw
+    parsed = urlparse(raw)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise InvalidTweetURL(raw)
+    host = parsed.hostname.lower()
+    if host not in FACEBOOK_HOSTS:
+        raise InvalidTweetURL(raw)
+    if host == "fb.watch":
+        raise InvalidTweetURL(raw)
+    parts = [p for p in parsed.path.split("/") if p]
+    query = parse_qs(parsed.query)
+
+    def _qs_id(key: str) -> str | None:
+        vals = query.get(key)
+        vid = vals[0] if vals else ""
+        return vid if _FB_ID.fullmatch(vid) else None
+
+    if parts and parts[0] in ("watch", "video.php"):
+        vid = _qs_id("v")
+        if vid:
+            return (vid, f"/watch/?v={vid}")
+    elif parts and parts[0] == "story.php":
+        vid = _qs_id("story_fbid")
+        if vid:
+            return (vid, f"/watch/?v={vid}")
+    elif len(parts) == 2 and parts[0] == "reel" and _FB_ID.fullmatch(parts[1]):
+        return (parts[1], f"/reel/{parts[1]}")
+    elif len(parts) == 3 and parts[0] == "share" and parts[1] in ("r", "v", "p") \
+            and _FB_TOKEN.fullmatch(parts[2]):
+        return (parts[2], f"/share/{parts[1]}/{parts[2]}")
+    elif len(parts) >= 3 and parts[1] == "videos" and _FB_PAGE.fullmatch(parts[0]):
+        # id = last all-digit segment AFTER "videos", so a numeric page id in
+        # position 0 can never be picked.
+        for seg in reversed(parts[2:]):
+            if _FB_ID.fullmatch(seg):
+                return (seg, f"/watch/?v={seg}")
+    raise InvalidTweetURL(raw)

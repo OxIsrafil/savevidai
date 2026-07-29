@@ -1,10 +1,10 @@
 from urllib.parse import urlparse
 
-from .urls import _HOSTS, INSTAGRAM_HOSTS, REDDIT_HOSTS, TIKTOK_HOSTS
+from .urls import _HOSTS, FACEBOOK_HOSTS, INSTAGRAM_HOSTS, REDDIT_HOSTS, TIKTOK_HOSTS
 
 
 def detect_platform(url: str) -> str | None:
-    """Return 'twitter' | 'tiktok' | 'reddit' | 'instagram' | None based purely on the URL host."""
+    """Return 'twitter' | 'tiktok' | 'reddit' | 'instagram' | 'facebook' | None from the host."""
     raw = (url or "").strip()
     if not raw:
         return None
@@ -22,4 +22,6 @@ def detect_platform(url: str) -> str | None:
         return "reddit"
     if host in INSTAGRAM_HOSTS:
         return "instagram"
+    if host in FACEBOOK_HOSTS:
+        return "facebook"
     return None

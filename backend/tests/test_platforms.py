@@ -41,3 +41,21 @@ INSTAGRAM_DETECT = [
 @pytest.mark.parametrize("url,expected", INSTAGRAM_DETECT)
 def test_detect_instagram(url, expected):
     assert detect_platform(url) == expected
+
+
+FACEBOOK_DETECT = [
+    ("https://www.facebook.com/watch?v=1664876787784263", "facebook"),
+    ("https://facebook.com/reel/578721235067082", "facebook"),
+    ("https://m.facebook.com/story.php?story_fbid=1664876787784263&id=1", "facebook"),
+    ("https://web.facebook.com/watch/?v=1664876787784263", "facebook"),
+    ("https://fb.com/video.php?v=1664876787784263", "facebook"),
+    # fb.watch detects as facebook; the parser is what rejects it.
+    ("https://fb.watch/abc123XY/", "facebook"),
+    ("www.facebook.com/share/r/18WMhEx3aR/", "facebook"),
+    ("https://facebook.com.evil.com/watch?v=1664876787784263", None),
+]
+
+
+@pytest.mark.parametrize("url,expected", FACEBOOK_DETECT)
+def test_detect_facebook(url, expected):
+    assert detect_platform(url) == expected
