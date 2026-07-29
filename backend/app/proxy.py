@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
 from .errors import UPSTREAM, AppError, app_error
+from .facebook import FACEBOOK_MEDIA_HOSTS
 from .instagram import INSTAGRAM_MEDIA_HOSTS
 from .limits import limiter
 from .reddit import REDDIT_MEDIA_HOSTS
@@ -21,11 +22,15 @@ router = APIRouter()
 # v.redd.it (video) and i.redd.it (images) while rejecting "redd.it.evil.com".
 # Instagram media lives on rotating regional shards (scontent-mad1-1.cdninstagram.com,
 # scontent.xx.fbcdn.net), so both are registrable suffixes under the same dot-suffix rule.
+# Facebook media rides the same fbcdn.net suffix on regional video shards
+# (video.fhan5-6.fna.fbcdn.net); it is spliced in explicitly so the allowlist does
+# not silently depend on instagram's list keeping fbcdn.net.
 _ALLOWED_HOSTS = (
     "video.twimg.com",
     *TIKTOK_MEDIA_HOSTS,
     *REDDIT_MEDIA_HOSTS,
     *INSTAGRAM_MEDIA_HOSTS,
+    *FACEBOOK_MEDIA_HOSTS,
 )
 _SAFE = re.compile(r"[^A-Za-z0-9._-]")
 

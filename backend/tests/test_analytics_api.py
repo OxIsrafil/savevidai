@@ -67,6 +67,13 @@ def test_event_accepts_instagram_platform(enabled_client):
     ).status_code == 204
 
 
+def test_event_accepts_facebook_platform(enabled_client):
+    client, *_ = enabled_client
+    assert client.post(
+        "/api/event", json={"type": "download", "quality": "hd", "platform": "facebook"}
+    ).status_code == 204
+
+
 def test_event_rejects_bad_platform(enabled_client):
     client, *_ = enabled_client
     assert client.post(

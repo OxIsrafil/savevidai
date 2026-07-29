@@ -27,6 +27,12 @@ IG = ResolveResponse(
         variants=[Variant(label="hd", url="https://scontent.cdninstagram.com/x.mp4")])],
 )
 
+FB = ResolveResponse(
+    id="1234567890", author="Facebook", handle="1234567890", avatar_url=None,
+    text="", items=[MediaItem(index=1, kind="video", thumbnail=None, duration_seconds=None,
+        variants=[Variant(label="hd", url="https://video.fhan5-6.fna.fbcdn.net/v/x.mp4")])],
+)
+
 FIXTURE = ResolveResponse(
     id="20", author="Jack", handle="jack", text="just setting up",
     items=[MediaItem(index=1, kind="video", variants=[
@@ -113,6 +119,65 @@ def test_instagram_invalid_url(client):
     r = client.post("/api/resolve", json={"url": "https://www.instagram.com/"})
     assert r.status_code == 422
     assert r.json()["error"] == "invalid_url"
+
+
+def test_resolve_routes_facebook(monkeypatch, client):
+    calls = {}
+    monkeypatch.setattr(resolve_module, "extract_facebook",
+                        lambda parsed: calls.update(parsed=parsed) or FB)
+    r = client.post("/api/resolve", json={"url": "https://www.facebook.com/watch/?v=1234567890"})
+    assert r.status_code == 200
+    assert calls["parsed"] == ("1234567890", "/watch/?v=1234567890")
+    assert r.json()["items"][0]["variants"][0]["label"] == "hd"
+
+
+def test_facebook_resolve_cache_key_is_the_path(monkeypatch, client):
+    seen = {}
+    real_set = resolve_module.cache.set
+    monkeypatch.setattr(resolve_module, "extract_facebook", lambda parsed: FB)
+    monkeypatch.setattr(resolve_module.cache, "set",
+                        lambda key, value, ttl=None: seen.update({key: ttl}) or real_set(key, value, ttl=ttl))
+    r = client.post("/api/resolve", json={"url": "https://www.facebook.com/watch/?v=1234567890"})
+    assert r.status_code == 200
+    # keyed on the PATH, not the bare id: share tokens and ids must never alias
+    assert seen == {"facebook:/watch/?v=1234567890": 600.0}
+
+
+def test_facebook_reel_and_watch_do_not_share_a_cache_key(monkeypatch, client):
+    calls = []
+    monkeypatch.setattr(resolve_module, "extract_facebook",
+                        lambda parsed: calls.append(parsed) or FB)
+    client.post("/api/resolve", json={"url": "https://www.facebook.com/watch/?v=1234567890"})
+    client.post("/api/resolve", json={"url": "https://www.facebook.com/reel/1234567890"})
+    assert calls == [("1234567890", "/watch/?v=1234567890"), ("1234567890", "/reel/1234567890")]
+
+
+def test_facebook_invalid_url(client):
+    r = client.post("/api/resolve", json={"url": "https://www.facebook.com/"})
+    assert r.status_code == 422
+    assert r.json()["error"] == "invalid_url"
+
+
+def test_facebook_fetch_event_tagged_platform(monkeypatch, client):
+    events = []
+    monkeypatch.setattr(resolve_module, "extract_facebook", lambda parsed: FB)
+    monkeypatch.setattr(
+        resolve_module.analytics, "record_from_request",
+        lambda request, kind, outcome, platform=None: events.append((kind, outcome, platform)),
+    )
+    r = client.post("/api/resolve", json={"url": "https://www.facebook.com/watch/?v=1234567890"})
+    assert r.status_code == 200
+    assert ("fetch", "ok", "facebook") in events
+
+
+def test_facebook_extractor_error_passthrough(monkeypatch, client):
+    def boom(parsed):
+        raise app_error(NOT_FOUND)
+
+    monkeypatch.setattr(resolve_module, "extract_facebook", boom)
+    r = client.post("/api/resolve", json={"url": "https://www.facebook.com/watch/?v=1234567890"})
+    assert r.status_code == 404
+    assert r.json()["error"] == "not_found"
 
 
 def test_reddit_fetch_event_tagged_platform(monkeypatch, client):

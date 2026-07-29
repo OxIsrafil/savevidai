@@ -3,6 +3,7 @@ import respx
 from fastapi.testclient import TestClient
 
 import app.proxy as proxy_module
+from app.facebook import FACEBOOK_MEDIA_HOSTS
 from app.main import create_app
 
 
@@ -176,6 +177,30 @@ def test_proxy_allows_instagram_cdn_hosts():
             params={"url": "https://scontent.xx.fbcdn.net/v/x.mp4"})
         assert res3.status_code == 200
         assert res3.content == b"fb"
+
+
+def test_proxy_allows_facebook_cdn_host():
+    with respx.mock:
+        respx.get("https://video.fhan5-6.fna.fbcdn.net/v/x.mp4").mock(
+            return_value=httpx.Response(200, content=b"fbv", headers={"content-length": "3"}))
+        res = client().get(
+            "/api/proxy",
+            params={"url": "https://video.fhan5-6.fna.fbcdn.net/v/x.mp4"})
+        assert res.status_code == 200
+        assert res.content == b"fbv"
+
+
+def test_proxy_rejects_facebook_cdn_lookalikes():
+    res = client().get("/api/proxy", params={"url": "https://fbcdn.net.evil.com/x.mp4"})
+    assert res.status_code == 403
+    res2 = client().get("/api/proxy", params={"url": "https://notfbcdn.net/x.mp4"})
+    assert res2.status_code == 403
+    res3 = client().get("/api/proxy", params={"url": "http://video.fhan5-6.fna.fbcdn.net/x.mp4"})
+    assert res3.status_code == 403
+
+
+def test_proxy_allowlist_includes_facebook_media_hosts():
+    assert all(h in proxy_module._ALLOWED_HOSTS for h in FACEBOOK_MEDIA_HOSTS)
 
 
 def test_proxy_rejects_instagram_lookalikes_and_hijack_targets():
