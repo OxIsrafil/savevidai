@@ -13,13 +13,12 @@ fxtwitter -> vxtwitter). kkinstagram gates the media redirect on embed-crawler
 user agents, so the UA carries the Discordbot token alongside our own identity;
 if resolves start failing with upstream_error, check this gate first.
 """
-import base64
-import json
 import logging
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 import httpx
 
+from .efg import duration_from_efg
 from .errors import NOT_FOUND, UPSTREAM, AppError, app_error
 from .schemas import MediaItem, ResolveResponse, Variant
 
@@ -72,16 +71,6 @@ def _allowed_media_url(url: str) -> bool:
     return any(host == d or host.endswith("." + d) for d in INSTAGRAM_MEDIA_HOSTS)
 
 
-def _duration(url: str) -> float | None:
-    """Best-effort: the CDN URL's efg param is base64 JSON with duration_s."""
-    try:
-        efg = parse_qs(urlparse(url).query).get("efg", [""])[0]
-        val = json.loads(base64.b64decode(efg + "=" * (-len(efg) % 4))).get("duration_s")
-        return float(val) if isinstance(val, (int, float)) else None
-    except Exception:
-        return None
-
-
 def map_instagram(shortcode: str, status: int, location: str | None) -> ResolveResponse:
     if status == 404:
         raise app_error(NOT_FOUND)
@@ -96,7 +85,7 @@ def map_instagram(shortcode: str, status: int, location: str | None) -> ResolveR
     elif path.endswith(".gif"):
         kind, label, duration = "gif", "gif", None
     else:
-        kind, label, duration = "video", "hd", _duration(location)
+        kind, label, duration = "video", "hd", duration_from_efg(location)
     return ResolveResponse(
         id=shortcode,
         author="Instagram",
