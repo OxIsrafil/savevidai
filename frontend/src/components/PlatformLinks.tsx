@@ -18,7 +18,8 @@ export function PlatformLinks({ active }: { active: Platform }) {
           </span>
         ) : (
           <a key={p.key} className="platform-card" href={p.href}>
-            {p.label} downloader
+            {p.label}
+            <span className="sr-only"> downloader</span>
           </a>
         ),
       )}
