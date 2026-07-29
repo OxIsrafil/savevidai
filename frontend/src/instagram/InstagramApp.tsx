@@ -160,7 +160,7 @@ export default function InstagramApp() {
         </h1>
 
         <motion.p {...fadeRise(1)} className="lede mt-6">
-          paste an instagram link, get the video in hd. no fake buttons, one real click.
+          Paste an Instagram link, get the video in HD. No fake buttons, one real click.
         </motion.p>
 
         <motion.div {...fadeRise(2)} className="mx-auto mt-9 max-w-2xl">
@@ -186,7 +186,7 @@ export default function InstagramApp() {
         {/* Says the carousel limit up front rather than burying it in the FAQ:
             kkinstagram has no index syntax, so a carousel resolves to item one. */}
         <motion.p {...fadeRise(4)} className="mt-6 text-sm text-[var(--faint)]">
-          carousel posts save the first photo or video only, for now.
+          Carousel posts save the first photo or video only, for now.
         </motion.p>
 
         <motion.div {...fadeRise(5)} className="mt-8">

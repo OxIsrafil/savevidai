@@ -162,7 +162,7 @@ export default function FacebookApp() {
         </h1>
 
         <motion.p {...fadeRise(1)} className="lede mt-6">
-          paste a facebook link, get the video in hd. no fake buttons, one real click.
+          Paste a Facebook link, get the video in HD. No fake buttons, one real click.
         </motion.p>
 
         <motion.div {...fadeRise(2)} className="mx-auto mt-9 max-w-2xl">
@@ -189,7 +189,7 @@ export default function FacebookApp() {
             resolver reads og:video, which photo posts and login-walled posts
             never carry. Same wording as the FAQ answer. */}
         <motion.p {...fadeRise(4)} className="mt-6 text-sm text-[var(--faint)]">
-          photo posts and private videos are not supported: public videos and reels only.
+          Photo posts and private videos are not supported: public videos and reels only.
         </motion.p>
 
         <motion.div {...fadeRise(5)} className="mt-8">
