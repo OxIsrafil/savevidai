@@ -168,6 +168,11 @@ def create_app() -> FastAPI:
     def instagram_page():
         return renderer.render("instagramvideodownloader.html")
 
+    @app.get("/facebookvideodownloader")
+    @app.get("/facebookvideodownloader.html")
+    def facebook_page():
+        return renderer.render("facebookvideodownloader.html")
+
     # Serves the built frontend in the Docker image; absent in dev, where Vite serves it.
     static_dir = os.environ.get("STATIC_DIR", "")
     if static_dir and os.path.isdir(static_dir):

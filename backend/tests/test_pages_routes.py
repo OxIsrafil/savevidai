@@ -16,6 +16,8 @@ PUBLIC_PATHS = [
     ("/redditvideodownloader.html", "redditvideodownloader.html"),
     ("/instagramvideodownloader", "instagramvideodownloader.html"),
     ("/instagramvideodownloader.html", "instagramvideodownloader.html"),
+    ("/facebookvideodownloader", "facebookvideodownloader.html"),
+    ("/facebookvideodownloader.html", "facebookvideodownloader.html"),
 ]
 
 
