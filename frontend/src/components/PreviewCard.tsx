@@ -90,7 +90,19 @@ function MediaSection({
             className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="aspect-video w-full bg-[var(--pill)]" />
+          // Metadata-light platforms (instagram) have no thumbnail; the media
+          // element shows the file's first frame instead. Display needs no
+          // CORS, preload=metadata keeps the fetch to a few hundred KB, and
+          // the #t fragment forces browsers to paint that frame.
+          <video
+            src={`${item.variants[0].url}#t=0.001`}
+            preload="metadata"
+            muted
+            playsInline
+            aria-hidden
+            tabIndex={-1}
+            className="aspect-video w-full bg-[var(--pill)] object-cover"
+          />
         )}
         <div aria-hidden className="play-badge">
           <svg viewBox="0 0 24 24" className="ml-0.5 size-5" fill="currentColor">
