@@ -20,7 +20,7 @@ export function QualityButton({
   variant: Variant;
   filename: string;
   primary?: boolean;
-  platform?: "twitter" | "tiktok" | "reddit" | "instagram";
+  platform?: "twitter" | "tiktok" | "reddit" | "instagram" | "facebook";
 }) {
   const [phase, setPhase] = useState<Phase>({ name: "idle" });
   const size = formatBytes(variant.size_bytes);

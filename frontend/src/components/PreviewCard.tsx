@@ -11,7 +11,7 @@ export function PreviewCard({
   platform = "twitter",
 }: {
   data: ResolveResponse;
-  platform?: "twitter" | "tiktok" | "reddit" | "instagram";
+  platform?: "twitter" | "tiktok" | "reddit" | "instagram" | "facebook";
 }) {
   // Route slideshow photos and the soundtrack to PhotoGrid; MediaSection only
   // ever handles playable video/gif items (its play badge + .mp4 filenames).
@@ -74,7 +74,7 @@ function MediaSection({
   item: MediaItem;
   count: number;
   data: ResolveResponse;
-  platform: "twitter" | "tiktok" | "reddit" | "instagram";
+  platform: "twitter" | "tiktok" | "reddit" | "instagram" | "facebook";
 }) {
   const many = count > 1;
   return (

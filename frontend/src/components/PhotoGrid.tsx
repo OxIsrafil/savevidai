@@ -21,7 +21,7 @@ export function PhotoGrid({
   audio: MediaItem | null;
   handle: string;
   id: string;
-  platform: "twitter" | "tiktok" | "reddit" | "instagram";
+  platform: "twitter" | "tiktok" | "reddit" | "instagram" | "facebook";
 }) {
   const [states, setStates] = useState<TileState[]>(() => photos.map(() => "idle"));
   const [savingAll, setSavingAll] = useState(false);

@@ -44,7 +44,7 @@ test("renders an instagram link with the exact href on every other page", () => 
   }
 });
 
-test("marks instagram active and links the other three", () => {
+test("marks instagram active and links the other four", () => {
   render(<PlatformLinks active="instagram" />);
   expect(screen.getByText(/instagram/i)).toHaveAttribute("aria-current", "page");
   expect(screen.queryByRole("link", { name: /instagram/i })).toBeNull();
@@ -57,4 +57,45 @@ test("marks instagram active and links the other three", () => {
     "href",
     "/redditvideodownloader",
   );
+  expect(screen.getByRole("link", { name: /facebook/i })).toHaveAttribute(
+    "href",
+    "/facebookvideodownloader",
+  );
+});
+
+test("renders a facebook link with the exact href on every other page", () => {
+  for (const active of ["twitter", "tiktok", "reddit", "instagram"] as const) {
+    const { unmount } = render(<PlatformLinks active={active} />);
+    expect(screen.getByRole("link", { name: /facebook/i })).toHaveAttribute(
+      "href",
+      "/facebookvideodownloader",
+    );
+    unmount();
+  }
+});
+
+test("marks facebook active and links the other four", () => {
+  render(<PlatformLinks active="facebook" />);
+  expect(screen.getByText(/facebook/i)).toHaveAttribute("aria-current", "page");
+  expect(screen.queryByRole("link", { name: /facebook/i })).toBeNull();
+  expect(screen.getByRole("link", { name: /twitter/i })).toHaveAttribute("href", "/");
+  expect(screen.getByRole("link", { name: /tiktok/i })).toHaveAttribute(
+    "href",
+    "/tiktokvideodownloader",
+  );
+  expect(screen.getByRole("link", { name: /reddit/i })).toHaveAttribute(
+    "href",
+    "/redditvideodownloader",
+  );
+  expect(screen.getByRole("link", { name: /instagram/i })).toHaveAttribute(
+    "href",
+    "/instagramvideodownloader",
+  );
+});
+
+// Five platforms, no more: the nav is the full site map and a missing entry is
+// a dead end for both crawlers and readers.
+test("renders all five platform entries", () => {
+  const { container } = render(<PlatformLinks active="facebook" />);
+  expect(container.querySelectorAll(".platform-card")).toHaveLength(5);
 });
