@@ -47,10 +47,24 @@ def test_attribute_order_and_quote_tolerance(html):
     assert map_facebook(VID, 200, html).items[0].variants[0].url == CDN_UNESCAPED
 
 
-def test_200_without_og_video_is_not_found():
+def test_200_without_og_video_is_private():
+    # Nonexistent ids 404 upstream, so a 200 with no og:video is the
+    # private/login-walled class - same mapping as extractor.py and reddit.py.
     with pytest.raises(AppError) as e:
         map_facebook(VID, 200, NO_VIDEO)
-    assert e.value.code == "not_found"
+    assert e.value.code == "private_or_restricted"
+
+
+def test_apostrophe_inside_double_quoted_content_is_not_truncated():
+    # The content capture must stop at the matching quote, not at any quote:
+    # a literal ' inside double-quoted content used to cut the value short.
+    html = f'''<html><head>
+<meta property="og:title" content="NASA and Israfil's clip"/>
+<meta property="og:video:secure_url" content="{CDN}"/>
+</head></html>'''
+    res = map_facebook(VID, 200, html)
+    assert res.text == "NASA and Israfil's clip"
+    assert res.items[0].variants[0].url == CDN_UNESCAPED
 
 
 def test_404_is_not_found():

@@ -5,9 +5,9 @@ progressive mp4 on *.fbcdn.net. Its UA gate is inverted vs kkinstagram: bots
 and bare clients get the tags, real browser UAs get redirected, so the request
 uses the same hybrid crawler UA as instagram. If resolves start failing with
 upstream_error, check this gate first. Nonexistent ids 404; a 200 without
-og:video is the private/login-walled class and maps to not_found. Single
-volunteer-run dependency, like tikwm and kkinstagram; a fallback can slot in
-here later.
+og:video is the private/login-walled class and maps to private_or_restricted.
+Single volunteer-run dependency, like tikwm and kkinstagram; a fallback can
+slot in here later.
 """
 import html as htmllib
 import logging
@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 import httpx
 
 from .efg import duration_from_efg
-from .errors import NOT_FOUND, UPSTREAM, AppError, app_error
+from .errors import NOT_FOUND, PRIVATE, UPSTREAM, AppError, app_error
 from .schemas import MediaItem, ResolveResponse, Variant
 
 logger = logging.getLogger("savevidai.facebook")
@@ -30,15 +30,26 @@ FACEBOOK_MEDIA_HOSTS = ("fbcdn.net",)
 
 
 def _meta(prop: str, body: str) -> str | None:
-    """First <meta> whose property EXACTLY equals prop, either attribute order,
-    either quote style. Exact match so og:video never grabs og:video:type."""
+    """Content of a <meta> whose property EXACTLY equals prop, either quote
+    style. Exact match so og:video never grabs og:video:type.
+
+    Two passes, NOT document order: the whole body is searched for the
+    property-then-content order first, and only if that finds nothing is it
+    searched for the reversed content-then-property order. A reversed tag
+    earlier in the document therefore loses to a normal one later. facebed
+    emits one tag per property, so this only decides ties that do not occur.
+
+    The content capture closes on a backreference to its own opening quote, so
+    an apostrophe inside double-quoted content does not truncate the value, and
+    stays inside the tag ([^>]) so a malformed tag cannot swallow later ones.
+    """
     for pat in (
-        rf'<meta[^>]*\bproperty=["\']{re.escape(prop)}["\'][^>]*\bcontent=["\']([^"\']*)["\']',
-        rf'<meta[^>]*\bcontent=["\']([^"\']*)["\'][^>]*\bproperty=["\']{re.escape(prop)}["\']',
+        rf'<meta[^>]*\bproperty=["\']{re.escape(prop)}["\'][^>]*\bcontent=(["\'])([^>]*?)\1',
+        rf'<meta[^>]*\bcontent=(["\'])([^>]*?)\1[^>]*\bproperty=["\']{re.escape(prop)}["\']',
     ):
         m = re.search(pat, body)
         if m:
-            return htmllib.unescape(m.group(1))
+            return htmllib.unescape(m.group(2))
     return None
 
 
@@ -83,10 +94,14 @@ def map_facebook(id_: str, status: int, body: str) -> ResolveResponse:
     video = _meta("og:video:secure_url", body) or _meta("og:video", body)
     if not video:
         # Nonexistent ids 404 upstream (verified), so this is the private or
-        # login-walled class: not_found reads truer than a retry-inducing
-        # upstream_error and keeps the error rate meaningful.
+        # login-walled class. private_or_restricted is what extractor.py and
+        # reddit.py raise for the same class, and its message matches this
+        # page's own "public posts only" promise; it also keeps the error rate
+        # meaningful (no retry-inducing upstream_error). Residual: if facebed
+        # ever renames its og tags, that breakage would surface here as
+        # private_or_restricted - this info log is the signal.
         logger.info("facebook 200 without og:video for %s (private?)", id_)
-        raise app_error(NOT_FOUND)
+        raise app_error(PRIVATE)
     if not _allowed_media_url(video):
         logger.warning("facebook og:video on disallowed host for %s", id_)
         raise app_error(UPSTREAM)

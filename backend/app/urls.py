@@ -167,7 +167,10 @@ FACEBOOK_HOSTS = {
 
 _FB_ID = re.compile(r"[0-9]{5,20}")
 _FB_TOKEN = re.compile(r"[A-Za-z0-9]{1,32}")
-_FB_PAGE = re.compile(r"[A-Za-z0-9.]{1,60}")
+# Vanity page slugs carry hyphens and underscores ("Sky-News-1234567"). The
+# segment is validated then DISCARDED - the path we build is /watch/?v=<id> -
+# so this is a shape check, never a forwarded value.
+_FB_PAGE = re.compile(r"[A-Za-z0-9._-]{1,60}")
 
 
 def parse_facebook_url(raw: str) -> tuple[str, str]:

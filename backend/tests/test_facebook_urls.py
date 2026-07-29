@@ -15,6 +15,8 @@ VID = "1664876787784263"
     (f"https://m.facebook.com/story.php?story_fbid={VID}&id=100044", (VID, f"/watch/?v={VID}")),
     (f"https://www.facebook.com/nasa/videos/{VID}", (VID, f"/watch/?v={VID}")),
     (f"https://www.facebook.com/nasa/videos/some-slug-here/{VID}/", (VID, f"/watch/?v={VID}")),
+    ("https://www.facebook.com/Sky-News-1234567/videos/1234567890",
+     ("1234567890", "/watch/?v=1234567890")),
     ("https://www.facebook.com/share/r/18WMhEx3aR/", ("18WMhEx3aR", "/share/r/18WMhEx3aR")),
     ("https://www.facebook.com/share/v/1abcDEF234/", ("1abcDEF234", "/share/v/1abcDEF234")),
     ("https://www.facebook.com/share/p/1abcDEF234/", ("1abcDEF234", "/share/p/1abcDEF234")),

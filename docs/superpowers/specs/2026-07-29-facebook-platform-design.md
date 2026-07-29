@@ -104,11 +104,13 @@ same function. ONE implementation, no cross-platform private imports.
   - 404 -> NOT_FOUND; transport error or unanticipated exception -> UPSTREAM
   - any 3xx -> UPSTREAM (UA-gate flip / hijack; never followed)
   - other non-200 -> UPSTREAM
-  - 200 without an og:video tag -> NOT_FOUND with an info-level log. Rationale
+  - 200 without an og:video tag -> PRIVATE with an info-level log. Rationale
     (verified): nonexistent ids already 404, so the 200-no-og class is the
-    private/login-walled case; NOT_FOUND's message ("doesn't exist or was
-    deleted") is closer to truth than a retry-inducing upstream_error, and this
-    keeps the admin error rate meaningful for real facebed outages.
+    private/login-walled case; PRIVATE is what extractor.py and reddit.py raise
+    for that same class, and its message ("only works with public posts")
+    matches the page's own promise, without the retry-inducing upstream_error.
+    Residual: a facebed og-tag rename would surface as private_or_restricted;
+    the info log is the signal.
   - og:video URL must be https and host suffix-match FACEBOOK_MEDIA_HOSTS
     (boundary-safe), else UPSTREAM + warning log (hijack class).
   - `author="Facebook"`, `handle=id`, `avatar_url=None`, `thumbnail=None`,
@@ -182,7 +184,7 @@ PhotoGrid.tsx, and PlatformLinks.tsx; PlatformLinks PLATFORMS gains
 | facebed timeout / transport error | `upstream_error` |
 | facebed 404 | `not_found` |
 | facebed 3xx (UA-gate flip, hijack) | `upstream_error`, never followed |
-| facebed 200 without og:video (private post) | `not_found` + info log |
+| facebed 200 without og:video (private post) | `private_or_restricted` + info log |
 | og:video host off-allowlist | `upstream_error` + warning log |
 
 ## Testing (TDD, same gates)
@@ -194,7 +196,7 @@ PhotoGrid.tsx, and PlatformLinks.tsx; PlatformLinks PLATFORMS gains
   profile-only paths.
 - Resolver: mocked httpx: secure_url preferred over og:video, og:video:type
   prefix-trap pinned (must not match), attribute-order and quote-style variants,
-  `&amp;` unescape pinned, og:title extraction, 200-no-og -> not_found,
+  `&amp;` unescape pinned, og:title extraction, 200-no-og -> private_or_restricted,
   404 -> not_found, 302 -> upstream, off-allowlist og:video -> upstream (hijack
   regression), efg duration + malformed -> None, UA pin (exact string,
   follow_redirects=False, timeout 12.0).
