@@ -6,6 +6,7 @@ Usage:
     python scripts/make_og.py --variant tiktok # TikTok         -> og-tiktok.png
     python scripts/make_og.py --variant reddit # Reddit         -> og-reddit.png
     python scripts/make_og.py --variant instagram # Instagram   -> og-instagram.png
+    python scripts/make_og.py --variant facebook # Facebook     -> og-facebook.png
 """
 import argparse
 from pathlib import Path
@@ -42,6 +43,11 @@ VARIANTS = {
     "instagram": {
         "filename": "og-instagram.png",
         "title": "Instagram Reel Downloader",
+        "subtitle": "Free. No fake buttons. One real click.",
+    },
+    "facebook": {
+        "filename": "og-facebook.png",
+        "title": "Facebook Video Downloader",
         "subtitle": "Free. No fake buttons. One real click.",
     },
 }

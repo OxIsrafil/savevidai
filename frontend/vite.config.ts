@@ -17,6 +17,7 @@ export default defineConfig({
         tiktok: entry("./tiktokvideodownloader.html"),
         instagram: entry("./instagramvideodownloader.html"),
         reddit: entry("./redditvideodownloader.html"),
+        facebook: entry("./facebookvideodownloader.html"),
       },
     },
   },
