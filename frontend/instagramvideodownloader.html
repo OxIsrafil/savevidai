@@ -52,7 +52,29 @@
     </script>
   </head>
   <body class="font-sans">
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static hero snapshot: crawlable copy of the hero with a working GET form.
+           React clears #root on mount and re-renders the same copy. -->
+      <div class="hero-snapshot" style="min-height:100vh">
+        <h1 class="hero-h1">
+          <span class="word">Instagram Reel</span>
+          <span class="word grey small">Downloader</span>
+        </h1>
+        <p class="lede">Paste an Instagram link, get the video in HD. No fake buttons, one real click.</p>
+        <form method="get" action="">
+          <input
+            class="cta-input"
+            type="url"
+            name="url"
+            placeholder="Paste an Instagram reel or post link"
+            aria-label="Instagram reel or post link"
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <button class="btn" type="submit">Fetch</button>
+        </form>
+      </div>
+    </div>
 
     <!-- Static, crawlable landing content. Lives outside the React root on purpose. -->
     <section class="mx-auto max-w-3xl px-4 pt-8 pb-6">

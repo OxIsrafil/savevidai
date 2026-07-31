@@ -287,6 +287,33 @@ a {
   box-shadow: 0 10px 40px rgba(0, 113, 227, 0.15);
 }
 
+/* Static hero snapshot: the pre-JS copy of the hero that every shell ships
+   inside #root, so crawlers and no-JS visitors get the h1, the sub line and a
+   working GET form. React clears #root on mount and re-renders the same copy,
+   so this only has to land close to the mounted hero, not match it pixel for
+   pixel. The inline min-height:100vh in the shells keeps the mount-time swap
+   below the fold. max-width matches the mounted main (max-w-3xl) plus its
+   px-4 gutters so the headline wraps on the same words. */
+.hero-snapshot {
+  width: 100%;
+  max-width: calc(48rem + 32px);
+  margin: 0 auto;
+  padding: clamp(140px, 22vh, 220px) 16px 40px;
+  text-align: center;
+}
+/* No margin override on .lede here: the mounted hero's mt-6 utility loses to
+   the unlayered `.lede { margin: 0 auto }` above (unlayered CSS outranks
+   Tailwind's utilities layer), so the lede sits flush under the h1 there too. */
+.hero-snapshot form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: 14px;
+  max-width: 42rem;
+  margin: 36px auto 0;
+}
+
 /* Static feature chips under the CTA */
 .chip {
   display: inline-flex;

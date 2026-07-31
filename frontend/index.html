@@ -52,7 +52,29 @@
     </script>
   </head>
   <body class="font-sans">
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static hero snapshot: crawlable copy of the hero with a working GET form.
+           React clears #root on mount and re-renders the same copy. -->
+      <div class="hero-snapshot" style="min-height:100vh">
+        <h1 class="hero-h1">
+          <span class="word">Twitter/X Video</span>
+          <span class="word grey small">Downloader</span>
+        </h1>
+        <p class="lede">Paste tweet URL and get the video in 2 seconds.</p>
+        <form method="get" action="">
+          <input
+            class="cta-input"
+            type="url"
+            name="url"
+            placeholder="Paste a Twitter/X post link"
+            aria-label="Twitter/X post link"
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <button class="btn" type="submit">Fetch</button>
+        </form>
+      </div>
+    </div>
 
     <!-- Static, crawlable landing content. Lives outside the React root on purpose. -->
     <section class="mx-auto max-w-3xl px-4 pt-8 pb-6">
