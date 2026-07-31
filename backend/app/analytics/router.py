@@ -165,5 +165,8 @@ def admin_page() -> FileResponse:
     static_dir = os.environ.get("STATIC_DIR", "")
     path = os.path.join(static_dir, "admin.html")
     if static_dir and os.path.isfile(path):
-        return FileResponse(path)
+        # The dashboard must never be indexed. The shell carries a robots meta
+        # too; the header covers crawlers that skip the body. Scoped to this
+        # route only, so the five public pages stay indexable.
+        return FileResponse(path, headers={"X-Robots-Tag": "noindex"})
     raise HTTPException(status_code=404)

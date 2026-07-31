@@ -1,6 +1,15 @@
+import re
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+
+# The shipped admin shell, read straight off disk so the test pins the real
+# artifact and not a fixture stand-in.
+ADMIN_SHELL = Path(__file__).resolve().parents[2] / "frontend" / "admin.html"
+
+ROBOTS_NOINDEX = re.compile(r'<meta\s+name="robots"\s+content="[^"]*noindex[^"]*"')
 
 BANNER = '<script src="https://example-ads.test/banner.js"></script>'
 POP = '<script src="https://example-ads.test/pop.js"></script>'
@@ -95,6 +104,40 @@ def test_maintenance_on_serves_maintenance_page_without_ads(tmp_path, monkeypatc
         assert res.status_code == 503, path
         assert "brb" in res.text, path
         assert "ad-slot" not in res.text and POP not in res.text, path
+
+
+def _real_admin_static(tmp_path, monkeypatch):
+    """Static dir whose admin.html is a byte copy of the shipped shell."""
+    _static(tmp_path, monkeypatch)
+    (tmp_path / "admin.html").write_text(ADMIN_SHELL.read_text())
+
+
+def test_admin_route_carries_x_robots_tag_noindex(tmp_path, monkeypatch):
+    _real_admin_static(tmp_path, monkeypatch)
+    client = TestClient(create_app())
+    res = client.get("/admin")
+    assert res.status_code == 200
+    assert res.headers.get("x-robots-tag") == "noindex"
+
+
+def test_served_admin_html_body_carries_noindex_meta(tmp_path, monkeypatch):
+    _real_admin_static(tmp_path, monkeypatch)
+    client = TestClient(create_app())
+    res = client.get("/admin")
+    assert res.status_code == 200
+    assert ROBOTS_NOINDEX.search(res.text), res.text
+
+
+def test_public_page_is_not_noindex(tmp_path, monkeypatch):
+    # Canary: the noindex must stay scoped to /admin. If a public page ever
+    # picks up the header or the meta, the site drops out of search.
+    _real_admin_static(tmp_path, monkeypatch)
+    client = TestClient(create_app())
+    for path, _ in PUBLIC_PATHS:
+        res = client.get(path)
+        assert res.status_code == 200, path
+        assert "x-robots-tag" not in res.headers, path
+        assert "noindex" not in res.text, path
 
 
 def test_root_404_without_static_dir(monkeypatch):
