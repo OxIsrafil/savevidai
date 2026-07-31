@@ -42,6 +42,12 @@ afterEach(cleanup);
 test.each(pairs)("%s shell hero snapshot matches the mounted hero copy", (_name, shell, Component) => {
   const { root } = shellRoot(shell);
 
+  const snapshot = root.querySelector(".hero-snapshot");
+  expect(snapshot).not.toBeNull();
+  // The container has to fill the viewport so React's mount-time swap of the
+  // snapshot for the real hero shifts what is below it off-screen, never in view.
+  expect((snapshot?.getAttribute("style") ?? "").replace(/\s+/g, "")).toContain("min-height:100vh");
+
   const snapshotH1 = root.querySelector("h1");
   const snapshotLede = root.querySelector(".lede");
   expect(snapshotH1).not.toBeNull();
@@ -63,6 +69,9 @@ test.each(pairs)("%s shell snapshot form works without JS and mirrors the React 
   expect(form).not.toBeNull();
   // Pre-JS submit has to produce ?url=..., which every app resolves on boot.
   expect((form?.getAttribute("method") ?? "").toLowerCase()).toBe("get");
+  // Empty action keeps that submit on the current page instead of sending the
+  // link somewhere else, so the app that boots is the one that can resolve it.
+  expect(form?.getAttribute("action")).toBe("");
 
   const input = form?.querySelector("input");
   expect(input).not.toBeNull();
