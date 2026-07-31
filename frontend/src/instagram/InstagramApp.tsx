@@ -8,7 +8,7 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { InstagramHowToVisual } from "./InstagramHowToVisual";
 import { useResolve } from "../hooks/useResolve";
 import { sendEvent, visitContext } from "../lib/analytics";
-import { EASE_OUT, fadeRise } from "../lib/motion";
+import { EASE_OUT, fadeRise, heroStill } from "../lib/motion";
 
 // A stable public reel, used as the one-click live demo. This shortcode is the
 // one the resolver was verified against live on 2026-07-29.
@@ -138,32 +138,22 @@ export default function InstagramApp() {
             Title case and the two-word split match the other three platform pages on purpose. */}
         <h1 className="hero-h1">
           <span className="word">
-            <motion.span
-              className="inline-block"
-              initial={{ y: "110%" }}
-              animate={{ y: 0 }}
-              transition={{ duration: 0.9, ease: EASE_OUT }}
-            >
+            <motion.span className="inline-block" {...heroStill}>
               Instagram Reel
             </motion.span>
           </span>{" "}
           <span className="word grey small">
-            <motion.span
-              className="inline-block"
-              initial={{ y: "110%" }}
-              animate={{ y: 0 }}
-              transition={{ duration: 0.9, ease: EASE_OUT, delay: 0.14 }}
-            >
+            <motion.span className="inline-block" {...heroStill}>
               Downloader
             </motion.span>
           </span>
         </h1>
 
-        <motion.p {...fadeRise(1)} className="lede mt-6">
+        <motion.p {...heroStill} className="lede mt-6">
           Paste an Instagram link, get the video in HD. No fake buttons, one real click.
         </motion.p>
 
-        <motion.div {...fadeRise(2)} className="mx-auto mt-9 max-w-2xl">
+        <motion.div {...heroStill} className="mx-auto mt-9 max-w-2xl">
           <PasteInput
             status={state.status}
             errorMessage={state.status === "error" ? state.message : null}

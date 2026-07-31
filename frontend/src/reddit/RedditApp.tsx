@@ -8,7 +8,7 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { RedditHowToVisual } from "./RedditHowToVisual";
 import { useResolve } from "../hooks/useResolve";
 import { sendEvent, visitContext } from "../lib/analytics";
-import { EASE_OUT, fadeRise } from "../lib/motion";
+import { EASE_OUT, fadeRise, heroStill } from "../lib/motion";
 
 // A stable public video post, used as the one-click live demo. Live-verified
 // resolving through the anonymous path on 2026-07-23.
@@ -138,32 +138,22 @@ export default function RedditApp() {
         {/* H1 targets the search query per the spec's SEO section; the brand lives in the nav */}
         <h1 className="hero-h1">
           <span className="word">
-            <motion.span
-              className="inline-block"
-              initial={{ y: "110%" }}
-              animate={{ y: 0 }}
-              transition={{ duration: 0.9, ease: EASE_OUT }}
-            >
+            <motion.span className="inline-block" {...heroStill}>
               Reddit Video
             </motion.span>
           </span>{" "}
           <span className="word grey small">
-            <motion.span
-              className="inline-block"
-              initial={{ y: "110%" }}
-              animate={{ y: 0 }}
-              transition={{ duration: 0.9, ease: EASE_OUT, delay: 0.14 }}
-            >
+            <motion.span className="inline-block" {...heroStill}>
               Downloader
             </motion.span>
           </span>
         </h1>
 
-        <motion.p {...fadeRise(1)} className="lede mt-6">
+        <motion.p {...heroStill} className="lede mt-6">
           Paste a Reddit post link, get the video with audio, in seconds.
         </motion.p>
 
-        <motion.div {...fadeRise(2)} className="mx-auto mt-9 max-w-2xl">
+        <motion.div {...heroStill} className="mx-auto mt-9 max-w-2xl">
           <PasteInput
             status={state.status}
             errorMessage={state.status === "error" ? state.message : null}
