@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- lastmod is maintained by hand: bump only when page content actually changes -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://savevidai.israfill.dev/</loc><changefreq>monthly</changefreq></url>
-  <url><loc>https://savevidai.israfill.dev/tiktokvideodownloader</loc><changefreq>monthly</changefreq></url>
-  <url><loc>https://savevidai.israfill.dev/redditvideodownloader</loc><changefreq>monthly</changefreq></url>
-  <url><loc>https://savevidai.israfill.dev/instagramvideodownloader</loc><changefreq>monthly</changefreq></url>
-  <url><loc>https://savevidai.israfill.dev/facebookvideodownloader</loc><changefreq>monthly</changefreq></url>
+  <url><loc>https://savevidai.israfill.dev/</loc><lastmod>2026-08-01</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/tiktokvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/redditvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/instagramvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/facebookvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
 </urlset>

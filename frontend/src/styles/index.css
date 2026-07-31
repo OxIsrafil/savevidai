@@ -811,6 +811,15 @@ a.platform-card:hover {
   color: var(--fg);
   background: var(--pill);
 }
+/* Static crawl path to the other four pages. Same muted pill links; the
+   negative inline margin cancels the pill padding so the first link's text
+   lines up with the brand copy above it. */
+.footer-platforms {
+  margin: 24px -13px 0;
+}
+.footer-platforms a[aria-current="page"] {
+  color: var(--fg);
+}
 .credit-row {
   display: flex;
   flex-wrap: wrap;
