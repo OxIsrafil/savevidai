@@ -128,3 +128,37 @@ def test_render_cache_serves_cached_at_same_mtime(tmp_path, monkeypatch):
     p.write_text(PAGE.replace("hello", "sneaky"))
     os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns))
     assert "hello" in r.render("index.html").body.decode()
+
+
+SOCIAL = '<script src="https://example-ads.test/social.js"></script>'
+
+
+def test_load_ad_config_reads_social_bar(monkeypatch):
+    monkeypatch.setenv("ADS_ENABLED", "1")
+    monkeypatch.setenv("AD_SOCIAL_BAR_SNIPPET", f"  {SOCIAL}  ")
+    assert load_ad_config().social_bar == SOCIAL
+
+
+def test_social_bar_alone_activates():
+    assert AdConfig(enabled=True, banner="", popunder="", social_bar=SOCIAL).active is True
+
+
+def test_render_injects_social_bar_raw_after_popunder(tmp_path, monkeypatch):
+    _write(tmp_path, "index.html")
+    monkeypatch.setenv("STATIC_DIR", str(tmp_path))
+    r = PageRenderer(AdConfig(enabled=True, banner=BANNER, popunder=POP, social_bar=SOCIAL))
+    body = r.render("index.html").body.decode()
+    assert SOCIAL in body
+    assert body.index(POP) < body.index(SOCIAL)
+    # Raw like the popunder, never wrapped in the banner slot div.
+    assert f'<div class="ad-slot">{SOCIAL}</div>' not in body
+
+
+def test_render_social_bar_only(tmp_path, monkeypatch):
+    _write(tmp_path, "index.html")
+    monkeypatch.setenv("STATIC_DIR", str(tmp_path))
+    r = PageRenderer(AdConfig(enabled=True, banner="", popunder="", social_bar=SOCIAL))
+    body = r.render("index.html").body.decode()
+    assert SOCIAL in body
+    assert "ad-slot" not in body
+    assert POP not in body

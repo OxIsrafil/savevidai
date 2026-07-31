@@ -14,10 +14,11 @@ class AdConfig:
     enabled: bool
     banner: str
     popunder: str
+    social_bar: str = ""
 
     @property
     def active(self) -> bool:
-        return self.enabled and bool(self.banner or self.popunder)
+        return self.enabled and bool(self.banner or self.popunder or self.social_bar)
 
 
 def load_ad_config() -> AdConfig:
@@ -27,14 +28,15 @@ def load_ad_config() -> AdConfig:
         enabled=env_truthy("ADS_ENABLED"),
         banner=os.environ.get("AD_BANNER_SNIPPET", "").strip(),
         popunder=os.environ.get("AD_POPUNDER_SNIPPET", "").strip(),
+        social_bar=os.environ.get("AD_SOCIAL_BAR_SNIPPET", "").strip(),
     )
 
 
 class PageRenderer:
     """Serves public HTML shells, replacing the <!--ADS--> marker line.
 
-    Ads active: the marker line becomes the banner slot and/or popunder
-    snippet. Ads off (or enabled with no snippets): the ENTIRE marker line is
+    Ads active: the marker line becomes the banner slot and/or the popunder
+    and social bar snippets. Ads off (or enabled with no snippets): the ENTIRE marker line is
     removed, so visitors never see the comment and the output is identical to
     the pre-ads page. Files without a marker pass through unchanged.
 
@@ -60,6 +62,8 @@ class PageRenderer:
                         out.append(f'<div class="ad-slot">{self._ads.banner}</div>\n')
                     if self._ads.popunder:
                         out.append(self._ads.popunder + "\n")
+                    if self._ads.social_bar:
+                        out.append(self._ads.social_bar + "\n")
                 continue
             out.append(line)
         return "".join(out)
