@@ -99,3 +99,37 @@ describe("hi headline reveal clip has room for Devanagari matras", () => {
     expect(css).toMatch(/\.word\s*\{[^}]*overflow:\s*hidden/);
   });
 });
+
+describe("es headline reveal clip has room for Latin descenders", () => {
+  const css = readFileSync(resolve(process.cwd(), "src/styles/index.css"), "utf8");
+
+  it("scopes the extra clip room to the es pages only", () => {
+    expect(css).toMatch(/html\[lang="es"\]\s+\.hero-h1\s+\.word\s*\{/);
+  });
+
+  it("cancels the added padding with a matching negative margin", () => {
+    // If a future edit adds padding without the margin, the headline moves.
+    const blocks = [...css.matchAll(/html\[lang="es"\]\s+\.hero-h1\s+\.word\s*\{([^}]*)\}/g)];
+    expect(blocks).toHaveLength(1);
+    const body = blocks[0][1];
+    expect({
+      padBottom: /padding-bottom:\s*0\.14em/.test(body),
+      marginBottom: /margin-bottom:\s*-0\.14em/.test(body),
+    }).toEqual({ padBottom: true, marginBottom: true });
+  });
+
+  it("leaves the top of the clip box alone, so the headline cannot shift up", () => {
+    // Spanish only overhangs at the bottom ("Descargar"), unlike Devanagari.
+    const blocks = [...css.matchAll(/html\[lang="es"\]\s+\.hero-h1\s+\.word\s*\{([^}]*)\}/g)];
+    const body = blocks[0][1];
+    expect(/padding-top/.test(body)).toBe(false);
+    expect(/margin-top/.test(body)).toBe(false);
+  });
+
+  it("does not leak the es rule into the en or hi pages", () => {
+    // The base .word rule must stay free of the descender padding.
+    const base = css.match(/(?<!\]\s)\n\.word\s*\{([^}]*)\}/);
+    expect(base).not.toBeNull();
+    expect(/padding-bottom/.test(base![1])).toBe(false);
+  });
+});

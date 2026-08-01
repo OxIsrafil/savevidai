@@ -276,6 +276,21 @@ html[lang="hi"] .hero-h1 .small {
   margin-top: calc(-0.1em - 0.26em);
   margin-bottom: -0.12em;
 }
+/* Spanish leads every headline with "Descargar", whose g drops further below
+   the baseline than anything the English strings put there, so the same reveal
+   clip slices the descender flat. Measured in the browser: 4.49px of ink below
+   the clip box at 1280 (0.052em) and 2.27px at 390 (0.055em) on the big word,
+   3.29px / 1.32px on the small one ("de Instagram"), so 0.14em clears every
+   case with room for a different fallback font.
+   Same mechanism as the hi block above, bottom only: grow the clip box and
+   cancel the growth with a matching negative margin, so the headline does not
+   move and the h1 box height is unchanged. Scoped to the es pages, so en and
+   hi render exactly as before. .small is also a .word, so one rule covers both
+   lines, and the base .small tuck (margin-top) is left untouched. */
+html[lang="es"] .hero-h1 .word {
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
 .lede {
   max-width: 38ch;
   margin: 0 auto;
