@@ -253,6 +253,29 @@ a {
   overflow: hidden;
   vertical-align: bottom;
 }
+/* Devanagari matras (the ी of "रील", the ो of "डाउनलोडर") sit well above the
+   Latin cap height the headline's line-height is tuned for, so the reveal clip
+   on .word slices their top curls. Measured in the browser: the ink overhangs
+   the clip box by 0.107em (1280) / 0.116em (390) on the big word and 0.108em /
+   0.112em on the small one, so 0.26em clears every case with room for a
+   different Devanagari fallback font on another OS.
+   Grow the clip box and cancel the growth with a matching negative margin: the
+   headline does not move, the h1 box height is unchanged, and the rule is
+   scoped to the hi pages so en and es render exactly as before. Fixing this
+   with a bigger line-height instead would have reflowed the two lines. */
+html[lang="hi"] .hero-h1 .word {
+  padding-top: 0.26em;
+  padding-bottom: 0.12em;
+  margin-top: -0.26em;
+  margin-bottom: -0.12em;
+}
+html[lang="hi"] .hero-h1 .small {
+  padding-top: 0.26em;
+  padding-bottom: 0.12em;
+  /* keeps the -0.1em tuck the base .small rule applies */
+  margin-top: calc(-0.1em - 0.26em);
+  margin-bottom: -0.12em;
+}
 .lede {
   max-width: 38ch;
   margin: 0 auto;

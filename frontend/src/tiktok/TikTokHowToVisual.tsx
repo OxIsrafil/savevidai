@@ -10,6 +10,7 @@
 
 import { enTikTok } from "../locales/en";
 import type { SvgStrings } from "../locales/types";
+import { copyLinkFontSize } from "../lib/svgText";
 
 const RED = "#ff5148";
 
@@ -46,7 +47,7 @@ function Landscape({ strings }: { strings: SvgStrings }) {
         {/* share menu card */}
         <rect x="288" y="300" width="136" height="92" rx="14" fill="var(--card)" stroke="var(--line)" />
         <path d="M306 328 a7 7 0 1 1 6 3 l-4 6 a7 7 0 1 1 -6 -3 Z" fill="none" stroke="var(--fg)" strokeWidth="2.4" />
-        <text x="326" y="334" fontFamily="var(--font-sans)" fontSize="16.5" fontWeight="600" fill="var(--fg)">
+        <text x="326" y="334" fontFamily="var(--font-sans)" fontSize={copyLinkFontSize(strings.copyLink)} fontWeight="600" fill="var(--fg)">
           {strings.copyLink}
         </text>
         <rect x="306" y="356" width="86" height="9" rx="4.5" fill="var(--pill)" />
@@ -175,7 +176,7 @@ function Stacked({ strings }: { strings: SvgStrings }) {
         <path d="M205 172 L228 186 L205 200 Z" fill="#fff" />
         <rect x="396" y="120" width="136" height="92" rx="14" fill="var(--card)" stroke="var(--line)" />
         <path d="M414 148 a7 7 0 1 1 6 3 l-4 6 a7 7 0 1 1 -6 -3 Z" fill="none" stroke="var(--fg)" strokeWidth="2.4" />
-        <text x="434" y="153" fontFamily="var(--font-sans)" fontSize="16.5" fontWeight="600" fill="var(--fg)">
+        <text x="434" y="153" fontFamily="var(--font-sans)" fontSize={copyLinkFontSize(strings.copyLink)} fontWeight="600" fill="var(--fg)">
           {strings.copyLink}
         </text>
         <rect x="414" y="176" width="86" height="9" rx="4.5" fill="var(--pill)" />
