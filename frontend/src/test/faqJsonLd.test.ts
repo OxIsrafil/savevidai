@@ -1,10 +1,4 @@
-// Raw shell sources, read straight off disk at test time (Vite's ?raw), so the
-// assertions run against the files a crawler is served, not a build artifact.
-import twitterShell from "../../index.html?raw";
-import tiktokShell from "../../tiktokvideodownloader.html?raw";
-import redditShell from "../../redditvideodownloader.html?raw";
-import instagramShell from "../../instagramvideodownloader.html?raw";
-import facebookShell from "../../facebookvideodownloader.html?raw";
+import { SHELLS, norm, parse } from "./shells";
 
 // The JSON-LD FAQPage on every shell must be a SUBSET of the visible FAQ:
 // every Question name and Answer text has to appear, character for character,
@@ -14,26 +8,15 @@ import facebookShell from "../../facebookvideodownloader.html?raw";
 // is allowed on purpose: visible entries (e.g. "Who runs this?") may exist
 // with no JSON-LD counterpart, which is how new FAQ copy gets added without
 // growing the JSON-LD.
-type Shell = [name: string, shell: string];
-
-const shells: Shell[] = [
-  ["twitter", twitterShell],
-  ["tiktok", tiktokShell],
-  ["reddit", redditShell],
-  ["instagram", instagramShell],
-  ["facebook", facebookShell],
-];
-
+//
+// The invariant is PER LOCALE: a Spanish page's JSON-LD must mirror the Spanish
+// visible FAQ, so the shells iterate straight out of the registry.
 type Entry = { question: string; answer: string };
 
 // Both sides are reduced to plain text before comparing, and identically:
 // JSON.parse undoes the JSON escaping on the JSON-LD side, textContent undoes
-// the HTML entity escaping and drops inline markup on the visible side. Only
-// runs of whitespace are collapsed (source line wrapping is not a wording
-// difference); every other character has to match.
-const norm = (value: string | null | undefined) => (value ?? "").replace(/\s+/g, " ").trim();
-
-const parse = (shell: string) => new DOMParser().parseFromString(shell, "text/html");
+// the HTML entity escaping and drops inline markup on the visible side (norm
+// collapses whitespace runs only; see ./shells).
 
 function jsonLdEntries(shell: string): Entry[] {
   const doc = parse(shell);
@@ -76,7 +59,7 @@ function visibleEntries(shell: string): Entry[] {
   }));
 }
 
-test.each(shells)("%s shell has a non-empty FAQPage and a visible FAQ to check it against", (_name, shell) => {
+test.each(SHELLS)("$name shell has a non-empty FAQPage and a visible FAQ to check it against", ({ shell }) => {
   // Without this the subset assertion below would pass trivially on a page
   // that lost its JSON-LD or its FAQ section altogether.
   const jsonLd = jsonLdEntries(shell);
@@ -90,7 +73,7 @@ test.each(shells)("%s shell has a non-empty FAQPage and a visible FAQ to check i
   }
 });
 
-test.each(shells)("%s shell JSON-LD FAQ is a subset of the visible FAQ", (_name, shell) => {
+test.each(SHELLS)("$name shell JSON-LD FAQ is a subset of the visible FAQ", ({ shell }) => {
   const visible = visibleEntries(shell);
   const visibleQuestions = visible.map((entry) => entry.question);
 
@@ -106,12 +89,29 @@ test.each(shells)("%s shell JSON-LD FAQ is a subset of the visible FAQ", (_name,
   }
 });
 
-test.each(shells)("%s shell keeps visible-only FAQ entries legal (subset, not equality)", (_name, shell) => {
+test.each(SHELLS)("$name shell keeps visible-only FAQ entries legal (subset, not equality)", ({ shell }) => {
   const jsonLdQuestions = jsonLdEntries(shell).map((entry) => entry.question);
   const visibleOnly = visibleEntries(shell).filter((entry) => !jsonLdQuestions.includes(entry.question));
 
-  // "Who runs this?" is visible on all five pages and deliberately absent from
-  // the JSON-LD. If this ever hits zero, someone has quietly turned the
-  // invariant into equality and future visible-only copy will start failing.
+  // "Who runs this?" is visible on every page in every locale and deliberately
+  // absent from the JSON-LD. If this ever hits zero, someone has quietly turned
+  // the invariant into equality and future visible-only copy will start failing.
   expect(visibleOnly.length).toBeGreaterThan(0);
+});
+
+// The translations doc pins the FAQ length per page, and it is the same in every
+// locale: a translated page that quietly dropped an entry would still satisfy
+// the subset invariant above.
+const FAQ_COUNTS: Record<string, number> = {
+  twitter: 7,
+  tiktok: 8,
+  reddit: 8,
+  instagram: 8,
+  facebook: 8,
+};
+
+test.each(SHELLS)("$name shell ships the same FAQ entry count as its en twin", ({ shell, platform }) => {
+  expect(visibleEntries(shell)).toHaveLength(FAQ_COUNTS[platform]);
+  // Four mirrored entries per page, per the doc.
+  expect(jsonLdEntries(shell)).toHaveLength(4);
 });

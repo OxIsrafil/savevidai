@@ -820,6 +820,13 @@ a.platform-card:hover {
 .footer-platforms a[aria-current="page"] {
   color: var(--fg);
 }
+/* Language switcher: same pill links, its own row under the crawl path. */
+.footer-langs {
+  margin: 4px -13px 0;
+}
+.footer-langs a[aria-current="page"] {
+  color: var(--fg);
+}
 .credit-row {
   display: flex;
   flex-wrap: wrap;

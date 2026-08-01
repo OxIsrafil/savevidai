@@ -5,30 +5,38 @@ import TikTokApp from "../tiktok/TikTokApp";
 import RedditApp from "../reddit/RedditApp";
 import InstagramApp from "../instagram/InstagramApp";
 import FacebookApp from "../facebook/FacebookApp";
-// Raw shell sources, read straight off disk at test time (Vite's ?raw), so the
-// assertions run against the files a crawler is served, not a build artifact.
-import twitterShell from "../../index.html?raw";
-import tiktokShell from "../../tiktokvideodownloader.html?raw";
-import redditShell from "../../redditvideodownloader.html?raw";
-import instagramShell from "../../instagramvideodownloader.html?raw";
-import facebookShell from "../../facebookvideodownloader.html?raw";
+import en from "../locales/en";
+import es from "../locales/es";
+import type { Locale, LocaleStrings, PageStrings, PlatformKey } from "../locales/types";
+import { SHELLS, norm, type ShellRow } from "./shells";
 
 // Every HTML shell ships a static hero snapshot inside #root so crawlers (and
 // users on a slow/failed JS load) get the h1, the sub line and a working form
 // without running React. React clears #root on mount and re-renders the same
 // copy, so any drift between the two is a visible swap and a wrong h1 in the
-// index. These pairs pin the shell copy to the component copy.
-type Pair = [name: string, shell: string, Component: ComponentType];
+// index. These cases pin each shell's copy to the copy the app renders with the
+// SAME locale's string table: a Spanish shell is checked against the Spanish
+// mount, so a shell that keeps an English line fails here.
+type AppComponent = ComponentType<{ strings?: PageStrings }>;
 
-const pairs: Pair[] = [
-  ["twitter", twitterShell, App],
-  ["tiktok", tiktokShell, TikTokApp],
-  ["reddit", redditShell, RedditApp],
-  ["instagram", instagramShell, InstagramApp],
-  ["facebook", facebookShell, FacebookApp],
-];
+const APPS: Record<PlatformKey, AppComponent> = {
+  twitter: App,
+  tiktok: TikTokApp,
+  reddit: RedditApp,
+  instagram: InstagramApp,
+  facebook: FacebookApp,
+};
 
-const norm = (value: string | null | undefined) => (value ?? "").replace(/\s+/g, " ").trim();
+// hi joins in Task 4, at the same time as its shells.
+const TABLES: { [L in Locale]?: LocaleStrings } = { en, es };
+
+type Case = ShellRow & { Component: AppComponent; strings: PageStrings };
+
+const cases: Case[] = SHELLS.map((row) => ({
+  ...row,
+  Component: APPS[row.platform],
+  strings: TABLES[row.locale]![row.platform],
+}));
 
 function shellRoot(shell: string) {
   const doc = new DOMParser().parseFromString(shell, "text/html");
@@ -39,7 +47,7 @@ function shellRoot(shell: string) {
 
 afterEach(cleanup);
 
-test.each(pairs)("%s shell hero snapshot matches the mounted hero copy", (_name, shell, Component) => {
+test.each(cases)("$name shell hero snapshot matches the mounted hero copy", ({ shell, Component, strings }) => {
   const { root } = shellRoot(shell);
 
   const snapshot = root.querySelector(".hero-snapshot");
@@ -53,7 +61,7 @@ test.each(pairs)("%s shell hero snapshot matches the mounted hero copy", (_name,
   expect(snapshotH1).not.toBeNull();
   expect(snapshotLede).not.toBeNull();
 
-  const { container } = render(<Component />);
+  const { container } = render(<Component strings={strings} />);
   const mountedH1 = screen.getByRole("heading", { level: 1 });
   const mountedLede = container.querySelector(".lede");
   expect(mountedLede).not.toBeNull();
@@ -62,7 +70,7 @@ test.each(pairs)("%s shell hero snapshot matches the mounted hero copy", (_name,
   expect(norm(snapshotLede?.textContent)).toBe(norm(mountedLede?.textContent));
 });
 
-test.each(pairs)("%s shell snapshot form works without JS and mirrors the React field", (_name, shell, Component) => {
+test.each(cases)("$name shell snapshot form works without JS and mirrors the React field", ({ shell, Component, strings }) => {
   const { root } = shellRoot(shell);
 
   const form = root.querySelector("form");
@@ -80,15 +88,15 @@ test.each(pairs)("%s shell snapshot form works without JS and mirrors the React 
 
   const submit = form?.querySelector("button");
   expect(submit?.getAttribute("type")).toBe("submit");
-  expect(norm(submit?.textContent)).toBe("Fetch");
+  expect(norm(submit?.textContent)).toBe(strings.input.submit);
 
-  render(<Component />);
+  render(<Component strings={strings} />);
   const mountedInput = screen.getByRole("textbox");
   expect(input?.getAttribute("placeholder")).toBe(mountedInput.getAttribute("placeholder"));
   expect(input?.getAttribute("aria-label")).toBe(mountedInput.getAttribute("aria-label"));
 });
 
-test.each(pairs)("%s shell carries exactly one h1 and no ad marker inside #root", (_name, shell) => {
+test.each(cases)("$name shell carries exactly one h1 and no ad marker inside #root", ({ shell }) => {
   const { doc, root } = shellRoot(shell);
 
   // React replaces the snapshot h1, never adds a second one, so the built page
@@ -99,4 +107,75 @@ test.each(pairs)("%s shell carries exactly one h1 and no ad marker inside #root"
   // The ad marker line stays exactly once, outside the snapshot.
   expect(shell.split("<!--ADS-->")).toHaveLength(2);
   expect(root.innerHTML).not.toContain("<!--ADS-->");
+});
+
+test.each(cases)("$name shell head copy matches its string table", ({ shell, strings }) => {
+  const { doc } = shellRoot(shell);
+  const meta = (selector: string) => doc.querySelector(selector)?.getAttribute("content");
+
+  // The head is shell-only copy (React never renders it), so without this the
+  // title and description of a translated page could keep the English wording,
+  // or drift from the doc, with every other assertion still green. og/twitter
+  // titles mirror the meta title, and both descriptions mirror ogDescription:
+  // that is the shape of all five en shells and it holds per locale.
+  expect(norm(doc.querySelector("title")?.textContent)).toBe(strings.meta.title);
+  expect(meta('meta[name="description"]')).toBe(strings.meta.description);
+  expect(meta('meta[property="og:title"]')).toBe(strings.meta.title);
+  expect(meta('meta[name="twitter:title"]')).toBe(strings.meta.title);
+  expect(meta('meta[property="og:description"]')).toBe(strings.meta.ogDescription);
+  expect(meta('meta[name="twitter:description"]')).toBe(strings.meta.ogDescription);
+});
+
+test.each(cases)("$name shell static sections match its string table", ({ shell, strings }) => {
+  const { doc } = shellRoot(shell);
+  const text = (el: Element | null | undefined) => norm(el?.textContent);
+
+  // The how-it-works and FAQ headers plus the three step cards are shell-only
+  // copy as well. The FAQ bodies stay shell-only by design (the tables carry no
+  // FAQ), and faqJsonLd.test.ts is what guards those.
+  const kickers = Array.from(doc.querySelectorAll(".kicker"));
+  expect(kickers.map(text)).toEqual([
+    strings.section.howItWorksKicker,
+    strings.section.questionsKicker,
+  ]);
+  expect(Array.from(doc.querySelectorAll(".section-title")).map(text)).toEqual([
+    strings.section.howItWorksTitle,
+    strings.section.faqTitle,
+  ]);
+
+  const steps = Array.from(doc.querySelectorAll(".step-card"));
+  expect(steps).toHaveLength(strings.steps.length);
+  for (const [index, card] of steps.entries()) {
+    expect(text(card.querySelector("h3"))).toBe(strings.steps[index].heading);
+    expect(text(card.querySelector("p"))).toBe(strings.steps[index].body);
+  }
+
+  // Footer copy: the description and the two labelled navs.
+  expect(text(doc.querySelector(".footer-desc"))).toBe(strings.footerDescription);
+  expect(doc.querySelector("footer.site-footer nav.footer-links")?.getAttribute("aria-label")).toBe(
+    strings.footer.linksLabel,
+  );
+  expect(text(doc.querySelector("footer.site-footer nav.footer-links a"))).toBe(strings.footer.xLink);
+
+  const credits = Array.from(doc.querySelectorAll(".credit")).map(text);
+  // builtBy is a text node next to the @israfill link, and Hindi flips that
+  // order (Task 4), so the assertion is containment rather than equality.
+  expect(credits[0]).toContain(strings.footer.builtBy);
+  expect(credits[1]).toBe(strings.footer.copyright);
+});
+
+test.each(cases)("$name shell declares its own lang and boots its own entry", ({ shell, locale, platform }) => {
+  const { doc } = shellRoot(shell);
+
+  // Wrong lang is invisible in a browser and wrong to every crawler and screen
+  // reader, so it is pinned rather than assumed from the directory name.
+  expect(doc.documentElement.getAttribute("lang")).toBe(locale);
+
+  const module = doc.querySelector('script[type="module"]')?.getAttribute("src");
+  // en pages keep their original per-platform mains (the Twitter page is the
+  // root one); locale pages boot the entry that hands the app that locale's
+  // table. Loading the wrong one ships a fully English app under a translated
+  // shell, which nothing else in the suite would catch.
+  const enMain = platform === "twitter" ? "/src/main.tsx" : `/src/${platform}/main.tsx`;
+  expect(module).toBe(locale === "en" ? enMain : `/src/entries/${locale}-${platform}.tsx`);
 });
