@@ -1,5 +1,6 @@
 import en from "../locales/en";
 import es from "../locales/es";
+import hi from "../locales/hi";
 import type { Locale, LocaleStrings } from "../locales/types";
 import { CLUSTER_LOCALES, SHELLS, pagePath, norm, parse } from "./shells";
 
@@ -9,7 +10,7 @@ import { CLUSTER_LOCALES, SHELLS, pagePath, norm, parse } from "./shells";
 // must see हिन्दी, whatever page they landed on) linking to the SAME slug in
 // each locale. Crawlable too: it is a second, human-facing signal alongside the
 // hreflang cluster.
-const TABLES: { [L in Locale]?: LocaleStrings } = { en, es };
+const TABLES: { [L in Locale]?: LocaleStrings } = { en, es, hi };
 
 // Autonyms are identical in every locale by design (translations doc 2.12), so
 // one table answers for all of them. localeStrings.test.ts pins that the tables

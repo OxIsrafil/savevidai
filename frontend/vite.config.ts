@@ -13,10 +13,9 @@ export default defineConfig({
     rollupOptions: {
       // One input per HTML shell: rollup resolves each of these as a file on
       // disk, so an input may only be added in the same change as its shell.
-      // The es shells have landed, taking this to 11; the 5 hi inputs pointing
-      // at ./hi/*.html arrive with their shells, for 16 total. Nested inputs
-      // keep their path in dist (dist/es/index.html), and their asset refs stay
-      // root-absolute, so no base or public-path change is needed.
+      // All three locales have landed, for 16 inputs. Nested inputs keep their
+      // path in dist (dist/es/index.html, dist/hi/index.html), and their asset
+      // refs stay root-absolute, so no base or public-path change is needed.
       input: {
         main: entry("./index.html"),
         admin: entry("./admin.html"),
@@ -29,6 +28,11 @@ export default defineConfig({
         esInstagram: entry("./es/instagramvideodownloader.html"),
         esReddit: entry("./es/redditvideodownloader.html"),
         esFacebook: entry("./es/facebookvideodownloader.html"),
+        hiMain: entry("./hi/index.html"),
+        hiTiktok: entry("./hi/tiktokvideodownloader.html"),
+        hiInstagram: entry("./hi/instagramvideodownloader.html"),
+        hiReddit: entry("./hi/redditvideodownloader.html"),
+        hiFacebook: entry("./hi/facebookvideodownloader.html"),
       },
     },
   },

@@ -4,9 +4,9 @@
  *
  * Shell sources are read straight off disk at test time (Vite's ?raw), so the
  * assertions run against the files a crawler is served, not a build artifact.
- * Adding a locale is meant to be adding rows here: the hi shells land in Task 4
- * and extend LOCALES, SOURCES and therefore SHELLS by five rows, after which
- * every suite that iterates SHELLS covers them with no further edits.
+ * Adding a locale is adding rows here: en, es and hi all land through LOCALES
+ * and SOURCES, and every suite that iterates SHELLS covers them with no further
+ * edits.
  */
 import twitterShell from "../../index.html?raw";
 import tiktokShell from "../../tiktokvideodownloader.html?raw";
@@ -18,15 +18,20 @@ import esTiktokShell from "../../es/tiktokvideodownloader.html?raw";
 import esRedditShell from "../../es/redditvideodownloader.html?raw";
 import esInstagramShell from "../../es/instagramvideodownloader.html?raw";
 import esFacebookShell from "../../es/facebookvideodownloader.html?raw";
+import hiTwitterShell from "../../hi/index.html?raw";
+import hiTiktokShell from "../../hi/tiktokvideodownloader.html?raw";
+import hiRedditShell from "../../hi/redditvideodownloader.html?raw";
+import hiInstagramShell from "../../hi/instagramvideodownloader.html?raw";
+import hiFacebookShell from "../../hi/facebookvideodownloader.html?raw";
 import type { Locale, PlatformKey } from "../locales/types";
 
-/** Locales that have shells on disk today. hi joins them in Task 4. */
-export const LOCALES: readonly Locale[] = ["en", "es"];
+/** Locales that have shells on disk. All three of them do. */
+export const LOCALES: readonly Locale[] = ["en", "es", "hi"];
 
 /**
  * Every locale the hreflang cluster names, in the order the shells list them.
- * This is the fixed URL model from the spec, so it already includes hi: the en
- * and es shells point at the hi URLs before those shells exist.
+ * This is the fixed URL model from the spec, and every locale in it now has
+ * shells, so CLUSTER_LOCALES and LOCALES agree.
  */
 export const CLUSTER_LOCALES: readonly Locale[] = ["en", "es", "hi"];
 
@@ -89,6 +94,13 @@ const SOURCES: { [L in Locale]?: Record<PlatformKey, string> } = {
     reddit: esRedditShell,
     instagram: esInstagramShell,
     facebook: esFacebookShell,
+  },
+  hi: {
+    twitter: hiTwitterShell,
+    tiktok: hiTiktokShell,
+    reddit: hiRedditShell,
+    instagram: hiInstagramShell,
+    facebook: hiFacebookShell,
   },
 };
 

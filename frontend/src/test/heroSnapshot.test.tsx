@@ -7,6 +7,7 @@ import InstagramApp from "../instagram/InstagramApp";
 import FacebookApp from "../facebook/FacebookApp";
 import en from "../locales/en";
 import es from "../locales/es";
+import hi from "../locales/hi";
 import type { Locale, LocaleStrings, PageStrings, PlatformKey } from "../locales/types";
 import { SHELLS, norm, type ShellRow } from "./shells";
 
@@ -27,8 +28,7 @@ const APPS: Record<PlatformKey, AppComponent> = {
   facebook: FacebookApp,
 };
 
-// hi joins in Task 4, at the same time as its shells.
-const TABLES: { [L in Locale]?: LocaleStrings } = { en, es };
+const TABLES: { [L in Locale]?: LocaleStrings } = { en, es, hi };
 
 type Case = ShellRow & { Component: AppComponent; strings: PageStrings };
 
@@ -159,9 +159,28 @@ test.each(cases)("$name shell static sections match its string table", ({ shell,
 
   const credits = Array.from(doc.querySelectorAll(".credit")).map(text);
   // builtBy is a text node next to the @israfill link, and Hindi flips that
-  // order (Task 4), so the assertion is containment rather than equality.
+  // order, so the assertion is containment rather than equality here. The case
+  // below is what pins the order per locale.
   expect(credits[0]).toContain(strings.footer.builtBy);
   expect(credits[1]).toBe(strings.footer.copyright);
+});
+
+test.each(cases)("$name shell footer credit puts builtBy on its locale's side of the link", ({ shell, locale, strings }) => {
+  const { doc } = shellRoot(shell);
+
+  const credit = doc.querySelector(".credit");
+  const link = credit?.querySelector('a[href="https://x.com/israfill"]');
+  expect(link, "credit row has no @israfill link").not.toBeNull();
+
+  // Hindi is head-final: the doc (section 2.14) renders the name first and
+  // "ne banaya" after it, the reverse of "built by @israfill". Containment
+  // alone would pass the English node order under a Hindi string, which reads
+  // as broken grammar to the only people who can tell.
+  const handle = norm(link?.textContent);
+  const builtBy = strings.footer.builtBy;
+  expect(norm(credit?.textContent)).toBe(
+    locale === "hi" ? `${handle} ${builtBy}` : `${builtBy} ${handle}`,
+  );
 });
 
 test.each(cases)("$name shell declares its own lang and boots its own entry", ({ shell, locale, platform }) => {

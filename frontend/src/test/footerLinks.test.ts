@@ -1,5 +1,6 @@
 import en from "../locales/en";
 import es from "../locales/es";
+import hi from "../locales/hi";
 import type { Locale, LocaleStrings } from "../locales/types";
 import { PLATFORMS, SHELLS, SLUGS, norm, parse } from "./shells";
 
@@ -13,8 +14,7 @@ import { PLATFORMS, SHELLS, SLUGS, norm, parse } from "./shells";
 // Expected hrefs and anchor texts come from the locale string table rather than
 // a second hand-written list: the shells and the tables are two hand-authored
 // copies of the same doc, and pinning them to each other is the drift guard.
-// hi joins in Task 4 with its shells.
-const TABLES: { [L in Locale]?: LocaleStrings } = { en, es };
+const TABLES: { [L in Locale]?: LocaleStrings } = { en, es, hi };
 
 // og:locale takes Facebook's regional codes: es_LA is LatAm Spanish, which is
 // the register the copy is written in (the spec rules out es_ES).
