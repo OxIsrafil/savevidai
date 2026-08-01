@@ -9,6 +9,8 @@ import { FacebookHowToVisual } from "./FacebookHowToVisual";
 import { useResolve } from "../hooks/useResolve";
 import { sendEvent, visitContext } from "../lib/analytics";
 import { EASE_OUT, fadeRise, heroStill } from "../lib/motion";
+import { enFacebook } from "../locales/en";
+import type { PageStrings } from "../locales/types";
 
 // Facebook's own page video (the one Meta's embed docs use), so it is public,
 // long-lived and safe to showcase. Verified live through the resolver on
@@ -20,11 +22,13 @@ const EXAMPLE_URL = "https://www.facebook.com/facebook/videos/10153231379946729"
 // page load rather than per mount.
 let visitBeaconSent = false;
 
-export default function FacebookApp() {
-  const { state, resolve } = useResolve();
+export default function FacebookApp({ strings = enFacebook }: { strings?: PageStrings } = {}) {
+  const { state, resolve } = useResolve(strings.errors);
   const [prefill, setPrefill] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const { prefix } = strings;
+  const home = prefix ? `${prefix}/` : "/";
 
   function runExample() {
     setPrefill(EXAMPLE_URL);
@@ -113,19 +117,19 @@ export default function FacebookApp() {
         transition={{ duration: 0.5, ease: EASE_OUT }}
       >
         <span className="brand">
-          <span>SaveVid AI</span>
+          <span>{strings.nav.brand}</span>
           <span className="brand-dot">.</span>
         </span>
         <span className="flex items-center gap-2">
-          <a className="nav-meta nav-link" href="/">
-            Twitter/X
+          <a className="nav-meta nav-link" href={home}>
+            {strings.nav.twitter}
           </a>
-          <a className="nav-meta nav-link" href="/instagramvideodownloader">
-            Instagram
+          <a className="nav-meta nav-link" href={`${prefix}/instagramvideodownloader`}>
+            {strings.nav.instagram}
           </a>
-          <ThemeToggle />
+          <ThemeToggle strings={strings.theme} />
           <button type="button" className="btn btn-small" onClick={focusInput}>
-            Download
+            {strings.nav.downloadButton}
           </button>
         </span>
       </motion.nav>
@@ -141,18 +145,18 @@ export default function FacebookApp() {
         <h1 className="hero-h1">
           <span className="word">
             <motion.span className="inline-block" {...heroStill}>
-              Facebook Video
+              {strings.hero.h1a}
             </motion.span>
           </span>{" "}
           <span className="word grey small">
             <motion.span className="inline-block" {...heroStill}>
-              Downloader
+              {strings.hero.h1b}
             </motion.span>
           </span>
         </h1>
 
         <motion.p {...heroStill} className="lede mt-6">
-          Paste a Facebook link, get the video in HD. No fake buttons, one real click.
+          {strings.hero.lede}
         </motion.p>
 
         <motion.div {...heroStill} className="mx-auto mt-9 max-w-2xl">
@@ -161,29 +165,36 @@ export default function FacebookApp() {
             errorMessage={state.status === "error" ? state.message : null}
             onSubmit={resolve}
             presetValue={prefill}
-            placeholder="Paste a Facebook video or reel link"
-            ariaLabel="Facebook video or reel link"
+            placeholder={strings.hero.placeholder}
+            ariaLabel={strings.hero.inputAriaLabel}
+            submitLabel={strings.input.submit}
+            fetchedLabel={strings.input.fetched}
           />
         </motion.div>
 
         <motion.div {...fadeRise(3)} className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
-          <button type="button" className="chip chip-action" onClick={runExample}>
-            ▶ try an example
-          </button>
-          <span className="chip">no login</span>
-          <span className="chip">hd quality</span>
-          <span className="chip">public posts only</span>
+          {strings.chipKeys.map((key) =>
+            key === "example" ? (
+              <button key={key} type="button" className="chip chip-action" onClick={runExample}>
+                {strings.chips.example}
+              </button>
+            ) : (
+              <span key={key} className="chip">
+                {strings.chips[key]}
+              </span>
+            ),
+          )}
         </motion.div>
 
         {/* Says the limit up front rather than burying it in the FAQ: the
             resolver reads og:video, which photo posts and login-walled posts
             never carry. Same wording as the FAQ answer. */}
         <motion.p {...fadeRise(4)} className="mt-6 text-sm text-[var(--faint)]">
-          Photo posts and private videos are not supported: public videos and reels only.
+          {strings.hero.note}
         </motion.p>
 
         <motion.div {...fadeRise(5)} className="mt-8">
-          <PlatformLinks active="facebook" />
+          <PlatformLinks active="facebook" strings={strings} />
         </motion.div>
 
         {/* No AnimatePresence here on purpose: an interrupted exit animation can wedge
@@ -191,11 +202,13 @@ export default function FacebookApp() {
             animation is robust. */}
         <div ref={resultsRef} aria-live="polite" className="mt-10 scroll-mt-28 text-left">
           {state.status === "resolving" && <SkeletonCard />}
-          {state.status === "ready" && <PreviewCard data={state.data} platform="facebook" />}
+          {state.status === "ready" && (
+            <PreviewCard data={state.data} platform="facebook" strings={strings} />
+          )}
         </div>
 
         <motion.div {...fadeRise(6)}>
-          <FacebookHowToVisual />
+          <FacebookHowToVisual strings={strings.svg} />
         </motion.div>
       </main>
     </div>

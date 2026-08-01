@@ -4,6 +4,8 @@ import { sendEvent } from "../lib/analytics";
 import type { MediaItem } from "../lib/api";
 import { buildMediaFilename, downloadVariant } from "../lib/download";
 import { cascade } from "../lib/motion";
+import { enShared } from "../locales/en";
+import type { PhotoStrings } from "../locales/types";
 
 type TileState = "idle" | "saving" | "saved" | "failed";
 
@@ -16,12 +18,14 @@ export function PhotoGrid({
   handle,
   id,
   platform,
+  strings = enShared.photos,
 }: {
   photos: MediaItem[];
   audio: MediaItem | null;
   handle: string;
   id: string;
   platform: "twitter" | "tiktok" | "reddit" | "instagram" | "facebook";
+  strings?: PhotoStrings;
 }) {
   const [states, setStates] = useState<TileState[]>(() => photos.map(() => "idle"));
   const [savingAll, setSavingAll] = useState(false);
@@ -87,7 +91,7 @@ export function PhotoGrid({
   }
 
   return (
-    <section aria-label="Photos" className="space-y-3.5">
+    <section aria-label={strings.sectionLabel} className="space-y-3.5">
       <motion.div {...cascade(2)} className="flex flex-wrap gap-2.5">
         <button
           type="button"
@@ -95,7 +99,7 @@ export function PhotoGrid({
           aria-busy={savingAll}
           className="quality-btn quality-btn-primary font-semibold"
         >
-          Save all
+          {strings.saveAll}
         </button>
         {audio && (
           <button
@@ -106,10 +110,10 @@ export function PhotoGrid({
             className="quality-btn font-semibold"
           >
             {soundState === "saved"
-              ? "Sound saved"
+              ? strings.soundSaved
               : soundState === "failed"
-                ? "Retry sound"
-                : "Sound"}
+                ? strings.soundRetry
+                : strings.sound}
           </button>
         )}
       </motion.div>
@@ -123,7 +127,7 @@ export function PhotoGrid({
               type="button"
               onClick={() => onPhotoClick(i)}
               data-state={states[i]}
-              aria-label={`Save photo ${photo.index}`}
+              aria-label={strings.savePhotoN.replace("{n}", String(photo.index))}
               className="photo-tile group"
             >
               {src ? (

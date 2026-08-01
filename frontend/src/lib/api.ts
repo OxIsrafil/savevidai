@@ -1,3 +1,6 @@
+import { enShared } from "../locales/en";
+import type { ErrorStrings } from "../locales/types";
+
 export type Variant = {
   label: string;
   width: number | null;
@@ -32,7 +35,10 @@ export class ApiError extends Error {
   }
 }
 
-export async function resolveTweet(url: string): Promise<ResolveResponse> {
+export async function resolveTweet(
+  url: string,
+  strings: ErrorStrings = enShared.errors,
+): Promise<ResolveResponse> {
   const res = await fetch("/api/resolve", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -42,10 +48,9 @@ export async function resolveTweet(url: string): Promise<ResolveResponse> {
   if (!res.ok) {
     // A non-JSON 5xx means the request never reached the API (e.g. dev proxy
     // with the backend down); say that instead of a vague generic error.
-    const fallback =
-      res.status >= 500
-        ? "Can't reach the SaveVid server right now. Try again in a moment."
-        : "Something went wrong. Try again.";
+    // Only the client-minted fallbacks are localized: the backend's own
+    // body.message passes through untouched (English in v1, per the spec).
+    const fallback = res.status >= 500 ? strings.serverUnreachable : strings.generic;
     throw new ApiError(body?.error ?? "upstream_error", body?.message ?? fallback);
   }
   return body as ResolveResponse;

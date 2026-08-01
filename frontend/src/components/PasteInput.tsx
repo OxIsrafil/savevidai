@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { motion } from "motion/react";
+import { enShared, enTwitter } from "../locales/en";
 
 type Props = {
   status: "idle" | "resolving" | "ready" | "error";
@@ -11,6 +12,10 @@ type Props = {
   placeholder?: string;
   /** Accessible name for the field; defaults to the home page's Twitter/X copy. */
   ariaLabel?: string;
+  /** Submit button label; defaults to English. */
+  submitLabel?: string;
+  /** Submit button label right after a fetch lands; defaults to English. */
+  fetchedLabel?: string;
 };
 
 export function PasteInput({
@@ -18,8 +23,10 @@ export function PasteInput({
   errorMessage,
   onSubmit,
   presetValue = null,
-  placeholder = "Paste a Twitter/X post link",
-  ariaLabel = "Twitter/X post link",
+  placeholder = enTwitter.hero.placeholder,
+  ariaLabel = enTwitter.hero.inputAriaLabel,
+  submitLabel = enShared.input.submit,
+  fetchedLabel = enShared.input.fetched,
 }: Props) {
   const [value, setValue] = useState("");
   const [justFetched, setJustFetched] = useState(false);
@@ -82,10 +89,10 @@ export function PasteInput({
           ) : justFetched ? (
             <>
               <CheckIcon />
-              <span>Fetched</span>
+              <span>{fetchedLabel}</span>
             </>
           ) : (
-            "Fetch"
+            submitLabel
           )}
         </motion.button>
       </div>

@@ -1,17 +1,29 @@
-type Platform = "twitter" | "tiktok" | "reddit" | "instagram" | "facebook";
+import { enShared } from "../locales/en";
+import type { PlatformKey, PlatformLinksStrings } from "../locales/types";
 
-const PLATFORMS: { key: Platform; label: string; href: string }[] = [
-  { key: "twitter", label: "Twitter / X", href: "/" },
-  { key: "tiktok", label: "TikTok", href: "/tiktokvideodownloader" },
-  { key: "reddit", label: "Reddit", href: "/redditvideodownloader" },
-  { key: "instagram", label: "Instagram", href: "/instagramvideodownloader" },
-  { key: "facebook", label: "Facebook", href: "/facebookvideodownloader" },
-];
+export function PlatformLinks({
+  active,
+  strings = enShared,
+}: {
+  active: PlatformKey;
+  strings?: PlatformLinksStrings;
+}) {
+  // Built inside the component on purpose (spec rule): a module-level array
+  // would freeze one locale's labels and hrefs at import time, so every page in
+  // the process would render whichever table was imported first.
+  const { prefix, platform } = strings;
+  const home = prefix ? `${prefix}/` : "/";
+  const platforms: { key: PlatformKey; label: string; href: string }[] = [
+    { key: "twitter", label: platform.twitter, href: home },
+    { key: "tiktok", label: platform.tiktok, href: `${prefix}/tiktokvideodownloader` },
+    { key: "reddit", label: platform.reddit, href: `${prefix}/redditvideodownloader` },
+    { key: "instagram", label: platform.instagram, href: `${prefix}/instagramvideodownloader` },
+    { key: "facebook", label: platform.facebook, href: `${prefix}/facebookvideodownloader` },
+  ];
 
-export function PlatformLinks({ active }: { active: Platform }) {
   return (
-    <nav className="platform-links" aria-label="Choose a platform">
-      {PLATFORMS.map((p) =>
+    <nav className="platform-links" aria-label={platform.navLabel}>
+      {platforms.map((p) =>
         p.key === active ? (
           <span key={p.key} className="platform-card active" aria-current="page">
             {p.label}
@@ -19,7 +31,7 @@ export function PlatformLinks({ active }: { active: Platform }) {
         ) : (
           <a key={p.key} className="platform-card" href={p.href}>
             {p.label}
-            <span className="sr-only"> downloader</span>
+            <span className="sr-only">{platform.srSuffix}</span>
           </a>
         ),
       )}

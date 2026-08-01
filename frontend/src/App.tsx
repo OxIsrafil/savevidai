@@ -10,6 +10,8 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { useResolve } from "./hooks/useResolve";
 import { sendEvent, visitContext } from "./lib/analytics";
 import { EASE_OUT, fadeRise, heroStill } from "./lib/motion";
+import { enTwitter } from "./locales/en";
+import type { PageStrings } from "./locales/types";
 
 // The maker's own video post, used as the one-click live demo.
 const EXAMPLE_URL = "https://x.com/israfill/status/2077383034639094193";
@@ -19,10 +21,11 @@ const EXAMPLE_URL = "https://x.com/israfill/status/2077383034639094193";
 // page load rather than per mount.
 let visitBeaconSent = false;
 
-export default function App() {
-  const { state, resolve } = useResolve();
+export default function App({ strings = enTwitter }: { strings?: PageStrings } = {}) {
+  const { state, resolve } = useResolve(strings.errors);
   const [prefill, setPrefill] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
+  const { prefix } = strings;
 
   function runExample() {
     setPrefill(EXAMPLE_URL);
@@ -112,19 +115,19 @@ export default function App() {
         transition={{ duration: 0.5, ease: EASE_OUT }}
       >
         <span className="brand">
-          <span>SaveVid AI</span>
+          <span>{strings.nav.brand}</span>
           <span className="brand-dot">.</span>
         </span>
         <span className="flex items-center gap-2">
-          <a className="nav-meta nav-link" href="/tiktokvideodownloader">
-            TikTok
+          <a className="nav-meta nav-link" href={`${prefix}/tiktokvideodownloader`}>
+            {strings.nav.tiktok}
           </a>
-          <a className="nav-meta nav-link" href="/redditvideodownloader">
-            Reddit
+          <a className="nav-meta nav-link" href={`${prefix}/redditvideodownloader`}>
+            {strings.nav.reddit}
           </a>
-          <ThemeToggle />
+          <ThemeToggle strings={strings.theme} />
           <button type="button" className="btn btn-small" onClick={focusInput}>
-            Download
+            {strings.nav.downloadButton}
           </button>
         </span>
       </motion.nav>
@@ -139,18 +142,18 @@ export default function App() {
         <h1 className="hero-h1">
           <span className="word">
             <motion.span className="inline-block" {...heroStill}>
-              Twitter/X Video
+              {strings.hero.h1a}
             </motion.span>
           </span>{" "}
           <span className="word grey small">
             <motion.span className="inline-block" {...heroStill}>
-              Downloader
+              {strings.hero.h1b}
             </motion.span>
           </span>
         </h1>
 
         <motion.p {...heroStill} className="lede mt-6">
-          Paste tweet URL and get the video in 2 seconds.
+          {strings.hero.lede}
         </motion.p>
 
         <motion.div {...heroStill} className="mx-auto mt-9 max-w-2xl">
@@ -159,24 +162,33 @@ export default function App() {
             errorMessage={state.status === "error" ? state.message : null}
             onSubmit={resolve}
             presetValue={prefill}
+            placeholder={strings.hero.placeholder}
+            ariaLabel={strings.hero.inputAriaLabel}
+            submitLabel={strings.input.submit}
+            fetchedLabel={strings.input.fetched}
           />
         </motion.div>
 
         <motion.div {...fadeRise(3)} className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
-          <button type="button" className="chip chip-action" onClick={runExample}>
-            ▶ try an example
-          </button>
-          <span className="chip">no login</span>
-          <span className="chip">no watermark</span>
-          <span className="chip">original quality</span>
+          {strings.chipKeys.map((key) =>
+            key === "example" ? (
+              <button key={key} type="button" className="chip chip-action" onClick={runExample}>
+                {strings.chips.example}
+              </button>
+            ) : (
+              <span key={key} className="chip">
+                {strings.chips[key]}
+              </span>
+            ),
+          )}
         </motion.div>
 
         <motion.p {...fadeRise(4)} className="mt-6 text-sm text-[var(--faint)]">
-          Straight from Twitter's CDN. No fake buttons, one real click.
+          {strings.hero.note}
         </motion.p>
 
         <motion.div {...fadeRise(5)} className="mt-8">
-          <PlatformLinks active="twitter" />
+          <PlatformLinks active="twitter" strings={strings} />
         </motion.div>
 
         {/* No AnimatePresence here on purpose: an interrupted exit animation can wedge
@@ -184,14 +196,14 @@ export default function App() {
             the backend was down). Instant swap + card entrance animation is robust. */}
         <div ref={resultsRef} aria-live="polite" className="mt-10 scroll-mt-28 text-left">
           {state.status === "resolving" && <SkeletonCard />}
-          {state.status === "ready" && <PreviewCard data={state.data} />}
+          {state.status === "ready" && <PreviewCard data={state.data} strings={strings} />}
         </div>
 
         <motion.div {...fadeRise(6)}>
-          <HowToVisual />
+          <HowToVisual strings={strings.svg} />
         </motion.div>
 
-        <AdSlot />
+        <AdSlot strings={strings.ads} />
       </main>
     </div>
   );

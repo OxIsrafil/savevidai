@@ -3,15 +3,19 @@ import type { MediaItem, ResolveResponse } from "../lib/api";
 import { buildFilename } from "../lib/download";
 import { formatDuration } from "../lib/format";
 import { cardReveal, cascade } from "../lib/motion";
+import { enShared } from "../locales/en";
+import type { PreviewCardStrings } from "../locales/types";
 import { PhotoGrid } from "./PhotoGrid";
 import { QualityButton } from "./QualityButton";
 
 export function PreviewCard({
   data,
   platform = "twitter",
+  strings = enShared,
 }: {
   data: ResolveResponse;
   platform?: "twitter" | "tiktok" | "reddit" | "instagram" | "facebook";
+  strings?: PreviewCardStrings;
 }) {
   // Route slideshow photos and the soundtrack to PhotoGrid; MediaSection only
   // ever handles playable video/gif items (its play badge + .mp4 filenames).
@@ -49,6 +53,7 @@ export function PreviewCard({
             handle={data.handle}
             id={data.id}
             platform={platform}
+            strings={strings.photos}
           />
         )}
         {media.map((item) => (
@@ -58,6 +63,7 @@ export function PreviewCard({
             count={media.length}
             data={data}
             platform={platform}
+            strings={strings}
           />
         ))}
       </div>
@@ -70,18 +76,19 @@ function MediaSection({
   count,
   data,
   platform,
+  strings,
 }: {
   item: MediaItem;
   count: number;
   data: ResolveResponse;
   platform: "twitter" | "tiktok" | "reddit" | "instagram" | "facebook";
+  strings: PreviewCardStrings;
 }) {
   const many = count > 1;
+  const numbered = strings.preview.videoN.replace("{n}", String(item.index));
   return (
-    <section aria-label={many ? `Video ${item.index}` : "Video"}>
-      {many && (
-        <h3 className="mb-2 text-sm font-medium text-[var(--muted)]">Video {item.index}</h3>
-      )}
+    <section aria-label={many ? numbered : strings.preview.videoSingle}>
+      {many && <h3 className="mb-2 text-sm font-medium text-[var(--muted)]">{numbered}</h3>}
       <motion.div {...cascade(2)} className="group relative overflow-hidden rounded-2xl">
         {item.thumbnail ? (
           <img
@@ -110,7 +117,7 @@ function MediaSection({
           </svg>
         </div>
         <div className="absolute bottom-2 right-2 flex items-center gap-2">
-          {item.kind === "gif" && <span className="badge">GIF</span>}
+          {item.kind === "gif" && <span className="badge">{strings.preview.gifBadge}</span>}
           {item.duration_seconds != null && (
             <span className="badge font-mono">{formatDuration(item.duration_seconds)}</span>
           )}
@@ -123,6 +130,7 @@ function MediaSection({
             variant={variant}
             primary={i === 0}
             platform={platform}
+            strings={strings.quality}
             filename={buildFilename(data.handle, data.id, variant.label, item.index, count)}
           />
         ))}

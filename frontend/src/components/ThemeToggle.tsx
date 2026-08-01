@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
+import { enShared } from "../locales/en";
+import type { ThemeStrings } from "../locales/types";
 
-export function ThemeToggle() {
+export function ThemeToggle({ strings = enShared.theme }: { strings?: ThemeStrings } = {}) {
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
 
   useEffect(() => {
@@ -19,7 +21,7 @@ export function ThemeToggle() {
       whileHover={{ rotate: 15 }}
       whileTap={{ scale: 0.9 }}
       onClick={() => setDark(!dark)}
-      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={dark ? strings.toLight : strings.toDark}
       className="rounded-full border border-[var(--line)] p-2 text-[var(--muted)] transition hover:text-[var(--accent)]"
     >
       {dark ? <SunIcon /> : <MoonIcon />}

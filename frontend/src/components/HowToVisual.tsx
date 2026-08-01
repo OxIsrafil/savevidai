@@ -8,27 +8,29 @@
  * static landing section below.
  */
 
+import { enTwitter } from "../locales/en";
+import type { SvgStrings } from "../locales/types";
+
 const RED = "#ff5148";
 
-export function HowToVisual() {
+export function HowToVisual({ strings = enTwitter.svg }: { strings?: SvgStrings } = {}) {
   return (
     <figure className="mt-14 w-full lg:-mx-24 lg:w-[calc(100%+12rem)]">
-      <Landscape />
-      <Stacked />
+      <Landscape strings={strings} />
+      <Stacked strings={strings} />
       <figcaption className="sr-only">
-        Copy the post link, paste it above, pick a quality, and the video saves with a clean
-        filename.
+        {strings.figcaption}
       </figcaption>
     </figure>
   );
 }
 
-function Landscape() {
+function Landscape({ strings }: { strings: SvgStrings }) {
   return (
     <svg
       viewBox="0 0 1360 452"
       role="img"
-      aria-label="How to download: copy the post link from Twitter, paste it in the box, then pick a quality to save the video"
+      aria-label={strings.ariaLabel}
       className="hidden h-auto w-full sm:block"
     >
       {/* ── Step 1: tweet mock with Copy link menu ── */}
@@ -45,7 +47,7 @@ function Landscape() {
         <rect x="288" y="300" width="136" height="92" rx="14" fill="var(--card)" stroke="var(--line)" />
         <path d="M306 328 a7 7 0 1 1 6 3 l-4 6 a7 7 0 1 1 -6 -3 Z" fill="none" stroke="var(--fg)" strokeWidth="2.4" />
         <text x="326" y="334" fontFamily="var(--font-sans)" fontSize="16.5" fontWeight="600" fill="var(--fg)">
-          Copy link
+          {strings.copyLink}
         </text>
         <rect x="306" y="356" width="86" height="9" rx="4.5" fill="var(--pill)" />
         {/* red marker: wobbly circle around Copy link + badge 1 */}
@@ -82,7 +84,7 @@ function Landscape() {
         </text>
         <rect x="815" y="210" width="118" height="58" rx="29" fill="var(--accent)" />
         <text x="874" y="246" textAnchor="middle" fontFamily="var(--font-sans)" fontSize="18.5" fontWeight="600" fill="#fff">
-          Fetch
+          {strings.fetch}
         </text>
         {/* red marker circle around the whole row + badge 2 */}
         <path
@@ -148,10 +150,10 @@ function Landscape() {
           ada_2071_1080p.mp4
         </text>
         <text x="1086" y="370" fontFamily="var(--font-sans)" fontSize="13.5" fill="var(--muted)">
-          saved to your device
+          {strings.savedToDevice}
         </text>
         <text x="1040" y="416" fontFamily="var(--font-sans)" fontSize="13.5" fill="var(--faint)">
-          No watermark. Straight from Twitter's CDN.
+          {strings.footerLine}
         </text>
         {/* red marker circle around best pill + badge 3 */}
         <path
@@ -172,12 +174,12 @@ function Landscape() {
 }
 
 /* Phone-only stacked variant: same three steps flowing top to bottom. */
-function Stacked() {
+function Stacked({ strings }: { strings: SvgStrings }) {
   return (
     <svg
       viewBox="0 0 560 992"
       role="img"
-      aria-label="How to download: copy the post link from Twitter, paste it in the box, then pick a quality to save the video"
+      aria-label={strings.ariaLabel}
       className="h-auto w-full sm:hidden"
     >
       <g>
@@ -191,7 +193,7 @@ function Stacked() {
         <rect x="396" y="120" width="136" height="92" rx="14" fill="var(--card)" stroke="var(--line)" />
         <path d="M414 148 a7 7 0 1 1 6 3 l-4 6 a7 7 0 1 1 -6 -3 Z" fill="none" stroke="var(--fg)" strokeWidth="2.4" />
         <text x="434" y="153" fontFamily="var(--font-sans)" fontSize="16.5" fontWeight="600" fill="var(--fg)">
-          Copy link
+          {strings.copyLink}
         </text>
         <rect x="414" y="176" width="86" height="9" rx="4.5" fill="var(--pill)" />
         <path
@@ -225,7 +227,7 @@ function Stacked() {
         </text>
         <rect x="416" y="348" width="120" height="58" rx="29" fill="var(--accent)" />
         <text x="476" y="384" textAnchor="middle" fontFamily="var(--font-sans)" fontSize="18.5" fontWeight="600" fill="#fff">
-          Fetch
+          {strings.fetch}
         </text>
         <path
           d="M30 342 C130 322 480 324 544 352 C566 378 520 416 420 418 C260 424 20 420 12 384 C8 362 40 346 96 338"
@@ -285,10 +287,10 @@ function Stacked() {
           ada_2071_1080p.mp4
         </text>
         <text x="106" y="881" fontFamily="var(--font-sans)" fontSize="14.5" fill="var(--muted)">
-          saved to your device
+          {strings.savedToDevice}
         </text>
         <text x="56" y="946" fontFamily="var(--font-sans)" fontSize="15" fill="var(--faint)">
-          No watermark. Straight from Twitter's CDN.
+          {strings.footerLine}
         </text>
         <path
           d="M50 560 C140 542 330 546 342 580 C352 612 300 640 200 642 C120 644 36 634 34 602 C33 582 60 566 110 558"

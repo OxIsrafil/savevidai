@@ -4,6 +4,8 @@ import { sendEvent } from "../lib/analytics";
 import type { Variant } from "../lib/api";
 import { downloadVariant, type Progress } from "../lib/download";
 import { formatBytes } from "../lib/format";
+import { enShared } from "../locales/en";
+import type { QualityStrings } from "../locales/types";
 
 type Phase =
   | { name: "idle" }
@@ -16,11 +18,13 @@ export function QualityButton({
   filename,
   primary = false,
   platform = "twitter",
+  strings = enShared.quality,
 }: {
   variant: Variant;
   filename: string;
   primary?: boolean;
   platform?: "twitter" | "tiktok" | "reddit" | "instagram" | "facebook";
+  strings?: QualityStrings;
 }) {
   const [phase, setPhase] = useState<Phase>({ name: "idle" });
   const size = formatBytes(variant.size_bytes);
@@ -75,20 +79,20 @@ export function QualityButton({
         {phase.name === "done" ? (
           <>
             <CheckIcon />
-            <span className="font-semibold">Saved</span>
+            <span className="font-semibold">{strings.saved}</span>
           </>
         ) : phase.name === "downloading" ? (
           <span className="font-mono text-sm tabular-nums">
-            {pct === null ? "downloading" : `${Math.round(pct * 100)}%`}
+            {pct === null ? strings.downloading : `${Math.round(pct * 100)}%`}
           </span>
         ) : (
           <>
             {variant.width && variant.height && isHd && (
-              <span className="hd-chip uppercase">HD</span>
+              <span className="hd-chip uppercase">{strings.hdChip}</span>
             )}
             <span className="font-semibold tabular-nums">{dims}</span>
             {size && <span className="font-mono text-xs opacity-70">{size}</span>}
-            {phase.name === "failed" && <span className="text-xs text-red-400">retry</span>}
+            {phase.name === "failed" && <span className="text-xs text-red-400">{strings.retry}</span>}
           </>
         )}
       </span>

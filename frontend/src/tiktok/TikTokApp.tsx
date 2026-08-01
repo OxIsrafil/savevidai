@@ -9,6 +9,8 @@ import { TikTokHowToVisual } from "./TikTokHowToVisual";
 import { useResolve } from "../hooks/useResolve";
 import { sendEvent, visitContext } from "../lib/analytics";
 import { EASE_OUT, fadeRise, heroStill } from "../lib/motion";
+import { enTikTok } from "../locales/en";
+import type { PageStrings } from "../locales/types";
 
 // A stable public photo/video post, used as the one-click live demo.
 const EXAMPLE_URL = "https://www.tiktok.com/@scout2015/video/6718335390845095173";
@@ -18,11 +20,13 @@ const EXAMPLE_URL = "https://www.tiktok.com/@scout2015/video/6718335390845095173
 // page load rather than per mount.
 let visitBeaconSent = false;
 
-export default function TikTokApp() {
-  const { state, resolve } = useResolve();
+export default function TikTokApp({ strings = enTikTok }: { strings?: PageStrings } = {}) {
+  const { state, resolve } = useResolve(strings.errors);
   const [prefill, setPrefill] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const { prefix } = strings;
+  const home = prefix ? `${prefix}/` : "/";
 
   function runExample() {
     setPrefill(EXAMPLE_URL);
@@ -110,19 +114,19 @@ export default function TikTokApp() {
         transition={{ duration: 0.5, ease: EASE_OUT }}
       >
         <span className="brand">
-          <span>SaveVid AI</span>
+          <span>{strings.nav.brand}</span>
           <span className="brand-dot">.</span>
         </span>
         <span className="flex items-center gap-2">
-          <a className="nav-meta nav-link" href="/">
-            Twitter/X
+          <a className="nav-meta nav-link" href={home}>
+            {strings.nav.twitter}
           </a>
-          <a className="nav-meta nav-link" href="/redditvideodownloader">
-            Reddit
+          <a className="nav-meta nav-link" href={`${prefix}/redditvideodownloader`}>
+            {strings.nav.reddit}
           </a>
-          <ThemeToggle />
+          <ThemeToggle strings={strings.theme} />
           <button type="button" className="btn btn-small" onClick={focusInput}>
-            Download
+            {strings.nav.downloadButton}
           </button>
         </span>
       </motion.nav>
@@ -137,18 +141,18 @@ export default function TikTokApp() {
         <h1 className="hero-h1">
           <span className="word">
             <motion.span className="inline-block" {...heroStill}>
-              TikTok Video
+              {strings.hero.h1a}
             </motion.span>
           </span>{" "}
           <span className="word grey small">
             <motion.span className="inline-block" {...heroStill}>
-              Downloader
+              {strings.hero.h1b}
             </motion.span>
           </span>
         </h1>
 
         <motion.p {...heroStill} className="lede mt-6">
-          Paste a TikTok link, get it without the watermark, in seconds.
+          {strings.hero.lede}
         </motion.p>
 
         <motion.div {...heroStill} className="mx-auto mt-9 max-w-2xl">
@@ -157,26 +161,33 @@ export default function TikTokApp() {
             errorMessage={state.status === "error" ? state.message : null}
             onSubmit={resolve}
             presetValue={prefill}
-            placeholder="Paste a TikTok video link"
-            ariaLabel="TikTok video link"
+            placeholder={strings.hero.placeholder}
+            ariaLabel={strings.hero.inputAriaLabel}
+            submitLabel={strings.input.submit}
+            fetchedLabel={strings.input.fetched}
           />
         </motion.div>
 
         <motion.div {...fadeRise(3)} className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
-          <button type="button" className="chip chip-action" onClick={runExample}>
-            ▶ try an example
-          </button>
-          <span className="chip">no login</span>
-          <span className="chip">no watermark</span>
-          <span className="chip">original quality</span>
+          {strings.chipKeys.map((key) =>
+            key === "example" ? (
+              <button key={key} type="button" className="chip chip-action" onClick={runExample}>
+                {strings.chips.example}
+              </button>
+            ) : (
+              <span key={key} className="chip">
+                {strings.chips[key]}
+              </span>
+            ),
+          )}
         </motion.div>
 
         <motion.p {...fadeRise(4)} className="mt-6 text-sm text-[var(--faint)]">
-          Clean file, no watermark. No fake buttons, one real click.
+          {strings.hero.note}
         </motion.p>
 
         <motion.div {...fadeRise(5)} className="mt-8">
-          <PlatformLinks active="tiktok" />
+          <PlatformLinks active="tiktok" strings={strings} />
         </motion.div>
 
         {/* No AnimatePresence here on purpose: an interrupted exit animation can wedge
@@ -184,11 +195,13 @@ export default function TikTokApp() {
             animation is robust. */}
         <div ref={resultsRef} aria-live="polite" className="mt-10 scroll-mt-28 text-left">
           {state.status === "resolving" && <SkeletonCard />}
-          {state.status === "ready" && <PreviewCard data={state.data} platform="tiktok" />}
+          {state.status === "ready" && (
+            <PreviewCard data={state.data} platform="tiktok" strings={strings} />
+          )}
         </div>
 
         <motion.div {...fadeRise(6)}>
-          <TikTokHowToVisual />
+          <TikTokHowToVisual strings={strings.svg} />
         </motion.div>
       </main>
     </div>
