@@ -29,14 +29,20 @@ Conventions used below:
 - Platform names stay canonical Latin script in ALL locales: Twitter/X, TikTok,
   Reddit, Instagram, Facebook. Do NOT write टिकटॉक / रेडिट / इंस्टाग्राम / फ़ेसबुक.
 - Honesty constraints carry over exactly:
-  - No watermark claim on any page except TikTok.
+  - No watermark claim on Reddit, Instagram, or Facebook. Twitter and TikTok
+    keep their existing claims.
   - Legality answers stay HEDGED. Never a flat verdict: never "es legal",
-    never "कानूनी है" as a bare assertion. The pattern is
-    "generally fine for personal use" + "you are responsible", rendered as
-    es "en general no hay problema" / hi "आम तौर पर ठीक रहता है" plus
-    es "tú eres responsable" / hi "आपकी ज़िम्मेदारी है".
+    never "कानूनी है" as a bare assertion. The required shape is
+    **a hedge + a responsibility clause**, not one fixed sentence.
+    Hedges: es "en general no hay problema" / "en general no da problemas";
+    hi "आम तौर पर ठीक रहता है". Responsibility clauses: es
+    "tú eres responsable de lo que hagas con lo que guardas" or
+    "usa con responsabilidad lo que descargues"; hi
+    "जो सेव करें उसका इस्तेमाल आपकी ज़िम्मेदारी है" or
+    "जो डाउनलोड करें, उसे ज़िम्मेदारी से इस्तेमाल करें".
+    The Twitter Q4 variant uses the second form of each: that is compliant.
   - iOS wording preserved: the Files app + the share sheet, both named.
-    es "la app Archivos" + "la hoja de compartir"; hi "Files ऐप" + "शेयर शीट".
+    es "la app Archivos" + "la hoja para compartir"; hi "Files ऐप" + "शेयर शीट".
   - "one real click" register preserved: es "un solo clic real",
     hi "बस एक असली क्लिक".
 - Owner voice: direct, human, short sentences, no corporate filler. No
@@ -182,7 +188,7 @@ The resolution label (`1280×720`) and byte size stay as rendered.
 | key | en | es | hi |
 | --- | --- | --- | --- |
 | `photos.sectionLabel` (aria) | Photos | Fotos | फ़ोटो |
-| `photos.saveAll` | Save all | Guardar todo | सब सेव करें |
+| `photos.saveAll` | Save all | Guardar todas | सब सेव करें |
 | `photos.sound` | Sound | Audio | ऑडियो |
 | `photos.soundSaved` | Sound saved | Audio guardado | ऑडियो सेव हो गया |
 | `photos.soundRetry` | Retry sound | Reintentar audio | ऑडियो दोबारा |
@@ -331,7 +337,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 
 **footer description**
 - en: Twitter/X video downloader. No fake buttons. One paste, every quality.
-- es: Descargador de videos de Twitter/X. Sin botones falsos. Un pegado, todas las calidades.
+- es: Descargador de videos de Twitter/X. Sin botones falsos. Pegas una vez, todas las calidades.
 - hi: Twitter/X वीडियो डाउनलोडर। कोई नकली बटन नहीं। एक पेस्ट, हर क्वालिटी।
 
 #### How it works
@@ -381,13 +387,13 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - es Q: ¿Qué calidad obtengo?
 - hi Q: मुझे कौन-सी क्वालिटी मिलती है?
 - en A: Every quality Twitter serves, up to the original upload resolution, often 720p or 1080p. All options are listed with file sizes; you choose.
-- es A: Todas las que sirve Twitter, hasta la resolución original de la subida, muchas veces 720p o 1080p. Todas las opciones aparecen con su tamaño de archivo; tú eliges.
+- es A: Todas las que entrega Twitter, hasta la resolución original de la subida, muchas veces 720p o 1080p. Todas las opciones aparecen con su tamaño de archivo; tú eliges.
 - hi A: हर वह क्वालिटी जो Twitter देता है, ओरिजिनल अपलोड रेज़ोल्यूशन तक, अक्सर 720p या 1080p। सारे विकल्प फ़ाइल साइज़ के साथ दिखते हैं; चुनाव आपका।
 
 **Q3 [JSON-LD]**
 - en Q: Do private or age-restricted posts work?
 - es Q: ¿Funcionan los posts privados o con restricción de edad?
-- hi Q: क्या प्राइवेट या उम्र-प्रतिबंधित पोस्ट चलते हैं?
+- hi Q: क्या प्राइवेट या उम्र-प्रतिबंधित पोस्ट चलती हैं?
 - en A: No. SaveVid AI only works with public posts, and we would rather say that plainly than pretend otherwise.
 - es A: No. SaveVid AI solo funciona con posts públicos, y preferimos decirlo claro antes que fingir lo contrario.
 - hi A: नहीं। SaveVid AI सिर्फ़ पब्लिक पोस्ट पर काम करता है, और हम बहाने बनाने के बजाय यह साफ़-साफ़ कहना बेहतर समझते हैं।
@@ -413,7 +419,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - es Q: ¿Cómo guardo un video de Twitter en iPhone o Android?
 - hi Q: iPhone या Android पर Twitter का वीडियो कैसे सेव करें?
 - en A: Paste the link and tap your quality on either. On iPhone, Safari puts the file in the Files app; use the share sheet to move it to Photos. On Android it lands in your Downloads folder.
-- es A: En los dos: pega el enlace y toca la calidad que quieras. En iPhone, Safari deja el archivo en la app Archivos; usa la hoja de compartir para moverlo a Fotos. En Android cae en tu carpeta de Descargas.
+- es A: En los dos: pega el enlace y toca la calidad que quieras. En iPhone, Safari deja el archivo en la app Archivos; usa la hoja para compartir para moverlo a Fotos. En Android cae en tu carpeta de Descargas.
 - hi A: दोनों पर: लिंक पेस्ट करें और अपनी क्वालिटी पर टैप करें। iPhone पर Safari फ़ाइल को Files ऐप में रखता है; शेयर शीट से उसे Photos में ले जाएँ। Android पर वह आपके Downloads फ़ोल्डर में आती है।
 
 **Q7**
@@ -472,7 +478,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 
 **footer description**
 - en: TikTok video downloader. No fake buttons. One paste, no watermark.
-- es: Descargador de videos de TikTok. Sin botones falsos. Un pegado, sin marca de agua.
+- es: Descargador de videos de TikTok. Sin botones falsos. Pegas una vez, sin marca de agua.
 - hi: TikTok वीडियो डाउनलोडर। कोई नकली बटन नहीं। एक पेस्ट, कोई वॉटरमार्क नहीं।
 
 #### How it works
@@ -530,7 +536,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - es Q: ¿Puedo descargar las presentaciones de fotos de TikTok?
 - hi Q: क्या मैं TikTok के फ़ोटो स्लाइडशो डाउनलोड कर सकता हूँ?
 - en A: Yes. Photo slideshows resolve to a photo grid: save any photo, save them all in one tap, or grab the soundtrack as an audio file. Your browser may ask once to allow multiple downloads.
-- es A: Sí. Las presentaciones de fotos se abren como una cuadrícula: guarda cualquier foto, guárdalas todas de un toque o llévate la música como archivo de audio. Tu navegador puede pedirte una vez que permitas varias descargas.
+- es A: Sí. Las presentaciones de fotos se abren como una cuadrícula: guarda cualquier foto, guárdalas todas con un solo toque o llévate la música como archivo de audio. Tu navegador puede pedirte una vez que permitas varias descargas.
 - hi A: हाँ। फ़ोटो स्लाइडशो एक फ़ोटो ग्रिड की तरह खुलते हैं: कोई भी एक फ़ोटो सेव करें, एक टैप में सारी सेव करें, या साउंडट्रैक को ऑडियो फ़ाइल की तरह ले लें। आपका ब्राउज़र एक बार कई डाउनलोड की इजाज़त माँग सकता है।
 
 **Q4 [JSON-LD]**
@@ -539,22 +545,22 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi Q: क्या TikTok के लिए SaveVid AI इस्तेमाल करना सुरक्षित है?
 - en A: Yes. There is no login and no account. We keep only anonymous, aggregate usage counts.
 - es A: Sí. No hay inicio de sesión ni cuenta. Solo guardamos conteos de uso anónimos y agregados.
-- hi A: हाँ। न कोई लॉगिन है, न कोई अकाउंट। हम सिर्फ़ गुमनाम, कुल मिलाकर इस्तेमाल की गिनती रखते हैं।
+- hi A: हाँ। न कोई लॉगिन है, न कोई अकाउंट। हम सिर्फ़ इस्तेमाल के गुमनाम, कुल आँकड़े रखते हैं।
 
 **Q5**
 - en Q: What format and quality do TikTok downloads come in?
 - es Q: ¿En qué formato y calidad se descargan los videos de TikTok?
 - hi Q: TikTok डाउनलोड किस फ़ॉर्मैट और क्वालिटी में आते हैं?
 - en A: mp4, in the best quality TikTok serves for that video: hd when available, sd otherwise. Photo slideshows save as the original images plus the soundtrack as audio.
-- es A: mp4, en la mejor calidad que TikTok entrega para ese video: hd cuando está disponible, sd si no. Las presentaciones de fotos se guardan como las imágenes originales más la música en audio.
-- hi A: mp4, उस वीडियो के लिए TikTok जो सबसे अच्छी क्वालिटी देता है: उपलब्ध हो तो hd, वरना sd। फ़ोटो स्लाइडशो ओरिजिनल इमेज के रूप में सेव होते हैं, साथ में साउंडट्रैक ऑडियो के रूप में।
+- es A: mp4, en la mejor calidad que TikTok entrega para ese video: hd cuando está disponible, sd si no. Las presentaciones de fotos se guardan como las imágenes originales más la música como archivo de audio.
+- hi A: mp4, उस वीडियो के लिए TikTok की सबसे अच्छी क्वालिटी में: उपलब्ध हो तो hd, वरना sd। फ़ोटो स्लाइडशो ओरिजिनल इमेज के रूप में सेव होते हैं, साथ में साउंडट्रैक ऑडियो के रूप में।
 
 **Q6**
 - en Q: How do I save TikTok videos on iPhone or Android?
 - es Q: ¿Cómo guardo videos de TikTok en iPhone o Android?
 - hi Q: iPhone या Android पर TikTok वीडियो कैसे सेव करें?
 - en A: Paste the link and tap download on either. iPhone saves through Safari into the Files app; move it to Photos with the share sheet. Android saves straight to your Downloads folder.
-- es A: En los dos: pega el enlace y toca descargar. En iPhone se guarda por Safari en la app Archivos; muévelo a Fotos con la hoja de compartir. Android lo guarda directo en tu carpeta de Descargas.
+- es A: En los dos: pega el enlace y toca descargar. En iPhone se guarda por Safari en la app Archivos; muévelo a Fotos con la hoja para compartir. Android lo guarda directo en tu carpeta de Descargas.
 - hi A: दोनों पर: लिंक पेस्ट करें और डाउनलोड पर टैप करें। iPhone पर यह Safari के ज़रिए Files ऐप में सेव होता है; शेयर शीट से उसे Photos में ले जाएँ। Android उसे सीधे आपके Downloads फ़ोल्डर में सेव करता है।
 
 **Q7** (hedged legality)
@@ -618,11 +624,11 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: वीडियो और ऑडियो एक ही फ़ाइल में। कोई नकली बटन नहीं, बस एक असली क्लिक।
 
 **chips**: `chip.example`, `chip.noLogin`, `chip.withAudio`, `chip.originalQuality`
-(no watermark chip here: the no-watermark claim is TikTok-only)
+(no watermark chip here: that claim is Twitter/TikTok-only)
 
 **footer description**
 - en: Reddit video downloader. No fake buttons. One paste, audio merged in.
-- es: Descargador de videos de Reddit. Sin botones falsos. Un pegado, con el audio ya unido.
+- es: Descargador de videos de Reddit. Sin botones falsos. Pegas una vez, con el audio ya unido.
 - hi: Reddit वीडियो डाउनलोडर। कोई नकली बटन नहीं। एक पेस्ट, ऑडियो जुड़ा हुआ।
 
 #### How it works
@@ -673,7 +679,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi Q: क्या मैं Reddit की गैलरी डाउनलोड कर सकता हूँ?
 - en A: Not yet. Reddit galleries are coming; videos, GIFs, and single images work today.
 - es A: Todavía no. Las galerías de Reddit están en camino; los videos, los GIF y las imágenes sueltas ya funcionan.
-- hi A: अभी नहीं। Reddit गैलरी आने वाली है; वीडियो, GIF और अकेली इमेज आज भी चलती हैं।
+- hi A: अभी नहीं। Reddit गैलरी आने वाली है; वीडियो, GIF और सिंगल इमेज पहले से चलती हैं।
 
 **Q3 [JSON-LD]**
 - en Q: Is the Reddit downloader really free?
@@ -689,7 +695,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi Q: क्या Reddit के लिए SaveVid AI इस्तेमाल करना सुरक्षित है?
 - en A: Yes. There is no login and no account. We keep only anonymous, aggregate usage counts.
 - es A: Sí. No hay inicio de sesión ni cuenta. Solo guardamos conteos de uso anónimos y agregados.
-- hi A: हाँ। न कोई लॉगिन है, न कोई अकाउंट। हम सिर्फ़ गुमनाम, कुल मिलाकर इस्तेमाल की गिनती रखते हैं।
+- hi A: हाँ। न कोई लॉगिन है, न कोई अकाउंट। हम सिर्फ़ इस्तेमाल के गुमनाम, कुल आँकड़े रखते हैं।
 
 **Q5**
 - en Q: What format do Reddit videos download in?
@@ -704,7 +710,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - es Q: ¿Cómo guardo videos de Reddit en iPhone o Android?
 - hi Q: iPhone या Android पर Reddit के वीडियो कैसे सेव करें?
 - en A: Paste the post link and tap download. iPhone saves through Safari into the Files app; the share sheet moves it to Photos. Android saves to your Downloads folder.
-- es A: Pega el enlace del post y toca descargar. En iPhone se guarda por Safari en la app Archivos; la hoja de compartir lo mueve a Fotos. Android lo guarda en tu carpeta de Descargas.
+- es A: Pega el enlace del post y toca descargar. En iPhone se guarda por Safari en la app Archivos; la hoja para compartir lo mueve a Fotos. Android lo guarda en tu carpeta de Descargas.
 - hi A: पोस्ट का लिंक पेस्ट करें और डाउनलोड पर टैप करें। iPhone पर यह Safari के ज़रिए Files ऐप में सेव होता है; शेयर शीट से वह Photos में चला जाता है। Android उसे आपके Downloads फ़ोल्डर में सेव करता है।
 
 **Q7** (hedged legality)
@@ -771,7 +777,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 
 **footer description**
 - en: Instagram reel downloader. No fake buttons. One paste, one real click.
-- es: Descargador de reels de Instagram. Sin botones falsos. Un pegado, un solo clic real.
+- es: Descargador de reels de Instagram. Sin botones falsos. Pegas una vez, un solo clic real.
 - hi: Instagram रील डाउनलोडर। कोई नकली बटन नहीं। एक पेस्ट, बस एक असली क्लिक।
 
 #### How it works
@@ -793,7 +799,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 
 **Step 2 body**
 - en: The preview appears in about a second, with the video or photo ready to save.
-- es: La vista previa aparece en un segundo, con el video o la foto lista para guardar.
+- es: La vista previa aparece en un segundo, con tu archivo listo para guardar.
 - hi: करीब एक सेकंड में प्रीव्यू आ जाता है, वीडियो या फ़ोटो सेव करने के लिए तैयार।
 
 **Step 3 heading**
@@ -830,7 +836,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi Q: क्या मैं फ़ोटो कैरोसेल डाउनलोड कर सकता हूँ?
 - en A: Carousel posts save the first photo or video only for now. Single photos and reels download in full.
 - es A: Por ahora, de los posts en carrusel se guarda solo la primera foto o video. Las fotos sueltas y los reels se descargan completos.
-- hi A: फ़िलहाल कैरोसेल पोस्ट से सिर्फ़ पहली फ़ोटो या वीडियो ही सेव होता है। अकेली फ़ोटो और रील पूरी डाउनलोड होती हैं।
+- hi A: फ़िलहाल कैरोसेल पोस्ट से सिर्फ़ पहली फ़ोटो या वीडियो ही सेव होता है। सिंगल फ़ोटो और रील पूरी डाउनलोड होती हैं।
 
 **Q4 [JSON-LD]**
 - en Q: Is it safe to use SaveVid AI for Instagram?
@@ -838,7 +844,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi Q: क्या Instagram के लिए SaveVid AI इस्तेमाल करना सुरक्षित है?
 - en A: Yes. There is no login and no account. We keep only anonymous, aggregate usage counts.
 - es A: Sí. No hay inicio de sesión ni cuenta. Solo guardamos conteos de uso anónimos y agregados.
-- hi A: हाँ। न कोई लॉगिन है, न कोई अकाउंट। हम सिर्फ़ गुमनाम, कुल मिलाकर इस्तेमाल की गिनती रखते हैं।
+- hi A: हाँ। न कोई लॉगिन है, न कोई अकाउंट। हम सिर्फ़ इस्तेमाल के गुमनाम, कुल आँकड़े रखते हैं।
 
 **Q5**
 - en Q: What format do Instagram downloads come in?
@@ -846,14 +852,14 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi Q: Instagram डाउनलोड किस फ़ॉर्मैट में आते हैं?
 - en A: Reels and videos save as mp4 in the quality Instagram serves. Single photos save as the original image file.
 - es A: Los reels y los videos se guardan en mp4, en la calidad que entrega Instagram. Las fotos sueltas se guardan como el archivo de imagen original.
-- hi A: रील और वीडियो mp4 में सेव होते हैं, उसी क्वालिटी में जो Instagram देता है। अकेली फ़ोटो ओरिजिनल इमेज फ़ाइल के रूप में सेव होती है।
+- hi A: रील और वीडियो mp4 में सेव होते हैं, उसी क्वालिटी में जो Instagram देता है। सिंगल फ़ोटो ओरिजिनल इमेज फ़ाइल के रूप में सेव होती है।
 
 **Q6**
 - en Q: How do I save Instagram reels on iPhone or Android?
 - es Q: ¿Cómo guardo reels de Instagram en iPhone o Android?
 - hi Q: iPhone या Android पर Instagram की रील कैसे सेव करें?
 - en A: Paste the reel link and tap download. iPhone saves through Safari into the Files app; use the share sheet to move it to Photos. Android saves to your Downloads folder.
-- es A: Pega el enlace del reel y toca descargar. En iPhone se guarda por Safari en la app Archivos; usa la hoja de compartir para moverlo a Fotos. Android lo guarda en tu carpeta de Descargas.
+- es A: Pega el enlace del reel y toca descargar. En iPhone se guarda por Safari en la app Archivos; usa la hoja para compartir para moverlo a Fotos. Android lo guarda en tu carpeta de Descargas.
 - hi A: रील का लिंक पेस्ट करें और डाउनलोड पर टैप करें। iPhone पर यह Safari के ज़रिए Files ऐप में सेव होता है; शेयर शीट से उसे Photos में ले जाएँ। Android उसे आपके Downloads फ़ोल्डर में सेव करता है।
 
 **Q7** (hedged legality)
@@ -920,7 +926,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 
 **footer description**
 - en: Facebook video downloader. No fake buttons. One paste, one real click.
-- es: Descargador de videos de Facebook. Sin botones falsos. Un pegado, un solo clic real.
+- es: Descargador de videos de Facebook. Sin botones falsos. Pegas una vez, un solo clic real.
 - hi: Facebook वीडियो डाउनलोडर। कोई नकली बटन नहीं। एक पेस्ट, बस एक असली क्लिक।
 
 #### How it works
@@ -979,7 +985,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi Q: क्या मैं फ़ोटो या प्राइवेट वीडियो डाउनलोड कर सकता हूँ?
 - en A: Not yet. Photo posts and private or friends-only videos are not supported: public videos and reels only.
 - es A: Todavía no. Los posts de fotos y los videos privados o solo para amigos no funcionan: solo videos y reels públicos.
-- hi A: अभी नहीं। फ़ोटो पोस्ट और प्राइवेट या सिर्फ़-दोस्तों वाले वीडियो सपोर्ट नहीं हैं: सिर्फ़ पब्लिक वीडियो और रील।
+- hi A: अभी नहीं। फ़ोटो पोस्ट और प्राइवेट या सिर्फ़ दोस्तों को दिखने वाले वीडियो सपोर्ट नहीं हैं: सिर्फ़ पब्लिक वीडियो और रील।
 
 **Q4 [JSON-LD]**
 - en Q: Is it safe to use SaveVid AI for Facebook?
@@ -987,7 +993,7 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi Q: क्या Facebook के लिए SaveVid AI इस्तेमाल करना सुरक्षित है?
 - en A: Yes. There is no login and no account. We keep only anonymous, aggregate usage counts.
 - es A: Sí. No hay inicio de sesión ni cuenta. Solo guardamos conteos de uso anónimos y agregados.
-- hi A: हाँ। न कोई लॉगिन है, न कोई अकाउंट। हम सिर्फ़ गुमनाम, कुल मिलाकर इस्तेमाल की गिनती रखते हैं।
+- hi A: हाँ। न कोई लॉगिन है, न कोई अकाउंट। हम सिर्फ़ इस्तेमाल के गुमनाम, कुल आँकड़े रखते हैं।
 
 **Q5**
 - en Q: What format do Facebook videos download in?
@@ -995,14 +1001,14 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi Q: Facebook के वीडियो किस फ़ॉर्मैट में डाउनलोड होते हैं?
 - en A: mp4 in the best quality Facebook serves for that video, as a single file with audio included.
 - es A: mp4, en la mejor calidad que Facebook entrega para ese video, como un solo archivo con el audio incluido.
-- hi A: mp4, उस वीडियो के लिए Facebook जो सबसे अच्छी क्वालिटी देता है, एक ही फ़ाइल में ऑडियो के साथ।
+- hi A: mp4, उस वीडियो के लिए Facebook की सबसे अच्छी क्वालिटी में, एक ही फ़ाइल में ऑडियो के साथ।
 
 **Q6**
 - en Q: How do I save Facebook videos on iPhone or Android?
 - es Q: ¿Cómo guardo videos de Facebook en iPhone o Android?
 - hi Q: iPhone या Android पर Facebook के वीडियो कैसे सेव करें?
 - en A: Paste the video or reel link and tap download. iPhone saves through Safari into the Files app; the share sheet moves it to Photos. Android saves to your Downloads folder.
-- es A: Pega el enlace del video o del reel y toca descargar. En iPhone se guarda por Safari en la app Archivos; la hoja de compartir lo mueve a Fotos. Android lo guarda en tu carpeta de Descargas.
+- es A: Pega el enlace del video o del reel y toca descargar. En iPhone se guarda por Safari en la app Archivos; la hoja para compartir lo mueve a Fotos. Android lo guarda en tu carpeta de Descargas.
 - hi A: वीडियो या रील का लिंक पेस्ट करें और डाउनलोड पर टैप करें। iPhone पर यह Safari के ज़रिए Files ऐप में सेव होता है; शेयर शीट से वह Photos में चला जाता है। Android उसे आपके Downloads फ़ोल्डर में सेव करता है।
 
 **Q7** (hedged legality)
@@ -1031,6 +1037,20 @@ a literal translation blew the budget it was compressed; every compression is
 noted. Nothing below may be lengthened later without re-checking the layout at
 both the landscape (`sm+`) and stacked (phone) breakpoints.
 
+**Character count is a horizontal proxy only. Devanagari also needs VERTICAL
+room**, and `.hero-h1` is the risk surface: line-height 1 plus a negative margin
+plus `overflow: hidden` will clip the upper matra and the lower vowel signs of
+Devanagari, which sit outside the Latin em box. The live gate MUST verify, at
+both breakpoints, that the hi h1 renders unclipped: part B "डाउनलोडर" (the ो
+matra) and part A "वीडियो" (the ी and ो matras). Named fix if it clips: a
+locale-conditional line-height on `.hero-h1` (do NOT shorten the Hindi string
+to dodge the clip).
+
+Same check for the SVG: any hi label at ratio **>= 0.95** in the tables below is
+close enough to the English box that it must be eyeballed at both breakpoints,
+not just counted. That currently means `svg.savedToDevice` (0.95) and the
+twitter footer line (1.02), on top of the es strings already flagged.
+
 Strings that are IDENTICAL in all three locales and must not be touched:
 the step badges `1` `2` `3`, `HD`, `SD`, `720p`, `480p`, `1920×1080`, `1280×720`,
 `640×360`, `34 MB`, `18 MB`, `6 MB`, the URL mocks
@@ -1043,7 +1063,7 @@ the step badges `1` `2` `3`, `HD`, `SD`, `720p`, `480p`, `1920×1080`, `1280×72
 
 | key | en (len) | es (len, ratio) | hi (len, ratio) |
 | --- | --- | --- | --- |
-| `svg.copyLink` | Copy link (9) | Copiar enlace (13, 1.44) | लिंक कॉपी (9, 1.0) |
+| `svg.copyLink` | Copy link (9) | Copiar enlace (13, 1.44) | Copy link (9, 1.0) |
 | `svg.fetch` | Fetch (5) | Buscar (6, 1.2) | पाएँ (4, 0.8) |
 | `svg.savedToDevice` | saved to your device (20) | guardado en tu dispositivo (26, 1.30) | आपके डिवाइस में सेव (19, 0.95) |
 
@@ -1053,6 +1073,10 @@ because it sits inside the 136-unit share-menu card with 20 units of slack at
 Spanish-language app UI ("Copiar enlace" is the literal iOS/Android string).
 **Verify visually at both breakpoints during the live gate**; if it overflows,
 shorten the card's inner padding, not the string.
+
+`svg.copyLink` hi stays LATIN "Copy link": it is the label of the platform's own
+share menu, so it follows the OS-UI rule in section 1 and matches the step-1
+prose, which also instructs "फिर Copy link".
 
 `svg.fetch` hi "पाएँ" is a compression: "फ़ेच करें" is not a real Hindi
 loanword and "डाउनलोड करें" would collide with the nav button. See section 5.
@@ -1097,27 +1121,27 @@ Not length-constrained (screen-reader only), but kept tight.
 
 Twitter
 - en: How to download: copy the post link from Twitter, paste it in the box, then pick a quality to save the video
-- es: Cómo descargar: copia el enlace del post en Twitter, pégalo en la caja y elige una calidad para guardar el video
+- es: Cómo descargar: copia el enlace del post en Twitter, pégalo en el cuadro y elige una calidad para guardar el video
 - hi: कैसे डाउनलोड करें: Twitter से पोस्ट का लिंक कॉपी करें, बॉक्स में पेस्ट करें, फिर वीडियो सेव करने के लिए क्वालिटी चुनें
 
 TikTok
 - en: How to download: copy the post link from TikTok, paste it in the box, then pick a quality to save the video
-- es: Cómo descargar: copia el enlace del post en TikTok, pégalo en la caja y elige una calidad para guardar el video
+- es: Cómo descargar: copia el enlace del post en TikTok, pégalo en el cuadro y elige una calidad para guardar el video
 - hi: कैसे डाउनलोड करें: TikTok से पोस्ट का लिंक कॉपी करें, बॉक्स में पेस्ट करें, फिर वीडियो सेव करने के लिए क्वालिटी चुनें
 
 Reddit
 - en: How to download: copy the post link from Reddit, paste it in the box, then pick a quality to save the video
-- es: Cómo descargar: copia el enlace del post en Reddit, pégalo en la caja y elige una calidad para guardar el video
+- es: Cómo descargar: copia el enlace del post en Reddit, pégalo en el cuadro y elige una calidad para guardar el video
 - hi: कैसे डाउनलोड करें: Reddit से पोस्ट का लिंक कॉपी करें, बॉक्स में पेस्ट करें, फिर वीडियो सेव करने के लिए क्वालिटी चुनें
 
 Instagram
 - en: How to download: copy the reel link from Instagram, paste it in the box, then click HD to save the video
-- es: Cómo descargar: copia el enlace del reel en Instagram, pégalo en la caja y haz clic en HD para guardar el video
+- es: Cómo descargar: copia el enlace del reel en Instagram, pégalo en el cuadro y haz clic en HD para guardar el video
 - hi: कैसे डाउनलोड करें: Instagram से रील का लिंक कॉपी करें, बॉक्स में पेस्ट करें, फिर वीडियो सेव करने के लिए HD पर क्लिक करें
 
 Facebook
 - en: How to download: copy the video link from Facebook, paste it in the box, then click HD to save the video
-- es: Cómo descargar: copia el enlace del video en Facebook, pégalo en la caja y haz clic en HD para guardar el video
+- es: Cómo descargar: copia el enlace del video en Facebook, pégalo en el cuadro y haz clic en HD para guardar el video
 - hi: कैसे डाउनलोड करें: Facebook से वीडियो का लिंक कॉपी करें, बॉक्स में पेस्ट करें, फिर वीडियो सेव करने के लिए HD पर क्लिक करें
 
 ---
