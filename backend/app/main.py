@@ -21,6 +21,21 @@ from .pages import PageRenderer, load_ad_config
 
 logger = logging.getLogger("savevidai.analytics")
 
+# The public HTML shells, by slug. "index" is the Twitter/X home page and is the
+# only one whose clean URL is the bare prefix ("/", "/es/", "/hi/").
+PUBLIC_PAGES = (
+    "index",
+    "tiktokvideodownloader",
+    "redditvideodownloader",
+    "instagramvideodownloader",
+    "facebookvideodownloader",
+)
+
+# "" is English at the root; every other entry is a URL prefix and the matching
+# STATIC_DIR subdirectory. Adding a language here plus its shells is the whole
+# backend change.
+LOCALES = ("", "es", "hi")
+
 
 def _maintenance_on() -> bool:
     return maintenance.is_on() or env_truthy("MAINTENANCE_MODE")
@@ -148,30 +163,31 @@ def create_app() -> FastAPI:
     # analytics/router.py and must never pass through the renderer.
     renderer = PageRenderer(load_ad_config())
 
-    @app.get("/")
-    @app.get("/index.html")
-    def home_page():
-        return renderer.render("index.html")
+    def _page_endpoint(filename: str):
+        # Factory, not an inline closure: binding the filename per iteration is
+        # what stops every route in the loop below from serving the last page.
+        def endpoint():
+            return renderer.render(filename)
 
-    @app.get("/tiktokvideodownloader")
-    @app.get("/tiktokvideodownloader.html")
-    def tiktok_page():
-        return renderer.render("tiktokvideodownloader.html")
+        endpoint.__name__ = "page_" + filename.replace("/", "_").replace(".", "_")
+        return endpoint
 
-    @app.get("/redditvideodownloader")
-    @app.get("/redditvideodownloader.html")
-    def reddit_page():
-        return renderer.render("redditvideodownloader.html")
-
-    @app.get("/instagramvideodownloader")
-    @app.get("/instagramvideodownloader.html")
-    def instagram_page():
-        return renderer.render("instagramvideodownloader.html")
-
-    @app.get("/facebookvideodownloader")
-    @app.get("/facebookvideodownloader.html")
-    def facebook_page():
-        return renderer.render("facebookvideodownloader.html")
+    for locale in LOCALES:
+        # en lives at the root ("" prefix, files at the top of STATIC_DIR);
+        # each other locale is a path prefix and a matching STATIC_DIR
+        # subdirectory shipped by the Vite build (dist/es/, dist/hi/).
+        prefix = f"/{locale}" if locale else ""
+        subdir = f"{locale}/" if locale else ""
+        for page in PUBLIC_PAGES:
+            if page == "index":
+                # Home is the trailing-slash form per the URL spec; Starlette
+                # (or the static mount's directory redirect) sends /es -> /es/.
+                paths = [f"{prefix}/", f"{prefix}/index.html"]
+            else:
+                paths = [f"{prefix}/{page}", f"{prefix}/{page}.html"]
+            endpoint = _page_endpoint(f"{subdir}{page}.html")
+            for path in paths:
+                app.get(path)(endpoint)
 
     # Serves the built frontend in the Docker image; absent in dev, where Vite serves it.
     static_dir = os.environ.get("STATIC_DIR", "")
