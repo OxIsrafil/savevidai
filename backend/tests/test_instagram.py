@@ -65,6 +65,7 @@ def test_non_redirect_and_disallowed_hosts_are_upstream(status, loc):
     (302, f"https://www.instagram.com/reel/{SC}/"),
     (301, f"https://www.instagram.com/reel/{SC}/"),
     (302, f"https://instagram.com/p/{SC}/"),  # apex host, /p/ permalink
+    (302, f"https://www.instagram.com/nasa/reel/{SC}/"),  # username-prefixed canonical og:url
     (302, f"https://www.instagram.com/reel/{SC}/?igsh=abc123"),  # share tracking param
     (302, f"http://www.instagram.com/reel/{SC}/"),  # plain http bounce still counts
 ])
@@ -78,6 +79,7 @@ def test_bounce_to_own_instagram_page_is_not_found(status, loc):
 @pytest.mark.parametrize("loc", [
     f"https://www.instagram.com.evil.com/reel/{SC}/",  # dot-suffix boundary, never substring
     f"https://notinstagram.com/reel/{SC}/",  # suffix without the dot boundary
+    f"https://www.instagram.com@evil.com/reel/{SC}/",  # userinfo trick: real host is evil.com
     f"https://evil.com/?next=https://www.instagram.com/reel/{SC}/",  # trap: host is evil.com
     f"https://www.instagram.com/accounts/login/?next=/reel/{SC}/",  # login wall, not the post
     "https://www.instagram.com/reel/CpyM2z_JrhX/",  # some other post's page
