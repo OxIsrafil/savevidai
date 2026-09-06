@@ -77,13 +77,15 @@ def test_every_public_path_serves_its_shell_verbatim(tmp_path, monkeypatch):
         assert res.status_code == 200, path
         assert res.headers["content-type"].startswith("text/html"), path
         # Byte-for-byte the file on disk: nothing is injected or stripped.
-        assert res.text == (tmp_path / fname).read_text(), path
+        assert res.content == (tmp_path / fname).read_bytes(), path
         assert res.headers["cache-control"] == "no-cache", path
 
 
-def test_admin_and_api_are_not_served_by_the_page_loop(tmp_path, monkeypatch):
-    # Canary: /admin has its own route in analytics/router.py and /api/* belongs
-    # to the API routers. Neither may be swallowed by the public page loop.
+def test_admin_and_api_still_answer_after_the_page_loop(tmp_path, monkeypatch):
+    # Smoke test, not a canary: /admin (its own route in analytics/router.py)
+    # and /api/health must still answer 200 with the right bodies once the 30
+    # page routes exist. Both are registered before the loop runs, so
+    # Starlette's first-match order already keeps the loop off them.
     _static(tmp_path, monkeypatch)
     client = TestClient(create_app())
     admin = client.get("/admin")
@@ -125,6 +127,22 @@ def test_locale_page_404_without_static_dir(monkeypatch):
     client = TestClient(create_app(), raise_server_exceptions=False)
     for path in ("/es/", "/hi/", "/es/tiktokvideodownloader", "/hi/redditvideodownloader.html"):
         assert client.get(path).status_code == 404, path
+
+
+def test_public_path_404_when_its_file_is_missing(tmp_path, monkeypatch):
+    # STATIC_DIR is set and the mount is live, but two of the shells are gone.
+    # The guard is per file: only the routes whose own shell is missing 404,
+    # and a missing es/index.html does not take the rest of /es/ with it.
+    _static(tmp_path, monkeypatch)
+    (tmp_path / "tiktokvideodownloader.html").unlink()
+    (tmp_path / "es" / "index.html").unlink()
+    # raise_server_exceptions=False so a RuntimeError leaking out of
+    # FileResponse would surface as a 500 here instead of crashing the test.
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    for path in ("/tiktokvideodownloader", "/tiktokvideodownloader.html", "/es/"):
+        assert client.get(path).status_code == 404, path
+    for path in ("/", "/hi/"):
+        assert client.get(path).status_code == 200, path
 
 
 def _real_admin_static(tmp_path, monkeypatch):

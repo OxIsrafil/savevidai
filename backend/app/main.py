@@ -156,10 +156,11 @@ def create_app() -> FastAPI:
     app.include_router(analytics_router)
 
     # Every public page gets an explicit route because its clean URL
-    # (/tiktokvideodownloader, /es/) has no file of that name for the static
-    # mount to resolve. The raw .html paths are routed alongside them so both
-    # forms answer identically. /admin is deliberately NOT in the loop: it is
-    # served by the explicit route in analytics/router.py.
+    # (/tiktokvideodownloader, /es/tiktokvideodownloader) has no file of that
+    # name for the static mount to resolve. The .html forms and the locale
+    # homes are routed alongside them so all 30 forms answer identically, all
+    # of them declared ahead of the mount. /admin is deliberately NOT in the
+    # loop: it is served by the explicit route in analytics/router.py.
     def _page_endpoint(filename: str):
         # Factory, not an inline closure: binding the filename per iteration is
         # what stops every route in the loop below from serving the last page.
