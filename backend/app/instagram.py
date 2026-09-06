@@ -11,7 +11,9 @@ resolve.py caches instagram with a reduced TTL. Single volunteer-run
 dependency, like tikwm; a fallback fixer can slot in here later (mirrors
 fxtwitter -> vxtwitter). kkinstagram gates the media redirect on embed-crawler
 user agents, so the UA carries the Discordbot token alongside our own identity;
-if resolves start failing with upstream_error, check this gate first.
+if resolves start failing with upstream_error, check this gate first. A bounce
+back to the post's own instagram.com page instead of a CDN Location means the
+post is gone, so that shape maps to not_found (verified 2026-09-06).
 """
 import logging
 from urllib.parse import urlparse
@@ -34,6 +36,13 @@ _UA = "SaveVidAI/1.0 (compatible; Discordbot/2.0; +https://savevidai.israfill.de
 # so widening it widens what the proxy will fetch on the server's behalf -
 # change with care.
 INSTAGRAM_MEDIA_HOSTS = ("cdninstagram.com", "fbcdn.net")
+# Instagram's own site (not its CDN). kkinstagram answers a removed post with a
+# 302 back to the post's own instagram.com URL instead of a CDN Location
+# (verified live 2026-09-06 against two removed reels); never-existed shortcodes
+# 504 instead, and 504 also happens transiently for live posts, so 504 stays
+# upstream_error. This tuple is NOT part of the /api/proxy allowlist and must
+# never be merged into INSTAGRAM_MEDIA_HOSTS.
+_INSTAGRAM_SITE_HOSTS = ("instagram.com",)
 
 _IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp")
 _REDIRECTS = (301, 302, 303, 307, 308)
@@ -71,12 +80,28 @@ def _allowed_media_url(url: str) -> bool:
     return any(host == d or host.endswith("." + d) for d in INSTAGRAM_MEDIA_HOSTS)
 
 
+def _is_own_post_page(shortcode: str, url: str) -> bool:
+    """True when url is the shortcode's own page on instagram.com, which is how
+    kkinstagram reports a removed post. Host matching is exact or boundary-safe
+    dot-suffix, never substring (mirrors _allowed_media_url), and the shortcode
+    has to be a whole path segment, so login walls and other posts do not
+    qualify. No scheme check: this classifies a redirect we never fetch."""
+    parts = urlparse(url)
+    host = (parts.hostname or "").lower()
+    if not any(host == d or host.endswith("." + d) for d in _INSTAGRAM_SITE_HOSTS):
+        return False
+    return shortcode in parts.path.split("/")
+
+
 def map_instagram(shortcode: str, status: int, location: str | None) -> ResolveResponse:
     if status == 404:
         raise app_error(NOT_FOUND)
     if status not in _REDIRECTS or not location:
         raise app_error(UPSTREAM)
     if not _allowed_media_url(location):
+        if _is_own_post_page(shortcode, location):
+            logger.info("instagram bounced %s back to its own page (removed?)", shortcode)
+            raise app_error(NOT_FOUND)
         logger.warning("instagram redirect to disallowed host for %s", shortcode)
         raise app_error(UPSTREAM)
     path = urlparse(location).path.lower()

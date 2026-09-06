@@ -59,6 +59,38 @@ def test_non_redirect_and_disallowed_hosts_are_upstream(status, loc):
     assert e.value.code == "upstream_error"
 
 
+# kkinstagram bounces a removed post back to the post's own instagram.com page instead
+# of a CDN Location (verified live 2026-09-06), so that shape is a definitive not_found.
+@pytest.mark.parametrize("status,loc", [
+    (302, f"https://www.instagram.com/reel/{SC}/"),
+    (301, f"https://www.instagram.com/reel/{SC}/"),
+    (302, f"https://instagram.com/p/{SC}/"),  # apex host, /p/ permalink
+    (302, f"https://www.instagram.com/reel/{SC}/?igsh=abc123"),  # share tracking param
+    (302, f"http://www.instagram.com/reel/{SC}/"),  # plain http bounce still counts
+])
+def test_bounce_to_own_instagram_page_is_not_found(status, loc):
+    with pytest.raises(AppError) as e:
+        map_instagram(SC, status, loc)
+    assert e.value.code == "not_found"
+    assert e.value.status == 404
+
+
+@pytest.mark.parametrize("loc", [
+    f"https://www.instagram.com.evil.com/reel/{SC}/",  # dot-suffix boundary, never substring
+    f"https://notinstagram.com/reel/{SC}/",  # suffix without the dot boundary
+    f"https://evil.com/?next=https://www.instagram.com/reel/{SC}/",  # trap: host is evil.com
+    f"https://www.instagram.com/accounts/login/?next=/reel/{SC}/",  # login wall, not the post
+    "https://www.instagram.com/reel/CpyM2z_JrhX/",  # some other post's page
+    # kkinstagram's open-in-app page for non-crawler UAs: if this ever shows up with our
+    # UA the crawler gate broke, which is an upstream problem, not a missing post.
+    f"http://kkclip.com/open/ig/3948145592077517811/{SC}",
+])
+def test_other_instagram_redirects_stay_upstream(loc):
+    with pytest.raises(AppError) as e:
+        map_instagram(SC, 302, loc)
+    assert e.value.code == "upstream_error"
+
+
 def test_malformed_efg_degrades_to_no_duration():
     res = map_instagram(SC, 302, "https://scontent.cdninstagram.com/x.mp4?efg=%%%not-b64")
     assert res.items[0].duration_seconds is None
@@ -92,6 +124,20 @@ def test_request_pins_crawler_ua_and_no_redirect_follow(monkeypatch):
     }
     assert seen["follow_redirects"] is False
     assert seen["timeout"] == 12.0
+
+
+def test_bounce_surfaces_as_not_found_end_to_end(monkeypatch):
+    # The removed-post bounce has to survive the whole request path, not just the mapper.
+    import app.instagram as ig
+
+    def fake_get(url, **kwargs):
+        return httpx.Response(302, headers={"location": f"https://www.instagram.com/reel/{SC}/"})
+
+    monkeypatch.setattr(ig.httpx, "get", fake_get)
+    with pytest.raises(AppError) as e:
+        ig.extract_instagram(SC)
+    assert e.value.code == "not_found"
+    assert e.value.status == 404
 
 
 def test_guarded_mapper_never_500s(monkeypatch):
