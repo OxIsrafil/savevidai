@@ -199,11 +199,6 @@ The resolution label (`1280×720`) and byte size stay as rendered.
 No user-visible text (shimmer blocks only). Nothing to translate; listed so the
 inventory sweep can mark it checked.
 
-### 2.10 AdSlot
-
-| key | en | es | hi |
-| --- | --- | --- | --- |
-
 ### 2.11 Client-minted error strings
 
 These three are minted in the browser (`useResolve.ts`, `lib/api.ts`) and MUST be

@@ -72,7 +72,7 @@ rows-read quota scare; `scripts/migrate_analytics.py` did the one-time copy. Con
 - The site is NO LONGER open source: the repo went private 2026-07-24 and the public copy was
   swept of every "open source / MIT / GitHub / no tracking" claim. Do NOT reintroduce those.
   Ad copy is neutral on purpose (no "ad-supported", and no "no ads" or "no popups" claims);
-  adding an ad-free claim to the site is an owner decision, not a default.
+  adding an ad-free claim to the public copy is an owner decision, not a default.
 
 ## How to build features here
 
