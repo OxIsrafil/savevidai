@@ -12,9 +12,10 @@ import { EASE_OUT, fadeRise, heroStill } from "../lib/motion";
 import { enInstagram } from "../locales/en";
 import type { PageStrings } from "../locales/types";
 
-// A stable public reel, used as the one-click live demo. This shortcode is the
-// one the resolver was verified against live on 2026-07-29.
-const EXAMPLE_URL = "https://www.instagram.com/reel/DbKoX9xTgPz";
+// A stable public reel from the official @nasa account (a James Webb reel posted 2023-03), used as the
+// one-click live demo. Verified live through the resolver on 2026-09-06. The previous showcase reel
+// (DbKoX9xTgPz) was removed by its author in 2026-09 and kkinstagram now bounces it to instagram.com.
+const EXAMPLE_URL = "https://www.instagram.com/reel/CpyM2z_JrhX";
 
 // Module-level (not component-level) so it survives React StrictMode's dev-time
 // double-invoke of effects and any remounts, guaranteeing one visit beacon per

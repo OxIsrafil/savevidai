@@ -62,7 +62,7 @@ test("makes no watermark claim anywhere on the page", () => {
 // Exactly the shape backend/app/instagram.py returns: metadata-light, one item,
 // one "hd" variant with no dimensions and no size.
 const RESOLVE_BODY = {
-  id: "DbKoX9xTgPz", author: "Instagram", handle: "DbKoX9xTgPz", avatar_url: null, text: "",
+  id: "CpyM2z_JrhX", author: "Instagram", handle: "CpyM2z_JrhX", avatar_url: null, text: "",
   items: [{ index: 1, kind: "video", thumbnail: null, duration_seconds: 12,
     variants: [{ label: "hd", width: null, height: null,
       url: "https://scontent.cdninstagram.com/o1/v/t2/f2/m86/reel.mp4", size_bytes: null }] }],
@@ -79,8 +79,8 @@ test("example chip resolves the showcase reel and fills the input", async () => 
   // Filter to the resolve call specifically: a visit beacon may also hit fetch
   // on mount, so the resolve request isn't guaranteed to be the first call.
   const call = fetchMock.mock.calls.find(([url]) => String(url) === "/api/resolve");
-  expect(String(call?.[1]?.body)).toContain("/reel/DbKoX9xTgPz");
-  expect(screen.getByRole("textbox")).toHaveValue("https://www.instagram.com/reel/DbKoX9xTgPz");
+  expect(String(call?.[1]?.body)).toContain("/reel/CpyM2z_JrhX");
+  expect(screen.getByRole("textbox")).toHaveValue("https://www.instagram.com/reel/CpyM2z_JrhX");
 });
 
 test("renders the metadata-light preview without an empty caption block", async () => {
@@ -90,8 +90,8 @@ test("renders the metadata-light preview without an empty caption block", async 
   const card = await screen.findByTestId("preview-card");
   // avatar_url is null -> initial fallback, not a broken <img>
   expect(within(card).queryByRole("img")).toBeNull();
-  expect(within(card).getByText("D")).toBeInTheDocument();
-  expect(within(card).getByText("@DbKoX9xTgPz")).toBeInTheDocument();
+  expect(within(card).getByText("C")).toBeInTheDocument();
+  expect(within(card).getByText("@CpyM2z_JrhX")).toBeInTheDocument();
   // text is "" -> no caption paragraph at all
   expect(card.querySelector(".line-clamp-3")).toBeNull();
   // the single hd variant falls back to its label for the button face

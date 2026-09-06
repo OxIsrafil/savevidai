@@ -84,7 +84,7 @@ function Landscape({ strings }: { strings: SvgStrings }) {
       <g>
         <rect x="505" y="210" width="300" height="58" rx="29" fill="var(--card)" stroke="var(--line)" />
         <text x="533" y="246" fontFamily="var(--font-mono)" fontSize="17" fill="var(--muted)">
-          instagram.com/reel/Db…
+          instagram.com/reel/Cp…
         </text>
         <rect x="815" y="210" width="118" height="58" rx="29" fill="var(--accent)" />
         <text x="874" y="246" textAnchor="middle" fontFamily="var(--font-sans)" fontSize="18.5" fontWeight="600" fill="#fff">
@@ -128,7 +128,7 @@ function Landscape({ strings }: { strings: SvgStrings }) {
         <circle cx="1058" cy="312" r="16" fill="#34c759" />
         <path d="M1050 312 L1056 319 L1067 305" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
         <text x="1086" y="309" fontFamily="var(--font-mono)" fontSize="14.5" fill="var(--fg)">
-          DbKoX9xTgPz_hd.mp4
+          CpyM2z_JrhX_hd.mp4
         </text>
         <text x="1086" y="330" fontFamily="var(--font-sans)" fontSize="13.5" fill="var(--muted)">
           {strings.savedToDevice}
@@ -204,7 +204,7 @@ function Stacked({ strings }: { strings: SvgStrings }) {
       <g>
         <rect x="24" y="348" width="380" height="58" rx="29" fill="var(--card)" stroke="var(--line)" />
         <text x="52" y="384" fontFamily="var(--font-mono)" fontSize="17" fill="var(--muted)">
-          instagram.com/reel/Db…
+          instagram.com/reel/Cp…
         </text>
         <rect x="416" y="348" width="120" height="58" rx="29" fill="var(--accent)" />
         <text x="476" y="384" textAnchor="middle" fontFamily="var(--font-sans)" fontSize="18.5" fontWeight="600" fill="#fff">
@@ -244,7 +244,7 @@ function Stacked({ strings }: { strings: SvgStrings }) {
         <circle cx="78" cy="822" r="17" fill="#34c759" />
         <path d="M70 822 L76 829 L87 815" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
         <text x="106" y="819" fontFamily="var(--font-mono)" fontSize="15.5" fill="var(--fg)">
-          DbKoX9xTgPz_hd.mp4
+          CpyM2z_JrhX_hd.mp4
         </text>
         <text x="106" y="841" fontFamily="var(--font-sans)" fontSize="14.5" fill="var(--muted)">
           {strings.savedToDevice}
