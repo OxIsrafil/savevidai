@@ -78,9 +78,6 @@ export type PhotoStrings = {
   savePhotoN: string;
 };
 
-/** 2.10 AdSlot */
-export type AdStrings = { regionLabel: string };
-
 /**
  * 2.11 client-minted error strings. The backend `body.message` passthrough is
  * deliberately NOT here: translating it is a separate backend task (spec, out of
@@ -156,7 +153,6 @@ export type SharedStrings = {
   preview: PreviewStrings;
   quality: QualityStrings;
   photos: PhotoStrings;
-  ads: AdStrings;
   errors: ErrorStrings;
   lang: LangStrings;
   section: SectionStrings;

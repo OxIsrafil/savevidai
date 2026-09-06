@@ -2,6 +2,7 @@
 
 Date: 2026-07-24
 Status: approved (brainstorm + cold Fable review pass, rev 2)
+Superseded: ads removed from the site and the codebase on 2026-09-06 (owner decision, branch chore/remove-ads). Kept as history.
 Branch: feature/ads-monetization
 
 ## Problem

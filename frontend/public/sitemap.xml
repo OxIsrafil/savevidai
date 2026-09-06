@@ -3,19 +3,19 @@
 <!-- No per-URL alternate links here on purpose: the shells' hreflang tags are
      the single hreflang source, so there is one hand-maintained file, not two -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://savevidai.israfill.dev/</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/tiktokvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/redditvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/instagramvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/facebookvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/es/</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/es/tiktokvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/es/redditvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/es/instagramvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/es/facebookvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/hi/</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/hi/tiktokvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/hi/redditvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/hi/instagramvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
-  <url><loc>https://savevidai.israfill.dev/hi/facebookvideodownloader</loc><lastmod>2026-08-01</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/tiktokvideodownloader</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/redditvideodownloader</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/instagramvideodownloader</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/facebookvideodownloader</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/es/</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/es/tiktokvideodownloader</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/es/redditvideodownloader</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/es/instagramvideodownloader</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/es/facebookvideodownloader</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/hi/</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/hi/tiktokvideodownloader</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/hi/redditvideodownloader</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/hi/instagramvideodownloader</loc><lastmod>2026-09-06</lastmod></url>
+  <url><loc>https://savevidai.israfill.dev/hi/facebookvideodownloader</loc><lastmod>2026-09-06</lastmod></url>
 </urlset>

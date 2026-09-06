@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { AdSlot } from "./components/AdSlot";
 import { HowToVisual } from "./components/HowToVisual";
 import { PasteInput } from "./components/PasteInput";
 import { PlatformLinks } from "./components/PlatformLinks";
@@ -202,8 +201,6 @@ export default function App({ strings = enTwitter }: { strings?: PageStrings } =
         <motion.div {...fadeRise(6)}>
           <HowToVisual strings={strings.svg} />
         </motion.div>
-
-        <AdSlot strings={strings.ads} />
       </main>
     </div>
   );

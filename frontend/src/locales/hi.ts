@@ -83,10 +83,6 @@ export const hiShared: SharedStrings = {
     savePhotoN: "फ़ोटो {n} सेव करें",
   },
 
-  ads: {
-    regionLabel: "विज्ञापन",
-  },
-
   errors: {
     network: "नेटवर्क एरर। अपना कनेक्शन जाँचें और दोबारा कोशिश करें।",
     serverUnreachable:

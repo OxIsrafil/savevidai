@@ -203,7 +203,6 @@ inventory sweep can mark it checked.
 
 | key | en | es | hi |
 | --- | --- | --- | --- |
-| `ads.regionLabel` (aria) | sponsor | publicidad | विज्ञापन |
 
 ### 2.11 Client-minted error strings
 
@@ -378,9 +377,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Is SaveVid AI really free and safe?
 - es Q: ¿SaveVid AI es de verdad gratis y seguro?
 - hi Q: क्या SaveVid AI सच में फ़्री और सुरक्षित है?
-- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click. A small ad keeps the site free.
-- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real. Un anuncio pequeño mantiene el sitio gratis.
-- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है। एक छोटा विज्ञापन साइट को फ़्री रखता है।
+- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click.
+- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real.
+- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है।
 
 **Q2 [JSON-LD]**
 - en Q: What quality do I get?
@@ -527,9 +526,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Is the TikTok downloader really free?
 - es Q: ¿El descargador de TikTok es de verdad gratis?
 - hi Q: क्या TikTok डाउनलोडर सच में फ़्री है?
-- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click. A small ad keeps the site free.
-- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real. Un anuncio pequeño mantiene el sitio gratis.
-- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है। एक छोटा विज्ञापन साइट को फ़्री रखता है।
+- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click.
+- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real.
+- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है।
 
 **Q3 [JSON-LD]**
 - en Q: Can I download TikTok photo slideshows?
@@ -685,9 +684,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Is the Reddit downloader really free?
 - es Q: ¿El descargador de Reddit es de verdad gratis?
 - hi Q: क्या Reddit डाउनलोडर सच में फ़्री है?
-- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click. A small ad keeps the site free.
-- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real. Un anuncio pequeño mantiene el sitio gratis.
-- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है। एक छोटा विज्ञापन साइट को फ़्री रखता है।
+- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click.
+- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real.
+- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है।
 
 **Q4 [JSON-LD]**
 - en Q: Is it safe to use SaveVid AI for Reddit?
@@ -826,9 +825,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Is the Instagram downloader free?
 - es Q: ¿El descargador de Instagram es gratis?
 - hi Q: क्या Instagram डाउनलोडर फ़्री है?
-- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click. A small ad keeps the site free.
-- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real. Un anuncio pequeño mantiene el sitio gratis.
-- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है। एक छोटा विज्ञापन साइट को फ़्री रखता है।
+- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click.
+- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real.
+- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है।
 
 **Q3 [JSON-LD]**
 - en Q: Can I download photo carousels?
@@ -975,9 +974,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Is the Facebook downloader free?
 - es Q: ¿El descargador de Facebook es gratis?
 - hi Q: क्या Facebook डाउनलोडर फ़्री है?
-- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click. A small ad keeps the site free.
-- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real. Un anuncio pequeño mantiene el sitio gratis.
-- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है। एक छोटा विज्ञापन साइट को फ़्री रखता है।
+- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click.
+- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real.
+- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है।
 
 **Q3 [JSON-LD]**
 - en Q: Can I download photos or private videos?

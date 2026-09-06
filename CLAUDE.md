@@ -1,6 +1,6 @@
 # SaveVid AI - project context
 
-Ad-supported social video downloader. Live at https://savevidai.israfill.dev
+Social video downloader, ad-free since 2026-09-06 (owner pulled the ads). Live at https://savevidai.israfill.dev
 Private repo: https://github.com/OxIsrafil/savevidai (owner: OxIsrafil, X: @israfill).
 
 This file is auto-loaded into every chat opened in this repo. Read it first, then check
@@ -62,14 +62,17 @@ rows-read quota scare; `scripts/migrate_analytics.py` did the one-time copy. Con
 
 ## Monetization / ads
 
-- Running cost is ~12 EUR/mo (VPS) + the domain, covered by ONE ad slot. Env-gated and OFF by
-  default: `ADS_ENABLED` + `AD_BANNER_SNIPPET` + `AD_POPUNDER_SNIPPET` in app.env. The backend
-  server-injects a `<!--ADS-->` marker on the three public pages only (never `/admin` or `/api`),
-  and never blocks or delays a download. Network-agnostic (swap snippets to change networks);
-  Adsterra is the first target. See `backend/app/pages.py`.
-- The site is NO LONGER open source or ad-free: the repo went private 2026-07-24 and the public
-  copy was swept of every "open source / no popups / no ads / no tracking / MIT / GitHub" claim.
-  Do NOT reintroduce those claims in copy, meta, OG images, or the maintenance page.
+- None. Adsterra units (banner + popunder + social bar) ran on every public page from
+  2026-08-01 to 2026-09-06, earning a few cents a day at launch against ~12 EUR/mo of VPS
+  cost, and the owner pulled them. The env-gated injection layer (`backend/app/pages.py`, the
+  `<!--ADS-->` marker in every shell, the `ADS_ENABLED` / `AD_*_SNIPPET` vars, the dormant
+  `AdSlot` component) was removed in the same change on branch `chore/remove-ads`. History:
+  `docs/superpowers/specs/2026-07-24-ads-monetization-design.md` and `git log`. If ads ever
+  come back, `git revert` those two commits rather than rebuilding.
+- The site is NO LONGER open source: the repo went private 2026-07-24 and the public copy was
+  swept of every "open source / MIT / GitHub / no tracking" claim. Do NOT reintroduce those.
+  Ad copy is neutral on purpose (no "ad-supported", and no "no ads" or "no popups" claims);
+  adding an ad-free claim to the site is an owner decision, not a default.
 
 ## How to build features here
 
@@ -94,7 +97,5 @@ rows-read quota scare; `scripts/migrate_analytics.py` did the one-time copy. Con
 
 ## Roadmap / ideas (not yet built)
 
-- Turn ads on once the Adsterra account is approved: paste the two snippets into app.env and set
-  `ADS_ENABLED=1` (see `deploy/app.env.example` and the ads section above).
 - Reddit galleries/shares (needs the REDDIT_CLIENT_ID/SECRET OAuth env vars).
 - YouTube is a separate future site (needs residential proxies, ~$150-300/mo at scale).

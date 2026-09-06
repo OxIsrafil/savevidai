@@ -96,7 +96,7 @@ test.each(cases)("$name shell snapshot form works without JS and mirrors the Rea
   expect(input?.getAttribute("aria-label")).toBe(mountedInput.getAttribute("aria-label"));
 });
 
-test.each(cases)("$name shell carries exactly one h1 and no ad marker inside #root", ({ shell }) => {
+test.each(cases)("$name shell carries exactly one h1 and no ad marker", ({ shell }) => {
   const { doc, root } = shellRoot(shell);
 
   // React replaces the snapshot h1, never adds a second one, so the built page
@@ -104,9 +104,8 @@ test.each(cases)("$name shell carries exactly one h1 and no ad marker inside #ro
   expect(doc.querySelectorAll("h1")).toHaveLength(1);
   expect(root.querySelectorAll("h1")).toHaveLength(1);
 
-  // The ad marker line stays exactly once, outside the snapshot.
-  expect(shell.split("<!--ADS-->")).toHaveLength(2);
-  expect(root.innerHTML).not.toContain("<!--ADS-->");
+  // The ad marker is gone for good, and this guards against it coming back.
+  expect(shell).not.toContain("<!--ADS-->");
 });
 
 test.each(cases)("$name shell head copy matches its string table", ({ shell, strings }) => {

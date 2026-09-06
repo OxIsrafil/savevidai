@@ -885,14 +885,6 @@ a.platform-card:hover {
   text-decoration: underline;
 }
 
-.ad-slot {
-  margin: 20px auto 8px;
-  max-width: 728px;
-  display: flex;
-  justify-content: center;
-  overflow: hidden;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

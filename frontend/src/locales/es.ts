@@ -81,10 +81,6 @@ export const esShared: SharedStrings = {
     savePhotoN: "Guardar foto {n}",
   },
 
-  ads: {
-    regionLabel: "publicidad",
-  },
-
   errors: {
     network: "Error de red. Revisa tu conexión e inténtalo de nuevo.",
     serverUnreachable:

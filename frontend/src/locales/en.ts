@@ -80,10 +80,6 @@ export const enShared: SharedStrings = {
     savePhotoN: "Save photo {n}",
   },
 
-  ads: {
-    regionLabel: "sponsor",
-  },
-
   errors: {
     network: "Network error. Check your connection and try again.",
     serverUnreachable: "Can't reach the SaveVid server right now. Try again in a moment.",
