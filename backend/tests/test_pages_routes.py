@@ -11,10 +11,7 @@ ADMIN_SHELL = Path(__file__).resolve().parents[2] / "frontend" / "admin.html"
 
 ROBOTS_NOINDEX = re.compile(r'<meta\s+name="robots"\s+content="[^"]*noindex[^"]*"')
 
-BANNER = '<script src="https://example-ads.test/banner.js"></script>'
-POP = '<script src="https://example-ads.test/pop.js"></script>'
-
-PAGE = "<!doctype html>\n<html><body>\n<p>{name}</p>\n<!--ADS-->\n</body></html>\n"
+PAGE = "<!doctype html>\n<html><body>\n<p>{name}</p>\n</body></html>\n"
 
 # Every public URL and the shell it must serve, written out by hand: 15 pages
 # (5 en at the root + 5 es + 5 hi) in both the clean and the .html form. The
@@ -64,12 +61,6 @@ def _static(tmp_path, monkeypatch):
     monkeypatch.setenv("STATIC_DIR", str(tmp_path))
 
 
-def _ads_on(monkeypatch):
-    monkeypatch.setenv("ADS_ENABLED", "1")
-    monkeypatch.setenv("AD_BANNER_SNIPPET", BANNER)
-    monkeypatch.setenv("AD_POPUNDER_SNIPPET", POP)
-
-
 def test_public_paths_table_is_15_pages_in_both_forms():
     assert len(PUBLIC_PATHS) == 30
     assert len({p for p, _ in PUBLIC_PATHS}) == 30
@@ -78,86 +69,40 @@ def test_public_paths_table_is_15_pages_in_both_forms():
         assert len({f for _, f in PUBLIC_PATHS if f.startswith(prefix)}) == 5
 
 
-def test_ads_off_no_marker_or_slot_on_any_public_path(tmp_path, monkeypatch):
+def test_every_public_path_serves_its_shell_verbatim(tmp_path, monkeypatch):
     _static(tmp_path, monkeypatch)
-    monkeypatch.delenv("ADS_ENABLED", raising=False)
     client = TestClient(create_app())
     for path, fname in PUBLIC_PATHS:
         res = client.get(path)
         assert res.status_code == 200, path
-        assert "<!--ADS-->" not in res.text, path
-        assert "ad-slot" not in res.text, path
-        assert fname in res.text, path
-        # Body equals the on-disk file minus the marker line.
-        assert res.text == PAGE.format(name=fname).replace("<!--ADS-->\n", ""), path
+        assert res.headers["content-type"].startswith("text/html"), path
+        # Byte-for-byte the file on disk: nothing is injected or stripped.
+        assert res.text == (tmp_path / fname).read_text(), path
+        assert res.headers["cache-control"] == "no-cache", path
 
 
-def test_ads_on_all_public_paths_carry_banner_and_popunder(tmp_path, monkeypatch):
+def test_admin_and_api_are_not_served_by_the_page_loop(tmp_path, monkeypatch):
+    # Canary: /admin has its own route in analytics/router.py and /api/* belongs
+    # to the API routers. Neither may be swallowed by the public page loop.
     _static(tmp_path, monkeypatch)
-    _ads_on(monkeypatch)
     client = TestClient(create_app())
-    for path, _ in PUBLIC_PATHS:
-        res = client.get(path)
-        assert f'<div class="ad-slot">{BANNER}</div>' in res.text, path
-        assert POP in res.text, path
-        assert "<!--ADS-->" not in res.text, path
-
-
-def test_ads_on_admin_and_api_stay_clean(tmp_path, monkeypatch):
-    _static(tmp_path, monkeypatch)
-    _ads_on(monkeypatch)
-    client = TestClient(create_app())
-    for path in ("/admin", "/admin.html"):
-        res = client.get(path)
-        assert res.status_code == 200, path
-        assert "ad-slot" not in res.text and BANNER not in res.text, path
-        assert POP not in res.text, path
+    admin = client.get("/admin")
+    assert admin.status_code == 200
+    assert "<title>admin</title>" in admin.text
     health = client.get("/api/health")
     assert health.status_code == 200
-    assert "ad-slot" not in health.text
+    assert health.json()["ok"] is True
 
 
-def test_banner_only_mode_via_empty_popunder(tmp_path, monkeypatch):
-    _static(tmp_path, monkeypatch)
-    monkeypatch.setenv("ADS_ENABLED", "1")
-    monkeypatch.setenv("AD_BANNER_SNIPPET", BANNER)
-    monkeypatch.setenv("AD_POPUNDER_SNIPPET", "")
-    client = TestClient(create_app())
-    res = client.get("/")
-    assert "ad-slot" in res.text
-    assert POP not in res.text
-
-
-def test_maintenance_on_serves_maintenance_page_without_ads(tmp_path, monkeypatch):
+def test_maintenance_on_serves_the_maintenance_page(tmp_path, monkeypatch):
     _static(tmp_path, monkeypatch)
     (tmp_path / "maintenance.html").write_text("<!doctype html><title>brb</title>")
-    _ads_on(monkeypatch)
     monkeypatch.setenv("MAINTENANCE_MODE", "1")
     client = TestClient(create_app())
     for path, _ in PUBLIC_PATHS:
         res = client.get(path)
         assert res.status_code == 503, path
         assert "brb" in res.text, path
-        assert "ad-slot" not in res.text and POP not in res.text, path
-
-
-def test_locale_shells_go_through_the_route_not_the_raw_mount(tmp_path, monkeypatch):
-    # Canary: /es/index.html and /hi/index.html are real files under the static
-    # mount, so if their routes were ever declared after the mount (or dropped)
-    # StaticFiles would serve the shell verbatim and leak the literal <!--ADS-->
-    # marker to visitors. The routes win only because they come first.
-    _static(tmp_path, monkeypatch)
-    _ads_on(monkeypatch)
-    client = TestClient(create_app())
-    for path, fname in PUBLIC_PATHS:
-        if not fname.startswith(("es/", "hi/")):
-            continue
-        on_disk = (tmp_path / fname).read_text()
-        assert "<!--ADS-->" in on_disk, fname  # the leak must be possible
-        res = client.get(path)
-        assert res.status_code == 200, path
-        assert "<!--ADS-->" not in res.text, path
-        assert f'<div class="ad-slot">{BANNER}</div>' in res.text, path
 
 
 def test_locale_home_without_trailing_slash_redirects(tmp_path, monkeypatch):
@@ -165,7 +110,6 @@ def test_locale_home_without_trailing_slash_redirects(tmp_path, monkeypatch):
     # the mount is present, Starlette's redirect_slashes otherwise). Pinned so
     # a bare /es link in the wild never 404s.
     _static(tmp_path, monkeypatch)
-    monkeypatch.delenv("ADS_ENABLED", raising=False)
     client = TestClient(create_app())
     for locale in ("es", "hi"):
         res = client.get(f"/{locale}", follow_redirects=False)
@@ -173,7 +117,7 @@ def test_locale_home_without_trailing_slash_redirects(tmp_path, monkeypatch):
         assert res.headers["location"].endswith(f"/{locale}/"), locale
         followed = client.get(f"/{locale}")
         assert followed.status_code == 200, locale
-        assert "<!--ADS-->" not in followed.text, locale
+        assert f"{locale}/index.html" in followed.text, locale
 
 
 def test_locale_page_404_without_static_dir(monkeypatch):

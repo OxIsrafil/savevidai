@@ -3,7 +3,7 @@ import os
 import shutil
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
@@ -17,7 +17,6 @@ from .analytics.store import make_store
 from .envutil import env_truthy
 from .errors import AppError
 from .limits import limiter
-from .pages import PageRenderer, load_ad_config
 
 logger = logging.getLogger("savevidai.analytics")
 
@@ -156,18 +155,25 @@ def create_app() -> FastAPI:
         logger.warning("analytics disabled: init failed: %r", exc)
     app.include_router(analytics_router)
 
-    # Public pages go through the ad-aware renderer. The raw .html paths are
-    # routed too; otherwise the static mount would serve the file as-is and
-    # leak the literal <!--ADS--> marker (or dodge ads entirely). /admin is
-    # deliberately NOT here: it is served by the explicit route in
-    # analytics/router.py and must never pass through the renderer.
-    renderer = PageRenderer(load_ad_config())
-
+    # Every public page gets an explicit route because its clean URL
+    # (/tiktokvideodownloader, /es/) has no file of that name for the static
+    # mount to resolve. The raw .html paths are routed alongside them so both
+    # forms answer identically. /admin is deliberately NOT in the loop: it is
+    # served by the explicit route in analytics/router.py.
     def _page_endpoint(filename: str):
         # Factory, not an inline closure: binding the filename per iteration is
         # what stops every route in the loop below from serving the last page.
         def endpoint():
-            return renderer.render(filename)
+            static_dir = os.environ.get("STATIC_DIR", "")
+            path = os.path.join(static_dir, filename)
+            if not static_dir or not os.path.isfile(path):
+                raise HTTPException(status_code=404)
+            # FileResponse, not a hand-read body: it streams the file off
+            # disk and stamps ETag / Last-Modified. Starlette turns those
+            # validators into 304s only inside StaticFiles, so this route
+            # still answers 200 with the body. The Cache-Control middleware
+            # stamps HTML no-cache either way.
+            return FileResponse(path)
 
         endpoint.__name__ = "page_" + filename.replace("/", "_").replace(".", "_")
         return endpoint
