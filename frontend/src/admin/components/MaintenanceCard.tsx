@@ -20,6 +20,7 @@ export function MaintenanceCard({ state, onChange, onUnauthorized }: { state: Ma
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const on = state?.on ?? false;
 
   useEffect(() => {
     if (!confirming) return;
@@ -27,10 +28,15 @@ export function MaintenanceCard({ state, onChange, onUnauthorized }: { state: Ma
     return () => clearTimeout(t);
   }, [confirming]);
 
-  async function apply(on: boolean) {
+  // A pending confirm applies only to the state the owner saw: a refresh that flips it drops it.
+  useEffect(() => {
+    setConfirming(false);
+  }, [on]);
+
+  async function apply(next: boolean) {
     setBusy(true);
     setFailed(false);
-    const result = await setMaintenance(on);
+    const result = await setMaintenance(next);
     setBusy(false);
     if (result === "unauthorized") {
       onUnauthorized();
@@ -44,7 +50,8 @@ export function MaintenanceCard({ state, onChange, onUnauthorized }: { state: Ma
   }
 
   function onClick() {
-    if (!state) return;
+    // Busy is aria-disabled, not disabled, so the button keeps keyboard focus; taps stop here.
+    if (!state || busy) return;
     if (state.on) {
       void apply(false);
       return;
@@ -57,7 +64,6 @@ export function MaintenanceCard({ state, onChange, onUnauthorized }: { state: Ma
     void apply(true);
   }
 
-  const on = state?.on ?? false;
   const label = on ? "Go live" : confirming ? "Tap to confirm" : "Turn on maintenance";
 
   return (
@@ -73,8 +79,9 @@ export function MaintenanceCard({ state, onChange, onUnauthorized }: { state: Ma
           <button
             type="button"
             onClick={onClick}
-            disabled={busy || state.forced_by_env}
-            className={cn(PILL_BUTTON, "mt-5", confirming && ARMED)}
+            disabled={state.forced_by_env}
+            aria-disabled={busy || undefined}
+            className={cn(PILL_BUTTON, "mt-5 aria-disabled:pointer-events-none aria-disabled:opacity-50", confirming && !on && ARMED)}
           >
             {busy ? <Spinner /> : null}
             {label}
