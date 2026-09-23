@@ -13,6 +13,7 @@ import tempfile
 import threading
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from time import monotonic
 
 import httpx
 import maxminddb
@@ -26,13 +27,20 @@ MARKER_FILENAME = "dbip-country-lite.month"
 DOWNLOAD_URL = "https://download.db-ip.com/free/dbip-country-lite-{month}.mmdb.gz"
 MAX_COMPRESSED = 32 * 1024 * 1024
 MAX_UNPACKED = 256 * 1024 * 1024
+# The 60 s timeout covers each read; this covers one whole download, so a
+# server that drips a byte at a time cannot hold the thread forever.
+DOWNLOAD_DEADLINE = 10 * 60.0
 INITIAL_DELAY = 10.0
 CYCLE = 24 * 60 * 60.0
+# identity asks for the .gz as stored. A server that still sends a
+# Content-Encoding is decoded by httpx, which _unpack() allows for.
+DOWNLOAD_HEADERS = {"User-Agent": "SaveVidAI-GeoUpdater/1.0", "Accept-Encoding": "identity"}
 
 # Used with fullmatch(): "^[A-Z]{2}$" with match() would also accept "US\n".
 _CODE = re.compile(r"[A-Z]{2}")
 _PLACEHOLDERS = frozenset({"ZZ", "XX"})
 _CHUNK = 64 * 1024
+_GZIP_MAGIC = b"\x1f\x8b"
 
 
 class CountryLookup:
@@ -135,6 +143,21 @@ def _gunzip(src: str, dest: str) -> None:
             out.write(chunk)
 
 
+def _unpack(src: str, dest: str) -> None:
+    """Gunzip `src` into `dest`. A body without the gzip magic bytes is the
+    database itself (the client decoded a Content-Encoding on the way in), so
+    it moves to `dest` as is. The unpacked cap holds on both paths, and
+    validate() still decides whether the result is a database."""
+    with open(src, "rb") as fh:
+        gzipped = fh.read(len(_GZIP_MAGIC)) == _GZIP_MAGIC
+    if gzipped:
+        _gunzip(src, dest)
+        return
+    if os.path.getsize(src) > MAX_UNPACKED:
+        raise ValueError(f"unpacked database over {MAX_UNPACKED} bytes")
+    os.replace(src, dest)
+
+
 def _unlink(path: str) -> None:
     try:
         os.unlink(path)
@@ -185,9 +208,20 @@ class GeoUpdater:
         except OSError:
             return None
 
+    def _in_use(self) -> bool:
+        """The file on disk is loaded, or loads now. A marker alone is not
+        enough to skip a download: it outlives a failed load at init."""
+        if self._lookup.loaded:
+            return True
+        final = os.path.join(self._dir, GEO_FILENAME)
+        if not os.path.isfile(final) or not self._lookup.load(final):
+            return False
+        logger.info("geoip: loaded the file already on disk")
+        return True
+
     def _update(self, wanted: str) -> bool:
         have = self._marker()
-        if have == wanted:
+        if have == wanted and self._in_use():
             return False
         os.makedirs(self._dir, exist_ok=True)
         status = self._install(wanted)
@@ -196,14 +230,14 @@ class GeoUpdater:
         if status != "missing":
             return False
         # The month's file is not published yet: fall back to the previous
-        # month, unless that is what we already have.
+        # month, unless that is what we already have in use.
         fallback = _previous_month(wanted)
-        if have == fallback:
+        if have == fallback and self._in_use():
             return False
         return self._install(fallback) == "installed"
 
     def _install(self, month: str) -> str:
-        """Download, gunzip, validate, replace, mark, load. Returns "installed",
+        """Download, unpack, validate, replace, mark, load. Returns "installed",
         "missing" (HTTP 404) or "failed". Every path removes its temp files,
         including a failure between the two mkstemp calls."""
         packed = unpacked = ""
@@ -219,7 +253,7 @@ class GeoUpdater:
             if status != 200:
                 logger.warning("geoip: download of %s returned HTTP %d", month, status)
                 return "failed"
-            _gunzip(packed, unpacked)
+            _unpack(packed, unpacked)
             if not self._lookup.validate(unpacked):
                 logger.warning("geoip: downloaded %s failed validation", month)
                 return "failed"
@@ -236,14 +270,18 @@ class GeoUpdater:
                     _unlink(path)
 
     def _fetch(self, url: str, dest: str) -> int:
-        """Stream the body to `dest` with a cap on the compressed bytes. Returns
-        the HTTP status; the file is only meaningful on 200."""
-        with self._client.stream("GET", url) as resp:
+        """Stream the body to `dest` with a cap on the downloaded bytes and a
+        deadline on the whole download. Returns the HTTP status; the file is
+        only meaningful on 200."""
+        deadline = monotonic() + DOWNLOAD_DEADLINE
+        with self._client.stream("GET", url, headers=DOWNLOAD_HEADERS) as resp:
             if resp.status_code != 200:
                 return resp.status_code
             total = 0
             with open(dest, "wb") as fh:
                 for chunk in resp.iter_bytes():
+                    if monotonic() > deadline:
+                        raise TimeoutError(f"download took over {DOWNLOAD_DEADLINE:.0f} s")
                     total += len(chunk)
                     if total > MAX_COMPRESSED:
                         raise ValueError(f"compressed download over {MAX_COMPRESSED} bytes")
