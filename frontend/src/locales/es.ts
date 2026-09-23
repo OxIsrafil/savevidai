@@ -81,8 +81,6 @@ export const esShared: SharedStrings = {
     savePhotoN: "Guardar foto {n}",
   },
 
-  // Not in the translations doc (it arrived after it), so this block is its
-  // own source until the doc gains a row for it.
   followPopup: {
     title: "Sígueme en X",
     line: "Herramientas nuevas y novedades, primero aquí.",
@@ -305,7 +303,7 @@ export const esInstagram: PageStrings = {
     },
     {
       heading: "Sin botones falsos",
-      body: "El archivo se guarda directo en tu dispositivo con un nombre de archivo limpio. Sin botones falsos, sin rodeos.",
+      body: "El archivo se guarda directo en tu dispositivo con un nombre de archivo limpio.",
     },
   ],
   svg: {
@@ -350,7 +348,7 @@ export const esFacebook: PageStrings = {
     },
     {
       heading: "Sin botones falsos",
-      body: "El video se guarda directo en tu dispositivo con un nombre de archivo limpio. Sin botones falsos, sin rodeos.",
+      body: "El video se guarda directo en tu dispositivo con un nombre de archivo limpio.",
     },
   ],
   svg: {

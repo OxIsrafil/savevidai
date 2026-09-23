@@ -83,9 +83,8 @@ export const hiShared: SharedStrings = {
     savePhotoN: "फ़ोटो {n} सेव करें",
   },
 
-  // Not in the translations doc (it arrived after it), so this block is its
-  // own source until the doc gains a row for it. `line` avoids a first-person
-  // verb on purpose: Hindi verbs carry gender, and it must not assume one.
+  // `line` avoids a first-person verb on purpose: Hindi verbs carry gender,
+  // and it must not assume one. Doc section 2.16.
   followPopup: {
     title: "X पर मुझे फ़ॉलो करें",
     line: "नए टूल और अपडेट, सबसे पहले यहाँ।",
@@ -307,7 +306,7 @@ export const hiInstagram: PageStrings = {
     },
     {
       heading: "कोई नकली बटन नहीं",
-      body: "फ़ाइल सीधे आपके डिवाइस में सेव होती है, साफ़ फ़ाइल नाम के साथ। कोई नकली बटन नहीं, कोई चक्कर नहीं।",
+      body: "फ़ाइल सीधे आपके डिवाइस में सेव होती है, साफ़ फ़ाइल नाम के साथ।",
     },
   ],
   svg: {
@@ -351,7 +350,7 @@ export const hiFacebook: PageStrings = {
     },
     {
       heading: "कोई नकली बटन नहीं",
-      body: "वीडियो सीधे आपके डिवाइस में सेव होता है, साफ़ फ़ाइल नाम के साथ। कोई नकली बटन नहीं, कोई चक्कर नहीं।",
+      body: "वीडियो सीधे आपके डिवाइस में सेव होता है, साफ़ फ़ाइल नाम के साथ।",
     },
   ],
   svg: {

@@ -6,14 +6,15 @@ reviews check character fidelity against this doc, not against a fresh translati
 If a string is wrong, fix it HERE first, then in code.
 
 Conventions used below:
-- `{n}` marks a runtime interpolation. It must survive translation, in a position
-  that is grammatical for the target language (Hindi in particular reorders).
+- `{n}` and `{handle}` mark runtime interpolations. They must survive translation,
+  in a position that is grammatical for the target language (Hindi in particular
+  reorders).
 - "JSON-LD" tags the four FAQ entries per page that are ALSO emitted in the
   FAQPage script. The subset invariant is per locale: the JSON-LD text must be a
   character-exact copy of the visible `<summary>`/`<p>` twin in the SAME locale.
 - Anything in `code font` is a literal token that stays identical in all three
   locales: `mp4`, `HD`, `SD`, `GIF`, `720p`, `1080p`, `480p`, `CDN`, `1920×1080`,
-  `34 MB`, filenames, URLs, `@israfill`, `© 2026 SaveVid AI`.
+  `34 MB`, filenames, URLs, `@israfilv2`, `© 2026 SaveVid AI`.
 
 ---
 
@@ -239,16 +240,16 @@ Twitter page; `/tiktokvideodownloader`, `/es/tiktokvideodownloader`,
 
 ### 2.14 Footer (shared parts)
 
-`footer.builtBy` is the text node before the `@israfill` link. Hindi needs the
+`footer.builtBy` is the text node before the `@israfilv2` link. Hindi needs the
 name FIRST, so the hi shell renders the link then the text:
-`<a ...>@israfill</a> ने बनाया`. es keeps English order: `hecho por <a>@israfill</a>`.
+`<a ...>@israfilv2</a> ने बनाया`. es keeps English order: `hecho por <a>@israfilv2</a>`.
 
 | key | en | es | hi |
 | --- | --- | --- | --- |
 | `footer.brand` | SaveVid AI | SaveVid AI | SaveVid AI |
 | `footer.linksLabel` (aria) | SaveVid AI links | Enlaces de SaveVid AI | SaveVid AI लिंक |
 | `footer.platformsLabel` (aria) | All downloaders | Todos los descargadores | सभी डाउनलोडर |
-| `footer.xLink` | X · @israfill | X · @israfill | X · @israfill |
+| `footer.xLink` | X · @israfilv2 | X · @israfilv2 | X · @israfilv2 |
 | `footer.builtBy` | built by | hecho por | ने बनाया (node order flipped, see above) |
 | `footer.copyright` | © 2026 SaveVid AI | © 2026 SaveVid AI | © 2026 SaveVid AI |
 
@@ -267,7 +268,25 @@ verb-first phrasing Spanish speakers actually search
 | `footerNav.instagram` | Instagram reel downloader | Descargar reels de Instagram | Instagram रील डाउनलोडर |
 | `footerNav.facebook` | Facebook video downloader | Descargar videos de Facebook | Facebook वीडियो डाउनलोडर |
 
-Total shared rows: **61** (excluding the SkeletonCard no-op note, which has no strings).
+### 2.16 Follow popup (opened by every video and GIF save button)
+
+The dialog a quality button opens before its download starts (added 2026-09-23).
+`{handle}` is filled from `X_HANDLE` in `frontend/src/lib/social.ts` and renders as
+`@israfilv2`, so the Follow labels read "Follow @israfilv2", "Seguir a @israfilv2"
+and "@israfilv2 को फ़ॉलो करें". The muted `@israfilv2` line under the title is that
+same token, not copy. The hi `line` avoids a first-person verb on purpose: Hindi
+verbs carry gender, and the copy must not assume the owner's.
+
+| key | en | es | hi |
+| --- | --- | --- | --- |
+| `followPopup.title` (dialog name) | Follow me on X | Sígueme en X | X पर मुझे फ़ॉलो करें |
+| `followPopup.line` | New tools and updates, posted here first. | Herramientas nuevas y novedades, primero aquí. | नए टूल और अपडेट, सबसे पहले यहाँ। |
+| `followPopup.follow` | Follow {handle} | Seguir a {handle} | {handle} को फ़ॉलो करें |
+| `followPopup.newTab` (sr-only) | (opens in a new tab) | (se abre en una pestaña nueva) | (नए टैब में खुलता है) |
+| `followPopup.download` | Download | Descargar | डाउनलोड करें |
+| `followPopup.close` (aria) | Close | Cerrar | बंद करें |
+
+Total shared rows: **66** (excluding the SkeletonCard no-op note, which has no strings).
 
 ---
 
@@ -420,9 +439,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Who runs this?
 - es Q: ¿Quién está detrás de esto?
 - hi Q: इसे कौन चलाता है?
-- en A: SaveVid AI is built by @israfill.
-- es A: SaveVid AI está hecho por @israfill.
-- hi A: SaveVid AI को @israfill ने बनाया है।
+- en A: SaveVid AI is built by @israfilv2.
+- es A: SaveVid AI está hecho por @israfilv2.
+- hi A: SaveVid AI को @israfilv2 ने बनाया है।
 
 ---
 
@@ -569,9 +588,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Who runs this?
 - es Q: ¿Quién está detrás de esto?
 - hi Q: इसे कौन चलाता है?
-- en A: SaveVid AI is built by @israfill.
-- es A: SaveVid AI está hecho por @israfill.
-- hi A: SaveVid AI को @israfill ने बनाया है।
+- en A: SaveVid AI is built by @israfilv2.
+- es A: SaveVid AI está hecho por @israfilv2.
+- hi A: SaveVid AI को @israfilv2 ने बनाया है।
 
 ---
 
@@ -719,9 +738,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Who runs this?
 - es Q: ¿Quién está detrás de esto?
 - hi Q: इसे कौन चलाता है?
-- en A: SaveVid AI is built by @israfill.
-- es A: SaveVid AI está hecho por @israfill.
-- hi A: SaveVid AI को @israfill ने बनाया है।
+- en A: SaveVid AI is built by @israfilv2.
+- es A: SaveVid AI está hecho por @israfilv2.
+- hi A: SaveVid AI को @israfilv2 ने बनाया है।
 
 ---
 
@@ -802,9 +821,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: कोई नकली बटन नहीं
 
 **Step 3 body**
-- en: The file saves straight to your device with a clean filename. No fake buttons, no detours.
-- es: El archivo se guarda directo en tu dispositivo con un nombre de archivo limpio. Sin botones falsos, sin rodeos.
-- hi: फ़ाइल सीधे आपके डिवाइस में सेव होती है, साफ़ फ़ाइल नाम के साथ। कोई नकली बटन नहीं, कोई चक्कर नहीं।
+- en: The file saves straight to your device with a clean filename.
+- es: El archivo se guarda directo en tu dispositivo con un nombre de archivo limpio.
+- hi: फ़ाइल सीधे आपके डिवाइस में सेव होती है, साफ़ फ़ाइल नाम के साथ।
 
 #### FAQ (8 entries; entries 1-4 are JSON-LD mirrored)
 
@@ -868,9 +887,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Who runs this?
 - es Q: ¿Quién está detrás de esto?
 - hi Q: इसे कौन चलाता है?
-- en A: SaveVid AI is built by @israfill.
-- es A: SaveVid AI está hecho por @israfill.
-- hi A: SaveVid AI को @israfill ने बनाया है।
+- en A: SaveVid AI is built by @israfilv2.
+- es A: SaveVid AI está hecho por @israfilv2.
+- hi A: SaveVid AI को @israfilv2 ने बनाया है।
 
 ---
 
@@ -951,9 +970,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: कोई नकली बटन नहीं
 
 **Step 3 body**
-- en: The video saves straight to your device with a clean filename. No fake buttons, no detours.
-- es: El video se guarda directo en tu dispositivo con un nombre de archivo limpio. Sin botones falsos, sin rodeos.
-- hi: वीडियो सीधे आपके डिवाइस में सेव होता है, साफ़ फ़ाइल नाम के साथ। कोई नकली बटन नहीं, कोई चक्कर नहीं।
+- en: The video saves straight to your device with a clean filename.
+- es: El video se guarda directo en tu dispositivo con un nombre de archivo limpio.
+- hi: वीडियो सीधे आपके डिवाइस में सेव होता है, साफ़ फ़ाइल नाम के साथ।
 
 #### FAQ (8 entries; entries 1-4 are JSON-LD mirrored)
 
@@ -1017,9 +1036,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Who runs this?
 - es Q: ¿Quién está detrás de esto?
 - hi Q: इसे कौन चलाता है?
-- en A: SaveVid AI is built by @israfill.
-- es A: SaveVid AI está hecho por @israfill.
-- hi A: SaveVid AI को @israfill ने बनाया है।
+- en A: SaveVid AI is built by @israfilv2.
+- es A: SaveVid AI está hecho por @israfilv2.
+- hi A: SaveVid AI को @israfilv2 ने बनाया है।
 
 ---
 
@@ -1165,7 +1184,7 @@ Facebook
 
 ## 6. Counts (for the parity tests)
 
-- Shared UI string rows: **61** (section 2, all 14 tables).
+- Shared UI string rows: **66** (section 2, all 14 tables).
 - Visible FAQ entries per locale: twitter 7, tiktok 8, reddit 8, instagram 8,
   facebook 8 = **39 per locale**, 117 across en+es+hi.
 - JSON-LD FAQ entries per page per locale: 4 (always the first four visible

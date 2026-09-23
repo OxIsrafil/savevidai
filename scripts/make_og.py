@@ -28,7 +28,7 @@ VARIANTS = {
     "default": {
         "filename": "og.png",
         "title": "Twitter Video Downloader",
-        "subtitle": "Free. No fake buttons. One real click.",
+        "subtitle": "Free. No fake buttons.",
     },
     "tiktok": {
         "filename": "og-tiktok.png",
@@ -43,12 +43,12 @@ VARIANTS = {
     "instagram": {
         "filename": "og-instagram.png",
         "title": "Instagram Reel Downloader",
-        "subtitle": "Free. No fake buttons. One real click.",
+        "subtitle": "Free. No fake buttons.",
     },
     "facebook": {
         "filename": "og-facebook.png",
         "title": "Facebook Video Downloader",
-        "subtitle": "Free. No fake buttons. One real click.",
+        "subtitle": "Free. No fake buttons.",
     },
 }
 

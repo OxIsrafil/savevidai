@@ -8,7 +8,9 @@
 ![SaveVid AI - paste a tweet URL, pick a quality, download the video](docs/screenshot.png)
 
 Twitter/X video downloader. Paste a post link, see a preview, pick a quality, and
-download. No fake download buttons, and the download is never gated or delayed.
+download. No fake download buttons. A "Follow me on X" popup shows before each video
+download (following is optional), and the file itself still saves straight to your
+device.
 
 **Live site:** https://savevidai.israfill.dev
 

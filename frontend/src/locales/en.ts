@@ -296,7 +296,7 @@ export const enInstagram: PageStrings = {
     },
     {
       heading: "No fake buttons",
-      body: "The file saves straight to your device with a clean filename. No fake buttons, no detours.",
+      body: "The file saves straight to your device with a clean filename.",
     },
   ],
   svg: {
@@ -340,7 +340,7 @@ export const enFacebook: PageStrings = {
     },
     {
       heading: "No fake buttons",
-      body: "The video saves straight to your device with a clean filename. No fake buttons, no detours.",
+      body: "The video saves straight to your device with a clean filename.",
     },
   ],
   svg: {

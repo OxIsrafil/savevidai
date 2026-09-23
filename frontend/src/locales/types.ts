@@ -79,10 +79,10 @@ export type PhotoStrings = {
 };
 
 /**
- * The follow popup a video save button opens before its download. Not in the
- * translations doc: it arrived after it. `follow` interpolates `{handle}` (the
- * handle itself lives in lib/social.ts), `line` carries no handle, and `newTab`
- * is the Follow link's visually hidden new-tab note.
+ * 2.16 follow popup, which a video save button opens before its download.
+ * `follow` interpolates `{handle}` (the handle itself lives in lib/social.ts),
+ * `line` carries no handle, and `newTab` is the Follow link's visually hidden
+ * new-tab note.
  */
 export type FollowPopupStrings = {
   title: string;
