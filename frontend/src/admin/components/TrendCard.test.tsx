@@ -149,6 +149,18 @@ test("the Y axis uses compact labels", () => {
   expect(labels.some((l) => /^\d+(\.\d)?K$/.test(l))).toBe(true);
 });
 
+test("both axes label their ticks in the muted text token at 12px", () => {
+  const { container } = render(<TrendCard report={REPORT_7D} compare="the 7 days before" size={SIZE} />);
+  for (const axis of ["xAxis", "yAxis"]) {
+    const ticks = Array.from(container.querySelectorAll(`.recharts-${axis}-tick-labels text`));
+    expect(ticks.length).toBeGreaterThan(0);
+    for (const tick of ticks) {
+      expect(tick.getAttribute("fill")).toBe("var(--color-text-muted)");
+      expect(tick.getAttribute("font-size")).toBe("12");
+    }
+  }
+});
+
 test("an empty range says so over a flat chart", () => {
   render(<TrendCard report={EMPTY_REPORT} compare="the 7 days before" size={SIZE} />);
   expect(screen.getByText("Nothing in this range yet")).toBeInTheDocument();

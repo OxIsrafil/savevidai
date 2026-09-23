@@ -11,7 +11,7 @@ function Frame({ title, children }: { title: string; children: ReactNode }) {
         <Wordmark />
         <div className={cn(CARD, "mt-10 p-6 shadow-raised sm:p-8")}>
           <p className="kicker mb-2">Admin</p>
-          <h1 className="text-[clamp(20px,1.8vw,24px)] leading-tight font-semibold tracking-[-0.01em] text-text-primary">{title}</h1>
+          <h1 className="text-[clamp(20px,1.8vw,24px)] leading-[1.2] font-semibold tracking-[-0.018em] text-text-primary">{title}</h1>
           {children}
         </div>
       </div>

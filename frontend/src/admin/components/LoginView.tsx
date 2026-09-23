@@ -41,7 +41,7 @@ export function LoginView({ onSignedIn }: { onSignedIn: () => void }) {
         <Wordmark />
         <motion.div animate={shake} className={cn(CARD, "mt-10 p-6 shadow-raised sm:p-8")}>
           <p className="kicker mb-2">Admin</p>
-          <h1 className="text-[clamp(20px,1.8vw,24px)] leading-tight font-semibold tracking-[-0.01em] text-text-primary">Sign in</h1>
+          <h1 className="text-[clamp(20px,1.8vw,24px)] leading-[1.2] font-semibold tracking-[-0.018em] text-text-primary">Sign in</h1>
           <p className="mt-1.5 text-[13px] text-text-muted">Traffic, downloads and site controls for SaveVid AI</p>
           <form onSubmit={submit} noValidate className="mt-6 flex flex-col gap-2">
             <label htmlFor="admin-password" className="text-[13px] text-text-secondary">

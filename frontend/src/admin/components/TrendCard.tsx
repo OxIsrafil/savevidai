@@ -19,6 +19,9 @@ export const METRICS: { key: SeriesMetric; label: string; color: string; invert?
 /** Tests pass a fixed size because ResponsiveContainer measures 0x0 under jsdom. */
 export type ChartSize = { width: number; height: number };
 
+/** Axis labels: the muted text token at 12px, as in the premium store. The colour stays in admin.css. */
+const AXIS_TICK = { fill: "var(--color-text-muted)", fontSize: 12 };
+
 /** The tooltip body, pure so it can be tested with a fixed payload. Recharts hands the data row as payload[0].payload. */
 export function TrendTooltip({ active, payload, color, showPrev }: { active?: boolean; payload?: ReadonlyArray<{ payload?: unknown }>; color: string; showPrev: boolean }) {
   const row = active ? (payload?.[0]?.payload as TrendRow | undefined) : undefined;
@@ -83,8 +86,8 @@ export function TrendCard({ report, compare, size }: { report: Report; compare: 
         </linearGradient>
       </defs>
       <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
-      <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} minTickGap={28} tick={{ fill: COLORS.gray, fontSize: 11 }} />
-      <YAxis tickLine={false} axisLine={false} width={46} allowDecimals={false} tick={{ fill: COLORS.gray, fontSize: 11 }} tickFormatter={(v: number) => formatCompact(v)} />
+      <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={10} minTickGap={28} tick={AXIS_TICK} />
+      <YAxis tickLine={false} axisLine={false} width={46} allowDecimals={false} tick={AXIS_TICK} tickFormatter={(v: number) => formatCompact(v)} />
       <Tooltip cursor={{ stroke: "rgba(255,255,255,0.18)", strokeWidth: 1 }} content={(p) => <TrendTooltip active={p.active} payload={p.payload} color={current.color} showPrev={hasPrev} />} />
       {hasPrev ? <Area dataKey="prev" type="monotone" stroke={COLORS.gray} strokeOpacity={0.7} strokeWidth={1.5} strokeDasharray="4 4" fill="none" dot={false} activeDot={false} isAnimationActive={false} /> : null}
       <Area dataKey="value" type="monotone" stroke={current.color} strokeWidth={2.25} fill={`url(#${gradientId})`} dot={false} activeDot={{ r: 4, strokeWidth: 2, stroke: SURFACE }} isAnimationActive={!reduceMotion} animationDuration={700} />

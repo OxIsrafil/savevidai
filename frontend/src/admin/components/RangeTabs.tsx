@@ -3,7 +3,7 @@ import type { RangeKey } from "../lib/api";
 import { RANGE_KEYS, RANGE_LABELS } from "../lib/range";
 import { cn } from "./styles";
 
-/** A pill track of 32px buttons; the active pill is elevated and slides on a spring. */
+/** A pill track of 32px buttons (12px labels on phones, 13px from 640px); the active pill is elevated and slides on a spring. */
 export function RangeTabs({ active, onChange }: { active: RangeKey; onChange: (key: RangeKey) => void }) {
   return (
     <div role="group" aria-label="Date range" className="flex w-full rounded-full border border-line/60 bg-surface p-1 sm:inline-flex sm:w-auto">
@@ -16,7 +16,7 @@ export function RangeTabs({ active, onChange }: { active: RangeKey; onChange: (k
             aria-pressed={selected}
             onClick={() => onChange(key)}
             className={cn(
-              "relative h-8 min-w-0 flex-1 rounded-full px-1.5 text-[13px] whitespace-nowrap transition-colors sm:flex-none sm:px-3.5",
+              "relative h-8 min-w-0 flex-1 rounded-full px-1.5 text-[12px] whitespace-nowrap transition-colors sm:flex-none sm:px-3.5 sm:text-[13px]",
               selected ? "font-medium text-text-primary" : "text-text-muted hover:text-text-primary",
             )}
           >
