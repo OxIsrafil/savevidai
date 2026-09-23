@@ -17,6 +17,7 @@ from .store import Store
 
 RANGES = {"today": 1, "7d": 7, "30d": 30, "90d": 90}
 DEFAULT_RANGE = "7d"
+PLATFORMS = ("twitter", "tiktok", "reddit", "instagram", "facebook")
 _TS_FORMAT = "%Y-%m-%d %H:%M:%S"
 _MAX_TZ = 840  # +/- 14 hours
 
@@ -315,12 +316,166 @@ def series(store: Store, current: Window, previous: Window, n: int, bucket: str,
     return out
 
 
-# ---- entry point -----------------------------------------------------------
+# ---- panels (current window only) ------------------------------------------
+
+def funnel(store: Store, window: Window) -> dict:
+    """Visitor-day funnel, nested so it can never grow step to step."""
+    days = _visitor_days(store, window.tz, window.start_utc, window.end_utc)
+    return {
+        "visitors": days["visitors"],
+        "fetched": days["fetched"],
+        "got_result": days["got_result"],
+        "downloaded": days["downloaded"],
+    }
+
+
+def outcomes(store: Store, window: Window) -> list[dict]:
+    rows = store.query(
+        "SELECT outcome, COUNT(*) AS count FROM events "
+        "WHERE ts >= ? AND ts < ? AND type='fetch' AND outcome IS NOT NULL "
+        "GROUP BY outcome ORDER BY count DESC, outcome ASC",
+        [window.start_utc, window.end_utc],
+    )
+    return [{"outcome": r["outcome"], "count": r["count"]} for r in rows]
+
+
+def platforms(store: Store, window: Window) -> list[dict]:
+    rows = store.query(
+        "SELECT platform, "
+        "COALESCE(SUM(CASE WHEN type='fetch' THEN 1 ELSE 0 END), 0) AS fetches, "
+        "COALESCE(SUM(CASE WHEN type='fetch' AND outcome='ok' THEN 1 ELSE 0 END), 0) AS ok, "
+        "COALESCE(SUM(CASE WHEN type='download' THEN 1 ELSE 0 END), 0) AS downloads "
+        "FROM events WHERE ts >= ? AND ts < ? AND platform IS NOT NULL "
+        "AND type IN ('fetch', 'download') "
+        "GROUP BY platform ORDER BY fetches DESC, platform ASC",
+        [window.start_utc, window.end_utc],
+    )
+    return [{"platform": r["platform"], "fetches": r["fetches"], "ok": r["ok"],
+             "downloads": r["downloads"]} for r in rows]
+
+
+def qualities(store: Store, window: Window) -> list[dict]:
+    # Raw heights are bucketed to standard tiers in Python (not SQL) so several
+    # non-standard heights collapse into one row; re-sum and re-sort after the
+    # per-outcome GROUP BY.
+    rows = store.query(
+        "SELECT outcome AS quality, COUNT(*) AS count FROM events "
+        "WHERE ts >= ? AND ts < ? AND type='download' AND outcome IS NOT NULL "
+        "GROUP BY outcome",
+        [window.start_utc, window.end_utc],
+    )
+    counts: dict[str, int] = {}
+    for r in rows:
+        label = _bucket_quality(r["quality"])
+        counts[label] = counts.get(label, 0) + r["count"]
+    return [{"quality": q, "count": c}
+            for q, c in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))]
+
+
+def countries(store: Store, window: Window) -> list[dict]:
+    """Top 10 countries by visitor-days, then exactly one unknown row for NULL
+    country counted the same way, always present even when 0."""
+    local = _local(window.tz)
+    visitor_days = f"COUNT(DISTINCT date({local}) || '|' || visitor)"
+    rows = store.query(
+        f"SELECT country, {visitor_days} AS visitors FROM events "
+        "WHERE ts >= ? AND ts < ? AND country IS NOT NULL "
+        "GROUP BY country ORDER BY visitors DESC, country ASC LIMIT 10",
+        [window.start_utc, window.end_utc],
+    )
+    out = [{"country": r["country"], "visitors": r["visitors"]} for r in rows]
+    unknown = store.query(
+        f"SELECT {visitor_days} AS visitors FROM events "
+        "WHERE ts >= ? AND ts < ? AND country IS NULL",
+        [window.start_utc, window.end_utc],
+    )[0]["visitors"]
+    out.append({"country": "unknown", "visitors": unknown})
+    return out
+
+
+def pages(store: Store, window: Window) -> list[dict]:
+    rows = store.query(
+        "SELECT platform, COALESCE(locale, 'unknown') AS locale, COUNT(*) AS views "
+        "FROM events WHERE ts >= ? AND ts < ? AND type='visit' AND platform IS NOT NULL "
+        "GROUP BY platform, COALESCE(locale, 'unknown') "
+        "ORDER BY views DESC, platform ASC, locale ASC LIMIT 12",
+        [window.start_utc, window.end_utc],
+    )
+    return [{"platform": r["platform"], "locale": r["locale"], "views": r["views"]}
+            for r in rows]
+
+
+def hours(store: Store, window: Window) -> list[dict]:
+    local = _local(window.tz)
+    rows = store.query(
+        f"SELECT CAST(strftime('%H', {local}) AS INTEGER) AS hour, COUNT(*) AS fetches "
+        "FROM events WHERE ts >= ? AND ts < ? AND type='fetch' GROUP BY hour",
+        [window.start_utc, window.end_utc],
+    )
+    by_hour = {int(r["hour"]): r["fetches"] for r in rows}
+    return [{"hour": h, "fetches": by_hour.get(h, 0)} for h in range(24)]
+
+
+def sources(store: Store, window: Window) -> list[dict]:
+    rows = store.query(
+        "SELECT source, COUNT(*) AS visits FROM events "
+        "WHERE ts >= ? AND ts < ? AND type='visit' AND source IS NOT NULL "
+        "GROUP BY source ORDER BY visits DESC, source ASC",
+        [window.start_utc, window.end_utc],
+    )
+    return [{"source": r["source"], "visits": r["visits"]} for r in rows]
+
+
+def peak(store: Store, window: Window) -> dict | None:
+    """Highest COUNT(DISTINCT visitor) in any 5-minute tumbling bucket among the
+    events inside the window. Buckets are floored on UTC epoch seconds
+    (bucket = epoch // 300 * 300) so concurrency itself is tz-independent; the
+    bucket start is shifted to the owner's tz only to render day and time.
+    Ties go to the earliest bucket. None when the window is empty."""
+    rows = store.query(
+        "SELECT b, COUNT(DISTINCT visitor) AS n FROM ("
+        "SELECT (CAST(strftime('%s', ts) AS INTEGER) / 300) * 300 AS b, visitor "
+        "FROM events WHERE ts >= ? AND ts < ?) "
+        "GROUP BY b ORDER BY n DESC, b ASC LIMIT 1",
+        [window.start_utc, window.end_utc],
+    )
+    if not rows:
+        return None
+    start = datetime.fromtimestamp(int(rows[0]["b"]), UTC).replace(tzinfo=None)
+    local = start + timedelta(minutes=window.tz)
+    return {"count": rows[0]["n"], "day": local.date().isoformat(), "time": local.strftime("%H:%M")}
+
+
+def live(store: Store, now: datetime) -> dict:
+    """Independent of the range: people seen in the last 5 minutes and fetches
+    in the last 60. Lower bound only: the spec defines these as `ts >= now - X`,
+    and an upper bound at the second-floored `now` would hide events recorded
+    in the current second."""
+    now_utc = now.astimezone(UTC).replace(tzinfo=None)
+    five = _fmt(now_utc - timedelta(minutes=5))
+    hour = _fmt(now_utc - timedelta(minutes=60))
+    active = store.query(
+        "SELECT COUNT(DISTINCT visitor) AS n FROM events WHERE ts >= ?", [five],
+    )[0]["n"]
+    row = store.query(
+        "SELECT COUNT(*) AS fetches, "
+        "COALESCE(SUM(CASE WHEN outcome='upstream_error' THEN 1 ELSE 0 END), 0) AS upstream "
+        "FROM events WHERE ts >= ? AND type='fetch'",
+        [hour],
+    )[0]
+    return {
+        "active_now": active,
+        "fetches_last_hour": row["fetches"],
+        "upstream_last_hour": row["upstream"],
+    }
+
+
+# ---- entry points ----------------------------------------------------------
 
 def compute_report(store: Store, range_key: str, tz: int, now: datetime) -> dict:
-    """The report core (spec B4 minus the panels, which Task 3 adds to this
-    same dict). `range_key` must come from parse_range and `tz` from parse_tz;
-    `now` is an aware datetime (the router passes datetime.now(UTC))."""
+    """The full report (spec B4). `range_key` must come from parse_range and
+    `tz` from parse_tz; `now` is an aware datetime (the router passes
+    datetime.now(UTC))."""
     n = RANGES[range_key]
     current, previous = windows(range_key, tz, now)
     bucket = "hour" if range_key == "today" else "day"
@@ -334,4 +489,63 @@ def compute_report(store: Store, range_key: str, tz: int, now: datetime) -> dict
         "totals": totals(store, current, n),
         "previous": totals(store, previous, n) if with_previous else None,
         "series": series(store, current, previous, n, bucket, with_previous),
+        "peak": peak(store, current),
+        "funnel": funnel(store, current),
+        "outcomes": outcomes(store, current),
+        "platforms": platforms(store, current),
+        "qualities": qualities(store, current),
+        "countries": countries(store, current),
+        "pages": pages(store, current),
+        "hours": hours(store, current),
+        "sources": sources(store, current),
+        "live": live(store, now),
     }
+
+
+def _minutes_ago(ts: str, now: datetime) -> int:
+    """Whole minutes (floor) between a stored UTC text and the aware `now`,
+    never negative even under clock skew."""
+    then = datetime.strptime(ts, _TS_FORMAT).replace(tzinfo=UTC)
+    return max(0, int((now - then).total_seconds() // 60))
+
+
+def compute_resolvers(store: Store, tz: int, now: datetime) -> dict:
+    """Resolver health over the rolling 24 hours [now - 24h, now), fetch events
+    only (spec B5). Always the five platforms in a fixed order. `tz` is
+    accepted for symmetry with the report; the response carries no clock
+    times, so it does not influence the numbers."""
+    now_utc = now.astimezone(UTC).replace(tzinfo=None)
+    start, end = _fmt(now_utc - timedelta(hours=24)), _fmt(now_utc)
+    failed = "type='fetch' AND platform IS NOT NULL AND outcome IS NOT NULL AND outcome != 'ok'"
+    counts = {r["platform"]: r for r in store.query(
+        "SELECT platform, COUNT(*) AS fetches, "
+        "COALESCE(SUM(CASE WHEN outcome='ok' THEN 1 ELSE 0 END), 0) AS ok "
+        "FROM events WHERE ts >= ? AND ts < ? AND type='fetch' AND platform IS NOT NULL "
+        "GROUP BY platform",
+        [start, end],
+    )}
+    top: dict[str, dict] = {}
+    for r in store.query(
+        "SELECT platform, outcome, COUNT(*) AS count FROM events "
+        f"WHERE ts >= ? AND ts < ? AND {failed} "
+        "GROUP BY platform, outcome ORDER BY count DESC, outcome ASC",
+        [start, end],
+    ):
+        top.setdefault(r["platform"], {"outcome": r["outcome"], "count": r["count"]})
+    last = {r["platform"]: r["last"] for r in store.query(
+        f"SELECT platform, MAX(ts) AS last FROM events WHERE ts >= ? AND ts < ? AND {failed} "
+        "GROUP BY platform",
+        [start, end],
+    )}
+    rows = []
+    for platform in PLATFORMS:
+        c = counts.get(platform)
+        last_ts = last.get(platform)
+        rows.append({
+            "platform": platform,
+            "fetches": c["fetches"] if c else 0,
+            "ok": c["ok"] if c else 0,
+            "top_failure": top.get(platform),
+            "last_failure_min_ago": _minutes_ago(last_ts, now) if last_ts else None,
+        })
+    return {"platforms": rows}

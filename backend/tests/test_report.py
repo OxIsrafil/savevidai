@@ -12,6 +12,7 @@ from app.analytics.report import (
     Window,
     _bucket_quality,
     compute_report,
+    compute_resolvers,
     has_previous,
     parse_range,
     parse_tz,
@@ -21,7 +22,8 @@ from app.analytics.store import SqliteStore
 
 NOW = datetime(2026, 9, 23, 7, 30, tzinfo=UTC)
 
-COLS = ("ts", "type", "outcome", "country", "visitor", "platform", "source", "visitor_kind")
+COLS = ("ts", "type", "outcome", "country", "visitor", "platform", "source", "visitor_kind",
+        "locale")
 _INSERT = f"INSERT INTO events ({', '.join(COLS)}) VALUES ({', '.join('?' * len(COLS))})"
 
 TOTAL_KEYS = {
@@ -519,3 +521,320 @@ def test_a_fetch_with_no_outcome_is_not_a_failure():
     assert out["totals"]["failed_fetches"] == 1
     assert out["series"][3]["key"] == "2026-09-20"
     assert out["series"][3]["cur"]["failed_fetches"] == 1
+
+
+# ---- Task 3: panels, live, resolvers ------------------------------------------
+
+REPORT_KEYS = {
+    "range", "tz", "bucket", "has_previous", "window", "totals", "previous", "series", "peak",
+    "funnel", "outcomes", "platforms", "qualities", "countries", "pages", "hours", "sources",
+    "live",
+}
+
+
+def test_report_carries_every_key_of_spec_b4():
+    out = compute_report(_seed_week(), "7d", 0, NOW)
+    assert set(out) == REPORT_KEYS
+    assert set(out["live"]) == {"active_now", "fetches_last_hour", "upstream_last_hour"}
+    assert set(out["funnel"]) == {"visitors", "fetched", "got_result", "downloaded"}
+
+
+def test_funnel_is_nested_on_a_visitor_day_basis():
+    out = compute_report(_seed_week(), "7d", 0, NOW)
+    # visitor-days: 6; with a fetch: (09-20 v1) (09-20 v2) (09-21 v1) (09-22 v3);
+    # with an ok fetch: (09-20 v1) (09-21 v1) (09-22 v3); downloaded: (09-20 v1) (09-22 v3)
+    assert out["funnel"] == {"visitors": 6, "fetched": 4, "got_result": 3, "downloaded": 2}
+    assert out["funnel"]["downloaded"] == out["totals"]["downloaded_visitors"]
+    f = out["funnel"]
+    assert f["visitors"] >= f["fetched"] >= f["got_result"] >= f["downloaded"]
+
+
+def test_funnel_empty_window_is_all_zero():
+    out = compute_report(seeded([]), "today", 0, NOW)
+    assert out["funnel"] == {"visitors": 0, "fetched": 0, "got_result": 0, "downloaded": 0}
+
+
+def test_outcomes_include_ok_ordered_by_count_then_name():
+    out = compute_report(_seed_week(), "7d", 0, NOW)
+    assert out["outcomes"] == [
+        {"outcome": "ok", "count": 3},
+        {"outcome": "no_video", "count": 1},
+        {"outcome": "upstream_error", "count": 1},
+    ]
+
+
+def test_platforms_breakdown_and_ordering():
+    out = compute_report(_seed_week(), "7d", 0, NOW)
+    # reddit and twitter tie on fetches, so the name breaks the tie; instagram
+    # only has a visit in the window and does not appear
+    assert out["platforms"] == [
+        {"platform": "reddit", "fetches": 2, "ok": 1, "downloads": 2},
+        {"platform": "twitter", "fetches": 2, "ok": 2, "downloads": 1},
+        {"platform": "tiktok", "fetches": 1, "ok": 0, "downloads": 0},
+    ]
+
+
+def test_platforms_ordered_by_fetches_desc():
+    s = seeded([
+        ("2026-09-20 10:00:00", "fetch", "ok", None, "v1", "twitter"),
+        ("2026-09-20 10:01:00", "fetch", "ok", None, "v2", "tiktok"),
+        ("2026-09-20 10:02:00", "fetch", "ok", None, "v3", "tiktok"),
+        ("2026-09-20 10:03:00", "fetch", "ok", None, "v4", "tiktok"),
+        ("2026-09-20 10:04:00", "fetch", "ok", None, "v5", "instagram"),
+        ("2026-09-20 10:05:00", "fetch", "ok", None, "v6", "instagram"),
+    ])
+    out = compute_report(s, "7d", 0, NOW)
+    assert [p["platform"] for p in out["platforms"]] == ["tiktok", "instagram", "twitter"]
+
+
+def test_qualities_bucketed_and_reaggregated():
+    s = seeded([
+        # three distinct raw heights that all snap to 1080p -> must SUM to 3
+        ("2026-09-20 03:00:00", "download", "1124p", "BD", "v1"),
+        ("2026-09-20 03:01:00", "download", "1054p", "BD", "v2"),
+        ("2026-09-20 03:02:00", "download", "1080p", "BD", "v3"),
+        # two that snap to 720p
+        ("2026-09-20 03:03:00", "download", "680p", "BD", "v4"),
+        ("2026-09-20 03:04:00", "download", "720p", "BD", "v5"),
+        # a named tiktok label, untouched
+        ("2026-09-20 03:05:00", "download", "hd", "BD", "v6"),
+        # a download whose quality was never sent -> NULL outcome, excluded
+        ("2026-09-20 03:06:00", "download", None, "BD", "v7"),
+    ])
+    out = compute_report(s, "7d", 0, NOW)
+    assert out["qualities"] == [
+        {"quality": "1080p", "count": 3}, {"quality": "720p", "count": 2}, {"quality": "hd", "count": 1},
+    ]
+
+
+def test_countries_top_10_by_visitor_days_then_unknown_row():
+    codes = ["BD", "US", "ES", "IN", "DE", "FR", "GB", "BR", "MX", "ID", "PK"]
+    rows = []
+    for rank, code in enumerate(codes):
+        # 11 visitor-days for BD down to 1 for PK, each a different visitor on 09-20
+        for i in range(11 - rank):
+            rows.append(("2026-09-20 10:00:00", "visit", None, code, f"{code}-{i}", "twitter"))
+    # one person seen on three days with no country: three visitor-days
+    for day in ("2026-09-20", "2026-09-21", "2026-09-22"):
+        rows.append((f"{day} 10:00:00", "visit", None, None, "anon", "twitter"))
+        rows.append((f"{day} 10:01:00", "fetch", "ok", None, "anon", "twitter"))
+    out = compute_report(seeded(rows), "7d", 0, NOW)
+    assert [c["country"] for c in out["countries"]] == codes[:10] + ["unknown"]
+    assert out["countries"][0] == {"country": "BD", "visitors": 11}
+    assert out["countries"][-1] == {"country": "unknown", "visitors": 3}
+
+
+def test_countries_unknown_row_present_at_zero_and_ties_break_by_code():
+    s = seeded([
+        ("2026-09-20 10:00:00", "visit", None, "US", "a", "twitter"),
+        ("2026-09-20 10:01:00", "visit", None, "BD", "b", "twitter"),
+        # the same BD visitor twice on one day is one visitor-day
+        ("2026-09-20 10:02:00", "fetch", "ok", "BD", "b", "twitter"),
+    ])
+    out = compute_report(s, "7d", 0, NOW)
+    assert out["countries"] == [
+        {"country": "BD", "visitors": 1}, {"country": "US", "visitors": 1},
+        {"country": "unknown", "visitors": 0},
+    ]
+
+
+def test_countries_add_up_like_the_visitors_total():
+    out = compute_report(_seed_week(), "7d", 0, NOW)
+    assert sum(c["visitors"] for c in out["countries"]) == out["totals"]["visitors"]
+
+
+def test_pages_group_by_platform_and_locale_with_null_as_unknown():
+    s = seeded([
+        ("2026-09-20 10:00:00", "visit", None, None, "a", "twitter", "direct", "new", "en"),
+        ("2026-09-20 10:01:00", "visit", None, None, "b", "twitter", "direct", "new", "en"),
+        ("2026-09-20 10:02:00", "visit", None, None, "c", "twitter", "direct", "new", None),
+        ("2026-09-20 10:03:00", "visit", None, None, "d", "instagram", "direct", "new", "hi"),
+        ("2026-09-20 10:04:00", "visit", None, None, "e", "tiktok", "direct", "new", "es"),
+        ("2026-09-20 10:05:00", "visit", None, None, "f", "tiktok", "direct", "new", None),
+        # not a visit
+        ("2026-09-20 10:06:00", "fetch", "ok", None, "f", "tiktok", None, None, "es"),
+        # a visit without a platform cannot be labelled and is left out
+        ("2026-09-20 10:07:00", "visit", None, None, "g", None, "direct", "new", "en"),
+    ])
+    out = compute_report(s, "7d", 0, NOW)
+    assert out["pages"] == [
+        {"platform": "twitter", "locale": "en", "views": 2},
+        {"platform": "instagram", "locale": "hi", "views": 1},
+        {"platform": "tiktok", "locale": "es", "views": 1},
+        {"platform": "tiktok", "locale": "unknown", "views": 1},
+        {"platform": "twitter", "locale": "unknown", "views": 1},
+    ]
+
+
+def test_pages_keep_the_top_12():
+    rows = []
+    combos = [(p, loc) for p in ("twitter", "tiktok", "reddit", "instagram")
+              for loc in ("en", "es", "hi", None)][:13]
+    for views, (platform, locale) in enumerate(combos, start=1):
+        for i in range(views):
+            rows.append(("2026-09-20 10:00:00", "visit", None, None, f"{platform}-{locale}-{i}",
+                         platform, "direct", "new", locale))
+    out = compute_report(seeded(rows), "7d", 0, NOW)
+    assert len(out["pages"]) == 12
+    assert out["pages"][0]["views"] == 13
+    assert out["pages"][-1]["views"] == 2
+
+
+def test_hours_are_24_zero_filled_local_fetch_counts():
+    s = seeded([
+        # 20:30 and 20:31 UTC are 02:30 and 02:31 local at +360
+        ("2026-09-22 20:30:00", "fetch", "ok", None, "a", "twitter"),
+        ("2026-09-22 20:31:00", "fetch", "no_video", None, "b", "twitter"),
+        ("2026-09-22 21:00:00", "fetch", "ok", None, "c", "reddit"),
+        # a visit is not a fetch
+        ("2026-09-22 20:32:00", "visit", None, None, "d", "twitter"),
+    ])
+    out = compute_report(s, "7d", 360, NOW)
+    assert len(out["hours"]) == 24
+    assert [h["hour"] for h in out["hours"]] == list(range(24))
+    assert out["hours"][2] == {"hour": 2, "fetches": 2}
+    assert out["hours"][3] == {"hour": 3, "fetches": 1}
+    assert sum(h["fetches"] for h in out["hours"]) == 3
+
+
+def test_sources_grouped_and_ordered():
+    s = seeded([
+        ("2026-09-20 10:00:00", "visit", None, "BD", "v1", None, "search", None),
+        ("2026-09-20 10:01:00", "visit", None, "BD", "v2", None, "search", None),
+        ("2026-09-20 10:02:00", "visit", None, "US", "v3", None, "direct", None),
+        ("2026-09-20 10:03:00", "visit", None, "US", "v5", None, "social", None),
+        # non-visit with a source must not be counted
+        ("2026-09-20 10:04:00", "fetch", "ok", "US", "v3", None, "search", None),
+        # visit with NULL source must not be counted
+        ("2026-09-20 10:05:00", "visit", None, "US", "v4", None, None, None),
+    ])
+    out = compute_report(s, "7d", 0, NOW)
+    assert out["sources"] == [
+        {"source": "search", "visits": 2}, {"source": "direct", "visits": 1},
+        {"source": "social", "visits": 1},
+    ]
+
+
+def test_peak_two_visitors_in_one_tumbling_bucket_rendered_in_local_time():
+    # 10:01 and 10:03 both floor to the 10:00 bucket; the record carries the
+    # bucket START, shifted to the owner's tz for display.
+    s = seeded([
+        ("2026-09-20 10:01:00", "visit", None, "BD", "v1"),
+        ("2026-09-20 10:03:00", "visit", None, "US", "v2"),
+    ])
+    assert compute_report(s, "7d", 0, NOW)["peak"] == {
+        "count": 2, "day": "2026-09-20", "time": "10:00",
+    }
+    assert compute_report(s, "7d", 360, NOW)["peak"] == {
+        "count": 2, "day": "2026-09-20", "time": "16:00",
+    }
+    assert compute_report(s, "7d", -300, NOW)["peak"] == {
+        "count": 2, "day": "2026-09-20", "time": "05:00",
+    }
+
+
+def test_peak_is_tumbling_not_sliding_and_counts_a_person_once():
+    straddle = seeded([
+        ("2026-09-20 10:04:00", "visit", None, "BD", "v1"),
+        ("2026-09-20 10:06:00", "visit", None, "US", "v2"),
+    ])
+    assert compute_report(straddle, "7d", 0, NOW)["peak"]["count"] == 1
+    repeat = seeded([
+        ("2026-09-20 10:01:00", "visit", None, "BD", "v1"),
+        ("2026-09-20 10:02:00", "fetch", "ok", "BD", "v1"),
+    ])
+    assert compute_report(repeat, "7d", 0, NOW)["peak"]["count"] == 1
+
+
+def test_peak_only_looks_inside_the_current_window_and_ties_go_earliest():
+    s = seeded([
+        # three people in one bucket, but in the previous window
+        ("2026-09-15 10:00:00", "visit", None, None, "p1"),
+        ("2026-09-15 10:01:00", "visit", None, None, "p2"),
+        ("2026-09-15 10:02:00", "visit", None, None, "p3"),
+        # two buckets of two inside the window: the earliest wins the tie
+        ("2026-09-18 10:00:00", "visit", None, None, "a1"),
+        ("2026-09-18 10:01:00", "visit", None, None, "a2"),
+        ("2026-09-20 10:00:00", "visit", None, None, "b1"),
+        ("2026-09-20 10:01:00", "visit", None, None, "b2"),
+    ])
+    assert compute_report(s, "7d", 0, NOW)["peak"] == {
+        "count": 2, "day": "2026-09-18", "time": "10:00",
+    }
+
+
+def test_peak_is_null_for_an_empty_window():
+    assert compute_report(seeded([]), "7d", 0, NOW)["peak"] is None
+    # events exist but none inside today's window
+    old = seeded([("2026-09-20 10:00:00", "visit", None, None, "v")])
+    assert compute_report(old, "today", 0, NOW)["peak"] is None
+
+
+def test_live_block_is_range_independent_and_uses_the_last_minutes():
+    s = seeded([
+        (at(minutes=-4), "visit", None, None, "a", "twitter"),
+        (at(minutes=-6), "fetch", "ok", None, "b", "twitter"),
+        (at(minutes=-59), "fetch", "upstream_error", None, "c", "reddit"),
+        (at(minutes=-61), "fetch", "upstream_error", None, "d", "reddit"),
+        # stamped in this very second: still live
+        (at(), "fetch", "ok", None, "e", "tiktok"),
+    ])
+    expected = {"active_now": 2, "fetches_last_hour": 3, "upstream_last_hour": 1}
+    for range_key in RANGES:
+        assert compute_report(s, range_key, 0, NOW)["live"] == expected
+    assert compute_report(s, "7d", 360, NOW)["live"] == expected
+
+
+def test_live_block_zero_on_empty_store():
+    assert compute_report(seeded([]), "today", 0, NOW)["live"] == {
+        "active_now": 0, "fetches_last_hour": 0, "upstream_last_hour": 0,
+    }
+
+
+def test_resolvers_five_fixed_rows_over_the_rolling_24_hours():
+    s = seeded([
+        (at(minutes=-30), "fetch", "ok", None, "t1", "twitter"),
+        (at(minutes=-20), "fetch", "ok", None, "t2", "twitter"),
+        (at(minutes=-12, seconds=-30), "fetch", "not_found", None, "t3", "twitter"),
+        (at(hours=-3), "fetch", "upstream_error", None, "r1", "reddit"),
+        (at(hours=-2), "fetch", "upstream_error", None, "r2", "reddit"),
+        (at(minutes=-90), "fetch", "not_found", None, "r3", "reddit"),
+        (at(minutes=-61), "fetch", "not_found", None, "r4", "reddit"),
+        # exactly 24 hours ago: the first second of the window
+        (at(hours=-24), "fetch", "ok", None, "i1", "instagram"),
+        # one second older: outside
+        (at(hours=-24, seconds=-1), "fetch", "ok", None, "f1", "facebook"),
+        # a fetch without a platform cannot be attributed
+        (at(minutes=-5), "fetch", "not_found", None, "n1", None),
+        # downloads are not lookups
+        (at(minutes=-5), "download", "hd", None, "t1", "twitter"),
+    ])
+    out = compute_resolvers(s, 0, NOW)
+    assert [r["platform"] for r in out["platforms"]] == [
+        "twitter", "tiktok", "reddit", "instagram", "facebook",
+    ]
+    by = {r["platform"]: r for r in out["platforms"]}
+    assert by["twitter"] == {"platform": "twitter", "fetches": 3, "ok": 2,
+                             "top_failure": {"outcome": "not_found", "count": 1},
+                             "last_failure_min_ago": 12}
+    assert by["tiktok"] == {"platform": "tiktok", "fetches": 0, "ok": 0, "top_failure": None,
+                            "last_failure_min_ago": None}
+    # reddit: not_found and upstream_error tie at 2, the name breaks the tie;
+    # the newest failure is r4, 61 minutes ago
+    assert by["reddit"] == {"platform": "reddit", "fetches": 4, "ok": 0,
+                            "top_failure": {"outcome": "not_found", "count": 2},
+                            "last_failure_min_ago": 61}
+    assert by["instagram"] == {"platform": "instagram", "fetches": 1, "ok": 1,
+                               "top_failure": None, "last_failure_min_ago": None}
+    assert by["facebook"]["fetches"] == 0
+    # tz does not change the numbers
+    assert compute_resolvers(s, 360, NOW) == out
+
+
+def test_resolvers_last_failure_floors_to_whole_minutes():
+    s = seeded([(at(seconds=-59), "fetch", "not_found", None, "t", "twitter")])
+    row = compute_resolvers(s, 0, NOW)["platforms"][0]
+    assert row["last_failure_min_ago"] == 0
+    s = seeded([(at(minutes=-60, seconds=-1), "fetch", "not_found", None, "t", "twitter")])
+    row = compute_resolvers(s, 0, NOW)["platforms"][0]
+    assert row["last_failure_min_ago"] == 60
