@@ -489,3 +489,33 @@ def test_hourly_series_today_at_plus_360_cuts_after_hour_13():
     assert all(r["cur"] is None for r in rows[14:])
     # no previous period: prev is null in every bucket, not only after now
     assert all(r["prev"] is None for r in rows)
+
+
+def test_visitor_days_follow_the_local_day_not_the_utc_day():
+    # tz +360 puts local midnight at 18:00 UTC. One hash seen at 17:00 and 19:00
+    # UTC is one UTC day but two local days (09-20 23:00 and 09-21 01:00), so it
+    # is two visitor-days, and an ok fetch and a download on different local
+    # days never make a downloaded visitor-day.
+    s = seeded([
+        ("2026-09-20 17:00:00", "fetch", "ok", None, "x", "twitter"),
+        ("2026-09-20 19:00:00", "download", "1080p", None, "x", "twitter"),
+    ])
+    out = compute_report(s, "7d", 360, NOW)
+    assert out["totals"]["visitors"] == 2
+    assert out["totals"]["complete_day_visitors"] == 2
+    assert out["totals"]["downloaded_visitors"] == 0
+    assert out["totals"]["visitors"] == sum(r["cur"]["visitors"] for r in out["series"])
+
+
+def test_a_fetch_with_no_outcome_is_not_a_failure():
+    # spec B3: failed_fetches excludes NULL outcomes. resolve.py always records
+    # an outcome today; this pins the rule for any future caller.
+    s = seeded([
+        ("2026-09-20 10:00:00", "fetch", None, None, "v", "twitter"),
+        ("2026-09-20 10:01:00", "fetch", "no_video", None, "v", "twitter"),
+    ])
+    out = compute_report(s, "7d", 0, NOW)
+    assert out["totals"]["fetches"] == 2
+    assert out["totals"]["failed_fetches"] == 1
+    assert out["series"][3]["key"] == "2026-09-20"
+    assert out["series"][3]["cur"]["failed_fetches"] == 1
