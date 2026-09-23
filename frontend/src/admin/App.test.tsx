@@ -168,3 +168,74 @@ test("while maintenance is on, the Site nav item carries the On pill", async () 
   expect(await screen.findByText("On")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Site On" })).toBeInTheDocument();
 });
+
+test("a range tab writes the URL and refetches the report for that range", async () => {
+  const server = fakeServer();
+  vi.stubGlobal("fetch", server.fetch);
+  render(<App />);
+  await screen.findByText("Sep 17 to Sep 23, your local time");
+  await userEvent.click(screen.getByRole("button", { name: "30 days" }));
+  expect(window.location.search).toBe("?range=30d");
+  expect(screen.getByRole("heading", { name: "Last 30 days" })).toBeInTheDocument();
+  await vi.waitFor(() => expect(server.urls("/api/admin/report").at(-1)).toBe("/api/admin/report?range=30d&tz=" + String(-new Date().getTimezoneOffset())));
+  act(() => {
+    window.history.replaceState(null, "", "/?range=today");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  expect(screen.getByRole("heading", { name: "Today" })).toBeInTheDocument();
+  expect(await screen.findByText("Sep 23, your local time")).toBeInTheDocument();
+});
+
+test("refreshes every 30 s only while the tab is visible, and catches up on return", async () => {
+  vi.useFakeTimers();
+  const server = fakeServer();
+  vi.stubGlobal("fetch", server.fetch);
+  render(<App />);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(10);
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(10);
+  });
+  expect(server.urls("/api/admin/report")).toHaveLength(1);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(30_000);
+  });
+  expect(server.urls("/api/admin/report")).toHaveLength(2);
+  Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(60_000);
+  });
+  expect(server.urls("/api/admin/report")).toHaveLength(2);
+  Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+  await act(async () => {
+    document.dispatchEvent(new Event("visibilitychange"));
+    await vi.advanceTimersByTimeAsync(10);
+  });
+  expect(server.urls("/api/admin/report")).toHaveLength(3);
+  delete (document as unknown as { visibilityState?: string }).visibilityState;
+});
+
+test("a 401 on a refresh returns to the login view", async () => {
+  vi.useFakeTimers();
+  const server = fakeServer();
+  vi.stubGlobal("fetch", server.fetch);
+  render(<App />);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(10);
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(10);
+  });
+  expect(screen.getByRole("heading", { name: "Last 7 days" })).toBeInTheDocument();
+  // Only the report says 401; the maintenance refresh on the same tick still answers 200, so
+  // this pins the Analytics page's own 401 handler rather than the app's maintenance check.
+  server.state.reportStatus = 401;
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(30_000);
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(10);
+  });
+  expect(screen.getByLabelText("Password")).toBeInTheDocument();
+});
