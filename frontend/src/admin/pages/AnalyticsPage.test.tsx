@@ -278,3 +278,17 @@ test("Failed on our side counts resolver errors only; the unknown country row is
   expect(within(failed).getByText("17")).toBeInTheDocument();
   expect(within(screen.getByRole("region", { name: "Countries" })).getByText("Not known").className).toContain("text-text-muted");
 });
+
+test("nothing inside an aria-hidden chart or icon on the page can take focus", async () => {
+  vi.stubGlobal("fetch", fakeServer().fetch);
+  const { container } = render(<AnalyticsPage {...props()} />);
+  await screen.findByText("Sep 17 to Sep 23, your local time");
+  const focusable = "a[href], button, input, select, textarea, [contenteditable], [tabindex]";
+  const hidden = Array.from(container.querySelectorAll("[aria-hidden='true']"));
+  expect(hidden.length).toBeGreaterThan(0);
+  const stops = hidden
+    .flatMap((h) => [h, ...Array.from(h.querySelectorAll(focusable))])
+    .filter((el) => el.matches(focusable) && el.getAttribute("tabindex") !== "-1")
+    .map((el) => `${el.tagName.toLowerCase()} tabindex=${el.getAttribute("tabindex")}`);
+  expect(stops).toEqual([]);
+});

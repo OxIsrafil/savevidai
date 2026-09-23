@@ -58,8 +58,9 @@ export function TrendCard({ report, compare, size }: { report: Report; compare: 
   const totals = report.totals;
   const previous = report.previous;
 
+  // The chart is aria-hidden (the tabs carry the numbers), so recharts' keyboard layer is off: no hidden tab stop.
   const chart = (
-    <AreaChart data={rows} margin={{ left: 0, right: 8, top: 8, bottom: 0 }} width={size?.width} height={size?.height}>
+    <AreaChart data={rows} margin={{ left: 0, right: 8, top: 8, bottom: 0 }} width={size?.width} height={size?.height} accessibilityLayer={false}>
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={current.color} stopOpacity={0.32} />
