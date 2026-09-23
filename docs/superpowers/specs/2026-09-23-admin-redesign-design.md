@@ -1,7 +1,8 @@
 # Admin redesign: premium store look, range analytics, countries back - design
 
 Date: 2026-09-23
-Status: approved in chat by the owner (2026-09-23), rev 1, cold review pending
+Status: approved in chat by the owner (2026-09-23), rev 2 after a cold Fable review (no blockers,
+10 should-fix items and nits folded in)
 Branch: feature/admin-redesign
 
 ## Problem
@@ -29,8 +30,10 @@ Branch: feature/admin-redesign
 5. A real logout.
 6. A Site page: the maintenance switch plus a 24-hour resolver health card.
 7. Stats code takes an injectable `now`, fixing the 7 failing tests by construction.
-8. The owner pre-approved downloading the DB-IP file (about 8 MB compressed) for local testing
-   and on the server.
+8. The owner pre-approved downloading the DB-IP file (4.1 MB compressed, 8.3 MB unpacked, checked
+   2026-09-23) for local testing and on the server.
+9. Admin copy is sentence case like the premium store admin. The owner's lowercase voice rule
+   is for public copy; this page is owner-only, so implementers must not lowercase it.
 
 ## Non-goals
 
@@ -89,7 +92,7 @@ any other value is a 422.
   Consequence: `90d` never has a previous period (retention is 90 days), and neither does a
   fresh install.
 - Buckets:
-  - `today`: 24 local hours of the current day, keys `00`..`23`. Hours after `L`'s hour have
+  - `today`: 24 local hours of the current day, integer keys 0..23. Hours after `L`'s hour have
     null values in both the current and the previous series (both lines stop at "now").
   - Otherwise: `N` local days, oldest first, zero-filled. Bucket `i` of the previous series is
     local day `M0 - (2N-1) + i`. Both last buckets are partial at the same cut.
@@ -140,9 +143,10 @@ Panels, current window only:
   platform asc.
 - `qualities`: download counts by `_bucket_quality(outcome)`, re-summed and sorted count desc,
   then label asc (today's rule, kept).
-- `countries`: DISTINCT visitor per non-null country, top 10 by visitors desc then code asc,
-  followed by exactly one `{"country": "unknown", "visitors": n}` row for NULL country, always
-  present even when 0.
+- `countries`: visitor-days per non-null country, `COUNT(DISTINCT date(<local ts>) || '|' || visitor)`,
+  so the panel adds up the same way as the Visitors tab. Top 10 by visitor-days desc, then code
+  asc, followed by exactly one `{"country": "unknown", "visitors": n}` row for NULL country
+  counted the same way, always present even when 0.
 - `pages`: `visit` events grouped by (platform, COALESCE(locale, 'unknown')), top 12 by views
   desc, then platform asc, then locale asc.
 - `hours`: `fetch` events by local hour, exactly 24 rows `{"hour": 0..23, "fetches": n}`,
@@ -169,6 +173,7 @@ rules (F4), so current and previous ratios can never drift apart.
   "tz": 360,
   "bucket": "day",
   "has_previous": true,
+  "window": { "start": "2026-09-17", "end": "2026-09-23" },
   "totals":   { "visitors": 0, "page_views": 0, "fetches": 0, "ok_fetches": 0,
                 "failed_fetches": 0, "upstream_errors": 0, "downloads": 0,
                 "downloaded_visitors": 0, "new_visitors": 0, "returning_visitors": 0,
@@ -193,11 +198,15 @@ rules (F4), so current and previous ratios can never drift apart.
 ```
 
 - `previous` is null and every `series[].prev` is null when `has_previous` is false.
-- `bucket` is `hour` for `today` (series keys `00`..`23`, `prev_key` is the same hour) and
-  `day` otherwise (keys are local dates).
+- `window` gives the current window's first and last local dates (equal for `today`); the page
+  header shows them.
+- `bucket` is `hour` for `today` (series `key` and `prev_key` are the integer hour 0..23, the
+  same for both) and `day` otherwise (keys are local date strings). `hours[].hour` is an
+  integer too; the client formats both.
 - For `today`, `cur` and `prev` are null for hours after the current local hour.
 - `peak` is null for an empty window.
-- Errors, same conventions as the stats endpoint: 404 when analytics is disabled, 401
+- Errors, same conventions as the stats endpoint (maintenance mode never blocks them: `main.py`
+  exempts `/api/admin/*`): 404 when analytics is disabled, 401
   `{"error":"unauthorized"}` without a valid cookie, 422 `{"error":"bad_range"}`, 422
   `{"error":"bad_tz"}`, 503 `{"error":"analytics_unavailable"}` on any exception.
 
@@ -208,19 +217,24 @@ Rolling 24 hours, `[now - 24h, now)`, fetch events only:
 ```json
 { "platforms": [ { "platform": "twitter", "fetches": 0, "ok": 0,
                    "top_failure": { "outcome": "not_found", "count": 0 },
-                   "last_failure": "14:02" } ] }
+                   "last_failure_min_ago": 12 } ] }
 ```
 
 - Always exactly five rows in this order: twitter, tiktok, reddit, instagram, facebook, so a
   platform with zero lookups still shows up.
 - `top_failure` is the most common non-`ok` outcome (ties: outcome asc), null when none.
-- `last_failure` is the local `HH:MM` of the newest non-`ok` fetch, null when none.
-- Same auth, 404, 422 `bad_tz` and 503 conventions as the report.
+- `last_failure_min_ago` is whole minutes since the newest non-`ok` fetch (floor), null when
+  none. The client shows "just now" under 1, "12 min ago" under 60, then "3 h ago". A clock
+  time would be ambiguous across a rolling 24 hours.
+- Same auth, 404 and 503 conventions as the report. `tz` is accepted and validated for symmetry
+  (422 `bad_tz`) even though the response carries no clock times.
 
 ### B6. Logout (`POST /api/admin/logout`)
 
-- 204 with `Set-Cookie: svid_admin=""; Max-Age=0; Path=/api/admin; HttpOnly; Secure;
-  SameSite=Strict` (FastAPI `delete_cookie` with the same attributes as the login cookie).
+- 204, clearing the cookie with FastAPI's `delete_cookie(COOKIE, path="/api/admin",
+  secure=True, httponly=True, samesite="strict")`, the same attributes the login sets. Tests
+  assert an expired `svid_admin` cookie scoped to `Path=/api/admin`, not an exact header string
+  (Starlette adds `expires=` and lowercases `samesite`).
 - No cookie required (idempotent). 404 when analytics is disabled, like every admin route.
 - Note: cookies are stateless HMACs, so logout clears this browser only. Changing
   `ADMIN_PASSWORD` is still the way to revoke every session. The Site page says so.
@@ -233,12 +247,19 @@ Module `backend/app/analytics/geo.py`:
   - `country(ip: str) -> str | None`: `reader.get(ip)`, then `record["country"]["iso_code"]`.
     Returns the code only if it fully matches `[A-Z]{2}` and is not `ZZ` or `XX`; returns None
     for a missing reader, an invalid IP (`ValueError`), a missing key, or ANY exception. Never
-    raises.
-  - `load(path)`: opens the file, validates it (a lookup of `8.8.8.8` must yield a two-letter
-    code), then swaps it in with a single attribute assignment. On failure keeps the old reader.
-  - No IP cache, no IP logging.
+    raises and NEVER logs: maxminddb's `ValueError` text contains the raw address (checked:
+    "'not-an-ip' does not appear to be an IPv4 or IPv6 address"), so the catch is silent.
+    Checked against the real 2026-09 file: public IPv4 and IPv6 resolve, while private, loopback,
+    CGNAT and `0.0.0.0` return no record, so they end up None.
+  - `validate(path) -> bool`: opens the file, requires `"Country" in metadata.database_type`
+    (the real file says `DBIP-Country-Lite`) and a two-letter code for `8.8.8.8`, then closes it.
+  - `load(path)`: opens the file, swaps it in with a single attribute assignment, then closes the
+    previous reader. A lookup racing the close can raise inside `country()`, which returns None
+    for that one event. On an open failure the old reader stays.
+  - No IP cache, no IP logging anywhere in the module.
 - Directory: `GEOIP_DIR` env when set, else `dirname(ANALYTICS_DB_PATH)/geoip` when the SQLite
-  backend is in use, else country lookup is off. Production resolves to `/data/geoip` on the
+  backend is in use AND that path is absolute, else country lookup is off (a bare filename or
+  `:memory:` would otherwise resolve to the working directory). Production resolves to `/data/geoip` on the
   existing `analytics_data` volume, so the file survives rebuilds and no compose change is
   needed.
 - File names: `dbip-country-lite.mmdb` plus a marker `dbip-country-lite.month` holding the
@@ -254,8 +275,8 @@ Module `backend/app/analytics/geo.py`:
     the previous month, but only when the marker is not already that month.
   - Anything but 200 is a failure. The body streams to a temp file in the same directory with a
     32 MiB cap on the compressed bytes and a 256 MiB cap on the gunzipped output; over either
-    cap aborts. The gunzipped file must pass `CountryLookup.load` validation before
-    `os.replace` moves it into place and the marker is written.
+    cap aborts. Order: gunzip to a temp file, `validate(temp)`, `os.replace(temp, final)`, write
+    the marker, then `load(final)`. Every failure path unlinks its temp files.
   - Failures log one warning line without a traceback and retry on the next cycle. Nothing here
     can raise into request handling or block startup.
 - `service.record_from_request` computes `ip = client_ip(request)` once, uses it for the hash
@@ -268,6 +289,11 @@ Module `backend/app/analytics/geo.py`:
   server-side). `deploy/README.md` documents the data source, licence and refresh.
 - Dependency: `maxminddb>=2.6` added to `backend/pyproject.toml`.
 - History: rows before this deploy stay NULL. The countries panel explains "Not known".
+- Trust: a country is only as trustworthy as `client_ip()`. On main it still prefers the
+  forgeable `CF-Connecting-IP`, so until `claude/tender-heisenberg-fuk5v2` lands a visitor can
+  pick their country and hash with one header. That is today's exposure, not a new one (today
+  they can set `CF-IPCountry` directly, and this branch removes that read), and the owner is
+  told in the handover rather than in the UI.
 
 ### B8. Page language on visit events
 
@@ -294,15 +320,17 @@ load none of it.
   (Tailwind 4.3.2 is installed; both directives are supported.)
 - `admin.html`: keep the noindex meta; drop the Onest preload and the light-theme script; add
   `<meta name="color-scheme" content="dark">`; black body background inline so there is no
-  white flash.
+  white flash. It carries no utility classes (`class="dark"` and `class="font-sans"` go): the
+  shell lives outside `src/admin/`, so `@source "./"` would not scan it; `admin.css` styles
+  `html` and `body` in its base layer instead.
 - `lib/`: `api.ts`, `format.ts`, `delta.ts`, `metrics.ts`, `range.ts` (range keys, URL sync),
   `colors.ts` (palette verbatim).
 - `components/`: Shell, Wordmark, PageHeader, RangeTabs, LiveStrip, TrendCard, Kpi, Delta,
   Panel, Donut, SegmentBar, BarList, Funnel, HoursChart, MiniStats, EmptyState, Footnote,
   LoginView, SiteView (MaintenanceCard, ResolverHealth), UnavailableView.
-- New dependencies, admin only: `recharts` (the trend line and the ring, as in the premium
-  store) and `lucide-react` (icons). Verify at install that the chosen recharts version's peer
-  range includes React 18.3; fall back to the newest version that does.
+- New dependencies, admin only: `recharts@^3.8` (3.10.1 is current; its peer range covers React
+  18, and it needs `react-is`) and `lucide-react` (1.47.0 is current, peer range covers React
+  18). There is no shadcn `ChartContainer`: colours come straight from `colors.ts`.
 - Deleted in the cleanup task: `Admin.tsx`, `SiteControls.tsx`, their tests, and the admin's use
   of `ThemeToggle` (public pages keep it).
 
@@ -337,13 +365,16 @@ load none of it.
   `motion` 11 supports `layoutId`.
 - Copy: no emoji, no em dashes, no trailing periods on titles, tile labels or tab labels,
   sentence case. No flag emoji: countries show a mono code chip plus the English name from
-  `Intl.DisplayNames(["en"], { type: "region" })`, falling back to the code.
+  `Intl.DisplayNames(["en"], { type: "region" })` inside a try/catch that falls back to the code
+  (`.of()` throws `RangeError` on bad input). The unknown row never goes through it.
 
 ### F3. Screens
 
 **Checking.** On load the app probes `GET /api/admin/maintenance`. Until it answers, the page is
 plain black; a small spinner appears only after 400ms. 200 goes to the shell, 401 to login,
-404 to "Analytics is off on this server" (with the three env vars it needs), anything else to
+404 to "Analytics is off on this server", naming what it needs: `ADMIN_PASSWORD`,
+`ANALYTICS_SALT`, and `ANALYTICS_DB_PATH` (or the `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`
+pair), all in deploy/app.env; anything else to
 Unavailable with Retry. The login form never flashes for a signed-in owner.
 
 **Login.** Centred 384px column: wordmark, then 40px below a card (22px radius, surface, faint
@@ -371,8 +402,9 @@ to the default). Changes use `history.pushState`; `popstate` restores both.
 
 **Analytics page, top to bottom:**
 
-1. Header: kicker "ANALYTICS", title "Traffic", muted line "What people did on SaveVid AI, in
-   your local time". Right side (bottom-aligned from 640px): RangeTabs, a pill track with 32px
+1. Header: kicker "ANALYTICS", title from the range ("Today", "Last 7 days", "Last 30 days",
+   "Last 90 days"), muted line with the real span from `window`: "Sep 17 to Sep 23, your local
+   time" (Today: "Sep 23, your local time"). Right side (bottom-aligned from 640px): RangeTabs, a pill track with 32px
    buttons and 13px labels, full width with equal segments on phones, the active pill elevated
    with `0 1px 2px rgba(0,0,0,.4)`, sliding. Under the title, 12px muted "Updated 14:02" or,
    after a failed refresh, "Could not refresh, trying again".
@@ -437,12 +469,16 @@ to the default). Changes use `history.pushState`; `popstate` restores both.
      4. Busiest hours "When people use it": heading "14:00 to 15:00" at 22px for the peak hour;
         24 columns in a 144px row, 3px gaps, 4px radius, blue; the peak solid, others at
         opacity 0.3 + 0.5 * n / max, solid on hover, native title "14:00, 123 fetches"; empty
-        hours an 8% white stub.
-        Beside it, Visitors "New and returning": small stat tiles (Visitors, New, Came back),
-        then Traffic sources as a BarList (orange): direct "Direct", search "Search", social
+        hours an 8% white stub; an axis row `00 06 12 18 23` under the bars and, when any hour is
+        empty, "N hours had none" (both as in the premium store).
+        Beside it, Visitors "New and returning", hint "From the visit beacon; people who only
+        pasted a link are not split": small stat tiles Visitors (`new_visitors +
+        returning_visitors`), New (`new_visitors`) and Came back (`returning / (new +
+        returning)` as a percent), then Traffic sources as a BarList (orange): direct "Direct", search "Search", social
         "Social", referral "Other sites", internal "Between pages".
-4. Footnote, 12px muted: visitors are counted once a day because the anonymous ID resets at
-   midnight UTC; times are your local time; data is kept 90 days, so the 90-day range has
+4. Footnote, 12px muted: "Visitors are counted once a day: the anonymous ID resets at midnight
+   UTC ({06:00} your time), so someone active across that moment counts twice." The bracketed
+   time is computed on the client from the tz. Then: times are your local time; data is kept 90 days, so the 90-day range has
    nothing earlier to compare with; refreshes every 30 seconds while this tab is open; then the
    DB-IP link.
 
@@ -460,7 +496,7 @@ Empty states everywhere: a dashed box (min 96px tall, 28px radius) with one mute
 - Resolver health card "Last 24 hours", hint "Resolver errors mean the service we use failed,
   not the visitor's link": five rows (name, lookups, success % coloured green at 90% and up,
   yellow at 70% and up, red below, "No lookups" at zero), the most common failure label with
-  its count, and "last failed 14:02" when present.
+  its count, and "last failed 12 min ago" when present.
 
 ### F4. Data rules (pure functions, unit tested)
 
@@ -468,7 +504,9 @@ Empty states everywhere: a dashed box (min 96px tall, 28px radius) with one mute
   current is 0, otherwise null; else `(current - previous) / previous`. Displayed rounded to a
   whole percent as an 11px mono pill with an up-right or down-right arrow ("+12%"), green on a
   green tint when good, red on a red tint when bad; a rounded 0% is plain muted "0%" with no
-  pill; null shows nothing. `title` reads "Compared with the {period} before". Inverted metrics
+  pill; null shows nothing. `title` reads "Compared with yesterday at this time" (Today),
+  "Compared with the 7 days before" or "Compared with the 30 days before" (90 days never has a
+  previous period). Inverted metrics
   (Failed fetches, Resolver errors) treat up as bad.
 - Ratio tiles take the delta of the ratio itself (relative change), matching the premium store.
 - A ratio with a zero denominator is null and renders a dash.
@@ -519,8 +557,9 @@ relative to it:
 - Geo: a fake reader for `country()` (valid, lowercase rejected, `ZZ`, invalid IP, missing key,
   raising reader); `load()` keeps the old reader when validation fails; updater month choice
   (current, fallback to previous on 404, skip when the marker matches), caps, non-200, atomic
-  replace, all through `respx` with no real network; the service passes the code and never the
-  IP to the recorder.
+  replace and temp cleanup, all through `respx` with no real network; the service passes the
+  code and never the IP to the recorder; with a raising reader and with ip `"unknown"`,
+  `caplog` holds no record containing the IP string.
 - Locale: `EventIn` accepts en, es, hi and rejects others; the migration is idempotent on both
   stores; the recorder writes the column; download events drop it.
 - Warning baseline stays 7 (8 locally on Python 3.14).
@@ -534,11 +573,18 @@ Frontend (vitest):
 - App flow: no login flash while checking, 401 to login, login success, wrong password shake and
   message, 429 message, sign out, range change updates the URL and refetches, page switch,
   refresh only while visible (fake timers), Unavailable and Retry, analytics-off message.
-- Recharts under jsdom: stub `ResizeObserver` in the admin tests and give the chart a fixed size.
+- Recharts under jsdom: `ResponsiveContainer` measures 0x0 there and renders nothing, so the
+  chart components accept an optional fixed `size` that tests pass (production omits it and
+  uses `ResponsiveContainer`). Tooltip content is a pure component unit-tested with a fixed
+  `payload`; no test tries to hover an SVG.
 - `visitContext()` reads `lang` into `locale`.
 
-Build checks: `npm run build` succeeds; no public HTML's script graph includes recharts or
-lucide code; `admin.html` still ships the noindex meta.
+Build checks: `npm run build` succeeds; `admin.html` still ships the noindex meta; and for each
+public `dist/**/*.html` (every shell except admin), collect its `<script type="module">` and
+`modulepreload` URLs, follow static `import` specifiers through `dist/assets/*.js`, and assert no
+reached chunk contains `recharts-wrapper` or `lucide-` (string literals that survive
+minification). A small node script in `frontend/scripts/` does it; it runs in the verification
+step, not in vitest.
 
 Visual verification: Playwright against the Vite dev server with `/api/admin/*` intercepted and
 answered from a fixture built from production aggregates (read-only, aggregate-only query in
@@ -552,6 +598,11 @@ inside the container against the real database for all four ranges, cross-checke
 direct SQL counts, with timings; `/data/geoip/dbip-country-lite.mmdb` present with its marker;
 within minutes new events carry a country (aggregate share query only); the live dashboard
 viewed through the owner's signed-in Chrome if that session is still valid, read-only.
+
+## Ordering note
+
+`stats.py` and its 7 known-failing tests stay until the cleanup task, which lands in this same
+branch before the merge; per-task gates treat exactly those 7 failures as the baseline.
 
 ## Merge coordination
 
@@ -568,7 +619,7 @@ viewed through the owner's signed-in Chrome if that session is still valid, read
 
 ## Risks
 
-- Recharts and React 18.3 peer ranges: checked at install, with a fallback version.
+- Recharts and React 18.3: settled, the peer range covers React 18 (checked on npm 2026-09-23).
 - DB-IP availability or format change: countries show as not known; nothing else is affected.
 - Query cost: about 40 grouped queries per report over at most 180 days of rows (about 120k at
   current volume), all on indexed `ts` ranges. Measured on production data during verification;
