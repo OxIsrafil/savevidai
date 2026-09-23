@@ -1,4 +1,5 @@
 """The admin report, resolvers and logout endpoints (spec B4, B5, B6)."""
+import logging
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -140,6 +141,35 @@ def test_report_answers_503_when_the_store_fails(enabled_client, monkeypatch):
     assert r.json() == {"error": "analytics_unavailable"}
 
 
+def _one_analytics_warning(caplog) -> logging.LogRecord:
+    warnings = [rec for rec in caplog.records
+                if rec.name == "savevidai.analytics" and rec.levelno == logging.WARNING]
+    assert len(warnings) == 1, [rec.getMessage() for rec in warnings]
+    return warnings[0]
+
+
+def test_a_report_503_logs_one_warning_with_the_traceback_but_not_in_the_body(
+        enabled_client, monkeypatch, caplog):
+    client, _svc, store = enabled_client
+    _login(client)
+
+    def boom(sql, args):
+        raise RuntimeError("database is locked")
+
+    monkeypatch.setattr(store, "query", boom)
+    caplog.set_level(logging.WARNING, logger="savevidai.analytics")
+    r = client.get("/api/admin/report?range=7d&tz=0")
+    assert r.status_code == 503
+    assert r.json() == {"error": "analytics_unavailable"}
+    assert "database is locked" not in r.text
+    record = _one_analytics_warning(caplog)
+    assert record.getMessage() == "admin report failed"
+    assert record.exc_info is not None and record.exc_info[0] is RuntimeError
+    assert "database is locked" in caplog.text  # the traceback is in the log
+    # Aggregates only: nothing in these frames names the client, so neither does the log.
+    assert "testclient" not in caplog.text
+
+
 def test_report_counts_a_recent_event_in_totals_and_live(enabled_client):
     client, _svc, store = enabled_client
     _insert(store, [
@@ -209,6 +239,27 @@ def test_resolvers_validates_tz_and_answers_503_on_store_failure(enabled_client,
     r = client.get("/api/admin/resolvers?tz=0")
     assert r.status_code == 503
     assert r.json() == {"error": "analytics_unavailable"}
+
+
+def test_a_resolvers_503_logs_one_warning_with_the_traceback_but_not_in_the_body(
+        enabled_client, monkeypatch, caplog):
+    client, _svc, store = enabled_client
+    _login(client)
+
+    def boom(sql, args):
+        raise RuntimeError("database is locked")
+
+    monkeypatch.setattr(store, "query", boom)
+    caplog.set_level(logging.WARNING, logger="savevidai.analytics")
+    r = client.get("/api/admin/resolvers?tz=0")
+    assert r.status_code == 503
+    assert r.json() == {"error": "analytics_unavailable"}
+    assert "database is locked" not in r.text
+    record = _one_analytics_warning(caplog)
+    assert record.getMessage() == "admin resolvers failed"
+    assert record.exc_info is not None and record.exc_info[0] is RuntimeError
+    assert "database is locked" in caplog.text
+    assert "testclient" not in caplog.text
 
 
 # ---- logout ----------------------------------------------------------------------

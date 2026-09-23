@@ -1,4 +1,5 @@
 import functools
+import logging
 import os
 import re
 import time
@@ -16,6 +17,7 @@ from .report import compute_report, compute_resolvers, parse_range, parse_tz
 from .service import service
 
 router = APIRouter()
+logger = logging.getLogger("savevidai.analytics")
 
 _QUALITY_OK = re.compile(r"^(\d{2,4}p|video|hd|sd|photo|album|sound)$")
 COOKIE = "svid_admin"
@@ -170,6 +172,10 @@ def report(request: Request, range_key: Annotated[str | None, Query(alias="range
     try:
         return JSONResponse(compute_report(store, key, tz_min, datetime.now(UTC)))
     except Exception:
+        # The traceback goes to the log, never to the body. Below this call there
+        # are only aggregates (the request is never passed down) and a traceback
+        # prints no locals, so no IP can reach the log. Same for resolvers.
+        logger.warning("admin report failed", exc_info=True)
         return JSONResponse(status_code=503, content={"error": "analytics_unavailable"})
 
 
@@ -187,6 +193,7 @@ def resolvers(request: Request, tz: str | None = None) -> JSONResponse:
     try:
         return JSONResponse(compute_resolvers(store, tz_min, datetime.now(UTC)))
     except Exception:
+        logger.warning("admin resolvers failed", exc_info=True)
         return JSONResponse(status_code=503, content={"error": "analytics_unavailable"})
 
 
