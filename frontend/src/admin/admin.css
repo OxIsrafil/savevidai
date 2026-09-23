@@ -1,0 +1,117 @@
+@import "tailwindcss" source(none);
+@source "./";
+
+/* Admin design tokens, copied from the premium store admin (spec F2). Dark only.
+   --color-*: initial drops Tailwind's default palette so only these colours exist. */
+@theme {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  --color-bg: #000000;
+  --color-surface: #1d1d1f;
+  --color-elevated: #2c2c2e;
+  --color-line: rgba(255, 255, 255, 0.12);
+  --color-line-strong: rgba(255, 255, 255, 0.22);
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #a1a1a6;
+  --color-text-muted: #86868b;
+  --color-brand: #0071e3;
+  --color-brand-hover: #0077ed;
+  --color-brand-link: #2997ff;
+  --color-brand-dim: rgba(41, 151, 255, 0.16);
+  --color-success: #30d158;
+  --color-success-dim: rgba(48, 209, 88, 0.16);
+  --color-warning: #ffd60a;
+  --color-warning-dim: rgba(255, 214, 10, 0.16);
+  --color-danger: #ff453a;
+  --color-danger-dim: rgba(255, 69, 58, 0.16);
+
+  /* Explicit radii: cards, tooltips, dialogs 22px; small stat tiles and empty states 28px;
+     nav items and inputs 18px. Pills use rounded-full. */
+  --radius-card: 22px;
+  --radius-tile: 28px;
+  --radius-field: 18px;
+
+  /* Only on the login card, chart tooltips and floating bars. Cards have no shadow. */
+  --shadow-raised: 0 4px 12px rgba(0, 0, 0, 0.4), 0 32px 64px -24px rgba(0, 0, 0, 0.7);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Segoe UI", Roboto, Inter, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, "Roboto Mono", monospace;
+
+  /* Page title. */
+  --text-title: clamp(28px, 3vw, 40px);
+  --text-title--line-height: 1.1;
+  --text-title--letter-spacing: -0.018em;
+  --text-title--font-weight: 600;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    font-family: var(--font-sans);
+    color-scheme: dark;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+  ::selection {
+    background: var(--color-brand);
+    color: #fff;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 3px;
+  }
+}
+
+/* "Analytics", "Site", "Admin" above a title: 12px 600 +0.06em uppercase muted. */
+@utility kicker {
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* Blocks fade in and rise 12px over 0.6s; each block sets its own delay (40ms stagger).
+   Transform and opacity only. Off under reduced motion. */
+.reveal-up {
+  opacity: 0;
+  transform: translateY(var(--reveal-distance, 12px));
+  animation: reveal-up var(--reveal-duration, 0.6s) var(--ease-out-quint) forwards;
+  animation-delay: var(--reveal-delay, 0s);
+}
+@keyframes reveal-up {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

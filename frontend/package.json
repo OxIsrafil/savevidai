@@ -11,9 +11,12 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "lucide-react": "^1.47.0",
     "motion": "^11.15.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-is": "^18.3.1",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
