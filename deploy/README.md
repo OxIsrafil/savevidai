@@ -149,8 +149,11 @@ docker compose -f compose.prod.yaml up -d --build
 The admin's countries panel is fed by an offline lookup on the box: no header
 and no third-party call per visitor. The container keeps a copy of the free
 DB-IP "IP to Country Lite" database and looks each visitor's IP up in memory
-while the event is recorded. Only the two-letter country code is stored; the IP
-is discarded right after the daily visitor hash and the lookup, never logged.
+while the event is recorded. Only the two-letter country code is stored; the
+analytics path discards the IP right after the daily visitor hash and the
+lookup, and never stores or logs it. Separate from analytics, the uvicorn
+access log, slowapi's rate-limit warning and Caddy's access log do record
+client addresses.
 
 - **Data source:** https://db-ip.com/db/download/ip-to-country-lite, fetched as
   `https://download.db-ip.com/free/dbip-country-lite-YYYY-MM.mmdb.gz` (about
