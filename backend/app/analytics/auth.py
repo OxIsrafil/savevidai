@@ -27,7 +27,7 @@ def verify_cookie(cookie: str, password: str, now: float) -> bool:
         return False
     expiry, _, sig = cookie.partition(".")
     expected = hmac.new(_key(password), expiry.encode(), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(sig, expected):
+    if not hmac.compare_digest(sig.encode(), expected.encode()):
         return False
     try:
         return int(expiry) > int(now)

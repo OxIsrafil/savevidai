@@ -65,6 +65,17 @@ def test_report_requires_a_cookie(enabled_client):
     assert r.json() == {"error": "unauthorized"}
 
 
+def test_a_non_ascii_cookie_is_a_401_not_a_500(enabled_client):
+    client, *_ = enabled_client
+    # httpx encodes str header values as ASCII, so the non-ASCII cookie goes
+    # in as raw UTF-8 bytes, the way a browser would send it.
+    headers = {"cookie": "svid_admin=1.\u00e9".encode()}
+    for path in ("/api/admin/report?tz=0", "/api/admin/resolvers?tz=0"):
+        r = client.get(path, headers=headers)
+        assert r.status_code == 401, path
+        assert r.json() == {"error": "unauthorized"}
+
+
 def test_report_default_range_shape_and_tz_echo(enabled_client):
     client, *_ = enabled_client
     _login(client)
