@@ -9150,11 +9150,11 @@ Runs in the main checkout on `feature/admin-redesign` AFTER `feature/admin-redes
 
 - [ ] **Step 1: Write the failing test that the old endpoint is gone**
 
-Append to `backend/tests/test_admin_api.py` (reuse that file's existing client and login helpers; if the helper names differ from `_client` and `_login`, use the file's names):
+Append to `backend/tests/test_admin_api.py` (Task 5 created it with the `enabled_client` fixture and the `_login(client)` helper):
 
 ```python
-def test_old_stats_endpoint_is_gone(tmp_path, monkeypatch):
-    client = _client(tmp_path, monkeypatch)
+def test_old_stats_endpoint_is_gone(enabled_client):
+    client, *_ = enabled_client
     _login(client)
     res = client.get("/api/admin/stats?days=30&tz=0")
     assert res.status_code == 404
@@ -9172,7 +9172,7 @@ Expected: hits only in `router.py`, `stats.py`, `tests/test_stats.py`, the old f
 
 - [ ] **Step 4: Delete the old backend code and port the tests**
 
-1. In `backend/app/analytics/router.py` delete the whole `@router.get("/api/admin/stats")` function and change the import line `from .stats import compute_stats, parse_tz` so nothing is imported from `.stats` (`parse_tz` now comes from `.report`, which Task 5 already imports).
+1. In `backend/app/analytics/router.py` delete the whole `@router.get("/api/admin/stats")` function and delete the line `from .stats import compute_stats` (after Task 5 that is the only `.stats` import; `parse_tz` already comes from `.report`). In the PBKDF2 memoization comment near the top, change "/api/admin/stats is polled every 60s" to "/api/admin/report is polled every 30s" so the comment matches the new dashboard.
 2. `git rm backend/app/analytics/stats.py backend/tests/test_stats.py`
 3. For every backend test from Step 3 that requests `/api/admin/stats`: change the path to `/api/admin/report?range=7d&tz=0` (keep any `tz=` value the test is checking; the report validates `tz` the same way and returns the same `bad_tz` 422 and 401 bodies). If a test asserted a stats-only key (for example `totals.fetches.today`), assert the report equivalent instead (`totals.fetches`), keeping what the test was protecting.
 
@@ -9317,15 +9317,16 @@ console.log(`ok: ${publicCount} public pages, none reaches admin-only code; admi
 Run, in order:
 1. `cd "$(git rev-parse --show-toplevel)/backend" && source .venv/bin/activate && pytest -q -p no:cacheprovider tests/test_admin_api.py::test_old_stats_endpoint_is_gone` -> PASS.
 2. `cd "$(git rev-parse --show-toplevel)/backend" && source .venv/bin/activate && ruff check . && pytest -q -p no:cacheprovider` -> ruff clean; ZERO failures now (the 7 time-bombed tests left with `test_stats.py`, and their behaviours live in `tests/test_report.py`); warnings 7.
-3. `cd "$(git rev-parse --show-toplevel)/frontend" && npm run lint && npx vitest run && npm run build && node scripts/check-admin-isolation.mjs` -> tsc clean; all tests pass (report the count and the delta from 527 plus the new admin tests minus the deleted ones); build ok; the script prints `ok: 15 public pages, ...`.
-4. Sweep: `cd "$(git rev-parse --show-toplevel)" && /usr/bin/grep -rn -E 'FixTweet health|Clear it in Render|All-time|compute_stats|api/admin/stats|fetchStats|ThemeToggle' frontend/src/admin backend/app backend/tests` -> no output.
+3. `cd "$(git rev-parse --show-toplevel)/frontend" && npm run lint && npx vitest run && npm run build && node scripts/check-admin-isolation.mjs` -> tsc clean; 639 tests pass (658 after the UI merge, minus the 19 tests in the deleted old admin test files; report any difference and explain it); build ok; the script prints `ok: 15 public pages, ...`.
+4. Sweep: `cd "$(git rev-parse --show-toplevel)" && /usr/bin/grep -rnI --exclude-dir=__pycache__ -E 'FixTweet health|Clear it in Render|All-time|compute_stats|api/admin/stats|fetchStats|ThemeToggle' frontend/src/admin backend/app backend/tests` -> exactly one hit: the URL inside `test_old_stats_endpoint_is_gone`.
 5. `cd "$(git rev-parse --show-toplevel)" && git diff --cached --stat` and `git status --short` to confirm only the files in this task's list changed.
 
 - [ ] **Step 9: Commit**
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
-git add backend/app/analytics/router.py backend/tests CLAUDE.md frontend/scripts/check-admin-isolation.mjs
+git add backend/app/analytics/router.py backend/tests/test_admin_api.py backend/tests/test_analytics_api.py CLAUDE.md frontend/scripts/check-admin-isolation.mjs
+# also stage, by name, any other test file Step 4 ported (the git rm deletions are already staged)
 git commit -F - <<'MSG'
 chore(admin): drop the old dashboard and stats endpoint
 
