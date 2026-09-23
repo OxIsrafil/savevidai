@@ -34,6 +34,8 @@ jobs:
       - run: npm run lint
       - run: npm test -- --run
       - run: npm run build
+      # recharts and lucide-react must stay reachable from admin.html only.
+      - run: node scripts/check-admin-isolation.mjs
 
   docker:
     if: startsWith(github.ref, 'refs/tags/v')
