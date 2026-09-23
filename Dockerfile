@@ -20,5 +20,8 @@ RUN pip install --no-cache-dir ./backend
 COPY scripts/ scripts/
 COPY --from=web /web/dist static/
 ENV STATIC_DIR=/srv/static
+# Monthly refresh of the DB-IP country database (deploy/README.md, section 6).
+# Only the image sets it, so tests and CI never touch the network.
+ENV GEOIP_UPDATE=1
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]

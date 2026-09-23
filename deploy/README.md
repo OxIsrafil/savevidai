@@ -141,3 +141,39 @@ docker compose -f compose.prod.yaml up -d --build
   env file and builds from source instead of pulling the stale GHCR image.
 - Downloads still proxy through the server. The point of the move is that a VPS
   includes the bandwidth to do that at viral scale; Render meters it.
+
+---
+
+## 6. Country lookup (DB-IP Lite)
+
+The admin's countries panel is fed by an offline lookup on the box: no header
+and no third-party call per visitor. The container keeps a copy of the free
+DB-IP "IP to Country Lite" database and looks each visitor's IP up in memory
+while the event is recorded. Only the two-letter country code is stored; the IP
+is discarded right after the daily visitor hash and the lookup, never logged.
+
+- **Data source:** https://db-ip.com/db/download/ip-to-country-lite, fetched as
+  `https://download.db-ip.com/free/dbip-country-lite-YYYY-MM.mmdb.gz` (about
+  4 MB compressed, 8 MB unpacked).
+- **Licence:** Creative Commons Attribution 4.0 (CC BY 4.0). DB-IP requires the
+  link `<a href="https://db-ip.com">IP Geolocation by DB-IP</a>` on pages that
+  display results from the database. The admin footnote carries it; the public
+  pages neither display nor use the results.
+- **Where it lives:** `GEOIP_DIR` when set, otherwise `<directory of
+  ANALYTICS_DB_PATH>/geoip`, so production resolves to `/data/geoip` on the
+  `analytics_data` volume and the file survives rebuilds. Two files:
+  `dbip-country-lite.mmdb` and a marker `dbip-country-lite.month` holding the
+  `YYYY-MM` it came from.
+- **Refresh:** the image sets `GEOIP_UPDATE=1`, so the app checks 10 seconds
+  after start and then every 24 hours. When the marker is not the current UTC
+  month it downloads that month's file, falls back to the previous month while
+  the new one is not published yet, validates it, swaps it in atomically and
+  reloads it without a restart. Failures log one warning line and retry on the
+  next cycle; the site is never affected. Set `GEOIP_UPDATE=0` in
+  `deploy/app.env` to stop the network refresh (the file on disk keeps being
+  used).
+- **Force a refresh now:** delete the marker and restart the app:
+  `docker compose -f compose.prod.yaml exec app rm -f /data/geoip/dbip-country-lite.month`
+  then `docker compose -f compose.prod.yaml restart app`.
+- **History:** events recorded before this lookup existed keep a NULL country
+  and show up as "Not known" in the admin.

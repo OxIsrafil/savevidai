@@ -10,3 +10,9 @@ def test_env_truthy_accepts_the_truthy_set(monkeypatch):
         assert env_truthy("X_FLAG") is False
     monkeypatch.delenv("X_FLAG")
     assert env_truthy("X_FLAG") is False
+
+
+def test_is_truthy_parses_values_directly():
+    from app.envutil import is_truthy
+    assert all(is_truthy(v) for v in ("1", "true", "YES", " on "))
+    assert not any(is_truthy(v) for v in ("", "0", "false", "off", "nope", None))
