@@ -2,16 +2,19 @@ import functools
 import os
 import re
 import time
+from datetime import UTC, datetime
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, field_validator
 
 from ..limits import limiter
 from . import auth as _auth_mod
 from .auth import check_password, make_cookie, verify_cookie
+from .report import compute_report, compute_resolvers, parse_range, parse_tz
 from .service import service
-from .stats import compute_stats, parse_tz
+from .stats import compute_stats
 
 router = APIRouter()
 
@@ -92,6 +95,14 @@ def _require_enabled() -> None:
         raise HTTPException(status_code=404)
 
 
+def _unauthorized(request: Request) -> JSONResponse | None:
+    """The 401 body for a missing or bad admin cookie, None when signed in."""
+    cfg = service.config()
+    if verify_cookie(request.cookies.get(COOKIE, ""), cfg.admin_password, time.time()):
+        return None
+    return JSONResponse(status_code=401, content={"error": "unauthorized"})
+
+
 def _forced_by_env() -> bool:
     return os.environ.get("MAINTENANCE_MODE", "").strip().lower() in ("1", "true", "yes", "on")
 
@@ -129,6 +140,18 @@ def login(request: Request, payload: LoginIn) -> Response:
     return resp
 
 
+@router.post("/api/admin/logout", status_code=204)
+def logout() -> Response:
+    """Clears the admin cookie in this browser (the same attributes login sets,
+    so the browser matches the existing cookie). No cookie required: idempotent.
+    Cookies are stateless HMACs, so every other browser stays signed in until
+    ADMIN_PASSWORD changes."""
+    _require_enabled()
+    resp = Response(status_code=204)
+    resp.delete_cookie(COOKIE, path="/api/admin", secure=True, httponly=True, samesite="strict")
+    return resp
+
+
 @router.get("/api/admin/stats")
 def stats(request: Request, days: int = 30, tz: str = "0") -> JSONResponse:
     _require_enabled()
@@ -144,6 +167,45 @@ def stats(request: Request, days: int = 30, tz: str = "0") -> JSONResponse:
     store = service.recorder()._store
     try:
         return JSONResponse(compute_stats(store, days, tz_min))
+    except Exception:
+        return JSONResponse(status_code=503, content={"error": "analytics_unavailable"})
+
+
+@router.get("/api/admin/report")
+def report(request: Request, range_key: Annotated[str | None, Query(alias="range")] = None,
+           tz: str | None = None) -> JSONResponse:
+    _require_enabled()
+    denied = _unauthorized(request)
+    if denied is not None:
+        return denied
+    try:
+        key = parse_range(range_key)
+    except ValueError:
+        return JSONResponse(status_code=422, content={"error": "bad_range"})
+    try:
+        tz_min = parse_tz(tz)
+    except ValueError:
+        return JSONResponse(status_code=422, content={"error": "bad_tz"})
+    store = service.recorder()._store
+    try:
+        return JSONResponse(compute_report(store, key, tz_min, datetime.now(UTC)))
+    except Exception:
+        return JSONResponse(status_code=503, content={"error": "analytics_unavailable"})
+
+
+@router.get("/api/admin/resolvers")
+def resolvers(request: Request, tz: str | None = None) -> JSONResponse:
+    _require_enabled()
+    denied = _unauthorized(request)
+    if denied is not None:
+        return denied
+    try:
+        tz_min = parse_tz(tz)
+    except ValueError:
+        return JSONResponse(status_code=422, content={"error": "bad_tz"})
+    store = service.recorder()._store
+    try:
+        return JSONResponse(compute_resolvers(store, tz_min, datetime.now(UTC)))
     except Exception:
         return JSONResponse(status_code=503, content={"error": "analytics_unavailable"})
 
