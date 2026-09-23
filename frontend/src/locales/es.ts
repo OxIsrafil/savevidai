@@ -81,6 +81,17 @@ export const esShared: SharedStrings = {
     savePhotoN: "Guardar foto {n}",
   },
 
+  // Not in the translations doc (it arrived after it), so this block is its
+  // own source until the doc gains a row for it.
+  followPopup: {
+    title: "Sígueme en X",
+    line: "Herramientas nuevas y novedades, primero aquí.",
+    follow: "Seguir a {handle}",
+    newTab: "(se abre en una pestaña nueva)",
+    download: "Descargar",
+    close: "Cerrar",
+  },
+
   errors: {
     network: "Error de red. Revisa tu conexión e inténtalo de nuevo.",
     serverUnreachable:

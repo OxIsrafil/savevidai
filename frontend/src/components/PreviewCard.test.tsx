@@ -1,7 +1,12 @@
-import { render, screen } from "@testing-library/react";
-import { expect, test } from "vitest";
-import type { ResolveResponse } from "../lib/api";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, expect, test, vi } from "vitest";
+import type { MediaItem, ResolveResponse } from "../lib/api";
+import { esShared } from "../locales/es";
+import { hiShared } from "../locales/hi";
 import { PreviewCard } from "./PreviewCard";
+
+afterEach(() => vi.unstubAllGlobals());
 
 const DATA: ResolveResponse = {
   id: "222",
@@ -66,4 +71,69 @@ test("thumbnail-bearing video keeps the img preview, no video element", () => {
   const { container } = render(<PreviewCard data={{ ...DATA, items: [DATA.items[0]] }} />);
   expect(container.querySelector("video")).toBeNull();
   expect(container.querySelector('img[src="https://pbs.twimg.com/t1.jpg"]')).not.toBeNull();
+});
+
+// The follow popup lives in QualityButton (its own tests cover the flow). These
+// pin the card's side: every video and GIF save button goes through it, in the
+// page's language, and the photo and sound buttons do not.
+test.each([
+  { locale: "es", strings: esShared, title: "Sígueme en X", download: "Descargar" },
+  { locale: "hi", strings: hiShared, title: "X पर मुझे फ़ॉलो करें", download: "डाउनलोड करें" },
+])("$locale video save buttons open the popup in that language", async ({ strings, title, download }) => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 204 })));
+  render(<PreviewCard data={DATA} strings={strings} />);
+  await userEvent.click(screen.getByRole("button", { name: /1280×720/ }));
+  const dialog = screen.getByRole("dialog", { name: title });
+  expect(within(dialog).getByRole("button", { name: download })).toHaveFocus();
+});
+
+test("GIF save buttons open the popup too", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 204 })));
+  render(<PreviewCard data={DATA} />);
+  await userEvent.click(screen.getByRole("button", { name: /480×480/ }));
+  expect(screen.getByRole("dialog", { name: "Follow me on X" })).toBeInTheDocument();
+});
+
+test("photo and sound buttons stay direct: no popup, the save starts at once", async () => {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+    if (String(input).startsWith("/api/proxy")) {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1, 2, 3]));
+          controller.close();
+        },
+      });
+      return new Response(stream, { status: 200, headers: { "content-length": "3" } });
+    }
+    return new Response(null, { status: 204 });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  const media = (index: number, kind: "image" | "audio", url: string): MediaItem => ({
+    index,
+    kind,
+    thumbnail: null,
+    duration_seconds: null,
+    variants: [{ label: kind, width: null, height: null, url, size_bytes: 3 }],
+  });
+  const slideshow: ResolveResponse = {
+    id: "7300000000000000001",
+    author: "Slides",
+    handle: "slides",
+    avatar_url: null,
+    text: "",
+    items: [
+      media(1, "image", "https://p16-sign.tiktokcdn.com/p1.jpeg"),
+      media(99, "audio", "https://sf16.tiktokcdn.com/track.mp3"),
+    ],
+  };
+  render(<PreviewCard data={slideshow} platform="tiktok" />);
+  const proxied = () => fetchMock.mock.calls.filter(([url]) => String(url).startsWith("/api/proxy"));
+
+  await userEvent.click(screen.getByRole("button", { name: "Save photo 1" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(proxied()).toHaveLength(1);
+
+  await userEvent.click(screen.getByRole("button", { name: "Sound" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(proxied()).toHaveLength(2);
 });

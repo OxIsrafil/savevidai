@@ -79,6 +79,21 @@ export type PhotoStrings = {
 };
 
 /**
+ * The follow popup a video save button opens before its download. Not in the
+ * translations doc: it arrived after it. `follow` interpolates `{handle}` (the
+ * handle itself lives in lib/social.ts), `line` carries no handle, and `newTab`
+ * is the Follow link's visually hidden new-tab note.
+ */
+export type FollowPopupStrings = {
+  title: string;
+  line: string;
+  follow: string;
+  newTab: string;
+  download: string;
+  close: string;
+};
+
+/**
  * 2.11 client-minted error strings. The backend `body.message` passthrough is
  * deliberately NOT here: translating it is a separate backend task (spec, out of
  * scope), and papering over it on the frontend would hide a real gap.
@@ -153,6 +168,7 @@ export type SharedStrings = {
   preview: PreviewStrings;
   quality: QualityStrings;
   photos: PhotoStrings;
+  followPopup: FollowPopupStrings;
   errors: ErrorStrings;
   lang: LangStrings;
   section: SectionStrings;
@@ -180,4 +196,5 @@ export type PreviewCardStrings = {
   preview: PreviewStrings;
   quality: QualityStrings;
   photos: PhotoStrings;
+  followPopup: FollowPopupStrings;
 };

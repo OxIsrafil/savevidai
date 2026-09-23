@@ -80,6 +80,15 @@ export const enShared: SharedStrings = {
     savePhotoN: "Save photo {n}",
   },
 
+  followPopup: {
+    title: "Follow me on X",
+    line: "New tools and updates, posted here first.",
+    follow: "Follow {handle}",
+    newTab: "(opens in a new tab)",
+    download: "Download",
+    close: "Close",
+  },
+
   errors: {
     network: "Network error. Check your connection and try again.",
     serverUnreachable: "Can't reach the SaveVid server right now. Try again in a moment.",

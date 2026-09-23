@@ -83,6 +83,18 @@ export const hiShared: SharedStrings = {
     savePhotoN: "फ़ोटो {n} सेव करें",
   },
 
+  // Not in the translations doc (it arrived after it), so this block is its
+  // own source until the doc gains a row for it. `line` avoids a first-person
+  // verb on purpose: Hindi verbs carry gender, and it must not assume one.
+  followPopup: {
+    title: "X पर मुझे फ़ॉलो करें",
+    line: "नए टूल और अपडेट, सबसे पहले यहाँ।",
+    follow: "{handle} को फ़ॉलो करें",
+    newTab: "(नए टैब में खुलता है)",
+    download: "डाउनलोड करें",
+    close: "बंद करें",
+  },
+
   errors: {
     network: "नेटवर्क एरर। अपना कनेक्शन जाँचें और दोबारा कोशिश करें।",
     serverUnreachable:

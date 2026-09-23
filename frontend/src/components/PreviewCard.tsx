@@ -131,6 +131,7 @@ function MediaSection({
             primary={i === 0}
             platform={platform}
             strings={strings.quality}
+            popupStrings={strings.followPopup}
             filename={buildFilename(data.handle, data.id, variant.label, item.index, count)}
           />
         ))}
