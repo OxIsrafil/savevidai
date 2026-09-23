@@ -134,6 +134,16 @@ export const REPORT_7D: Report = {
   live: LIVE,
 };
 
+/**
+ * The 7-day report the way production shapes the platforms panel: the 56 invalid_url fetches
+ * were links no platform matched, so they carry no platform (resolve.py records them without
+ * one) and the platforms sum to 2,756 of the 2,812 fetches.
+ */
+export const REPORT_7D_NO_PLATFORM: Report = {
+  ...REPORT_7D,
+  platforms: REPORT_7D.platforms.map((p) => (p.platform === "twitter" ? { ...p, fetches: p.fetches - 56 } : p)),
+};
+
 // Today, hours 0..13 (13:30 local); hours 14..23 are null in both series.
 const HOURS_TODAY: SeriesValues[] = [
   values(9, 14, 11, 1),

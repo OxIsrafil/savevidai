@@ -30,3 +30,18 @@ test("someone on the site shows the ping ring; an unknown maintenance state show
   expect(container.querySelector(".motion-safe\\:animate-ping")).not.toBeNull();
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
 });
+
+test("one of each reads in the singular; none and many read in the plural", () => {
+  const { rerender } = render(<LiveStrip live={{ active_now: 1, fetches_last_hour: 1, upstream_last_hour: 1 }} maintenance={null} onGoToSite={() => {}} />);
+  expect(screen.getByText(wholeText("1 on the site now"))).toBeInTheDocument();
+  expect(screen.getByText(wholeText("1 fetch in the last hour"))).toBeInTheDocument();
+  expect(screen.getByText(wholeText("1 resolver error in the last hour"))).toBeInTheDocument();
+  rerender(<LiveStrip live={{ active_now: 0, fetches_last_hour: 0, upstream_last_hour: 0 }} maintenance={null} onGoToSite={() => {}} />);
+  expect(screen.getByText(wholeText("0 on the site now"))).toBeInTheDocument();
+  expect(screen.getByText(wholeText("0 fetches in the last hour"))).toBeInTheDocument();
+  expect(screen.getByText(wholeText("0 resolver errors in the last hour"))).toBeInTheDocument();
+  rerender(<LiveStrip live={{ active_now: 1204, fetches_last_hour: 2, upstream_last_hour: 1500 }} maintenance={null} onGoToSite={() => {}} />);
+  expect(screen.getByText(wholeText("1,204 on the site now"))).toBeInTheDocument();
+  expect(screen.getByText(wholeText("2 fetches in the last hour"))).toBeInTheDocument();
+  expect(screen.getByText(wholeText("1,500 resolver errors in the last hour"))).toBeInTheDocument();
+});

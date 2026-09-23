@@ -5,6 +5,9 @@ import { cn } from "./styles";
 const PILL = "inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-[13px] whitespace-nowrap";
 const NEUTRAL = "border-line/60 bg-surface text-text-muted";
 
+/** "1 fetch", "0 fetches", "2 fetches". "On the site now" needs no noun, so it reads right for 1. */
+const noun = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
 /** What is happening right now, whatever the selected range. The dots are decorative; the text says it all. */
 export function LiveStrip({ live, maintenance, onGoToSite }: { live: Live; maintenance: Maintenance | null; onGoToSite: () => void }) {
   const active = live.active_now > 0;
@@ -19,10 +22,10 @@ export function LiveStrip({ live, maintenance, onGoToSite }: { live: Live; maint
         <span className="font-semibold text-text-primary tabular-nums">{formatCount(live.active_now)}</span> on the site now
       </span>
       <span className={cn(PILL, NEUTRAL)}>
-        <span className="font-semibold text-text-secondary tabular-nums">{formatCount(live.fetches_last_hour)}</span> fetches in the last hour
+        <span className="font-semibold text-text-secondary tabular-nums">{formatCount(live.fetches_last_hour)}</span> {noun(live.fetches_last_hour, "fetch", "fetches")} in the last hour
       </span>
       <span className={cn(PILL, errors ? "border-warning/30 bg-warning-dim text-text-primary" : NEUTRAL)}>
-        <span className={cn("font-semibold tabular-nums", errors ? "text-warning" : "text-text-secondary")}>{formatCount(live.upstream_last_hour)}</span> resolver errors in the last hour
+        <span className={cn("font-semibold tabular-nums", errors ? "text-warning" : "text-text-secondary")}>{formatCount(live.upstream_last_hour)}</span> {noun(live.upstream_last_hour, "resolver error", "resolver errors")} in the last hour
       </span>
       {maintenance ? (
         <a

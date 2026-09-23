@@ -128,6 +128,9 @@ function RangeBody({ report, compare }: { report: Report; compare: string }) {
   const today = report.range === "today";
   const outcomeCount = (name: string) => report.outcomes.find((o) => o.outcome === name)?.count ?? 0;
   const unknownVisitors = report.countries.find((c) => c.country === "unknown")?.visitors ?? 0;
+  // Fetches of links no platform matched (resolve.py records invalid_url without one) are in
+  // the total but in no platform row; they get their own slice so the legend adds up to it.
+  const otherLinks = t.fetches - report.platforms.reduce((sum, pl) => sum + pl.fetches, 0);
   const anyCountry = report.countries.some((c) => c.visitors > 0);
   const splitVisitors = t.new_visitors + t.returning_visitors;
 
@@ -191,14 +194,17 @@ function RangeBody({ report, compare }: { report: Report; compare: string }) {
           <Donut
             empty={NO_LINKS}
             center={{ value: formatCount(t.fetches), label: t.fetches === 1 ? "fetch" : "fetches" }}
-            slices={report.platforms.map((pl, i) => ({
-              key: pl.platform,
-              label: platformName(pl.platform),
-              value: pl.fetches,
-              color: SERIES[i % SERIES.length],
-              display: formatCount(pl.fetches),
-              hint: `${formatShare(ratio(pl.ok, pl.fetches))} worked`,
-            }))}
+            slices={[
+              ...report.platforms.map((pl, i) => ({
+                key: pl.platform,
+                label: platformName(pl.platform),
+                value: pl.fetches,
+                color: SERIES[i % SERIES.length],
+                display: formatCount(pl.fetches),
+                hint: `${formatShare(ratio(pl.ok, pl.fetches))} worked`,
+              })),
+              ...(otherLinks > 0 ? [{ key: "other-links", label: "Other links", value: otherLinks, color: COLORS.gray, display: formatCount(otherLinks), muted: true }] : []),
+            ]}
           />
         </Panel>
         <Panel title="Qualities" hint="What people saved">
@@ -207,7 +213,7 @@ function RangeBody({ report, compare }: { report: Report; compare: string }) {
       </Reveal>
 
       <Reveal i={6} className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Panel title="Countries" hint={unknownVisitors > 0 ? "Not known includes every visit from before country lookup came back" : "Where visitors are"}>
+        <Panel title="Countries" hint={unknownVisitors > 0 ? "Not known covers visits with no country on record, including every visit from before country lookup came back" : "Where visitors are"}>
           {anyCountry ? (
             <BarList
               empty="No visitors in this range yet"

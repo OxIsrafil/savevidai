@@ -2,7 +2,8 @@ import { Cell, Pie, PieChart } from "recharts";
 import { formatPercent } from "../lib/format";
 import { EmptyState } from "./EmptyState";
 
-export type Slice = { key: string; label: string; value: number; color: string; display: string; hint?: string };
+/** `muted` greys the legend label, for a catch-all row such as "Other links". */
+export type Slice = { key: string; label: string; value: number; color: string; display: string; hint?: string; muted?: boolean };
 
 /**
  * A ring of shares in a fixed 176px box with the total in the middle. The legend sits beside it
@@ -41,7 +42,7 @@ export function Donut({ slices, center, empty }: { slices: Slice[]; center: { va
           {slices.map((s) => (
             <li key={s.key} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-baseline gap-x-2.5 text-sm">
               <span aria-hidden="true" className="size-2.5 self-center rounded-full" style={{ background: s.color }} />
-              <span className="truncate text-text-primary">{s.label}</span>
+              <span className={s.muted ? "truncate text-text-muted" : "truncate text-text-primary"}>{s.label}</span>
               <span className="flex items-baseline gap-2.5 tabular-nums">
                 <span className="text-[13px] text-text-secondary">{s.display}</span>
                 <span className="w-9 text-right text-xs text-text-muted">{formatPercent(s.value / total)}</span>

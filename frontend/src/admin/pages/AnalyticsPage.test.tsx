@@ -2,7 +2,8 @@ import { act, cleanup, render, screen, waitFor, within } from "@testing-library/
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test, vi } from "vitest";
 import { fakeServer } from "../test/fakeServer";
-import { EMPTY_REPORT } from "../test/fixtures";
+import { COLORS } from "../lib/colors";
+import { EMPTY_REPORT, REPORT_7D_NO_PLATFORM } from "../test/fixtures";
 import { wholeText } from "../test/text";
 import { AnalyticsPage, type AnalyticsPageProps } from "./AnalyticsPage";
 
@@ -289,6 +290,7 @@ test("panels: funnel, outcomes, platforms, qualities, countries, pages, hours, v
   expect(platforms.getByText("60%")).toBeInTheDocument();
   expect(platforms.getByText("92% worked")).toBeInTheDocument();
   expect(platforms.getByText("Facebook")).toBeInTheDocument();
+  expect(platforms.queryByText("Other links")).not.toBeInTheDocument();
 
   const qualities = panel("Qualities");
   expect(qualities.getByText("What people saved")).toBeInTheDocument();
@@ -297,7 +299,7 @@ test("panels: funnel, outcomes, platforms, qualities, countries, pages, hours, v
   expect(qualities.getByRole("button", { name: "Show all (9)" })).toBeInTheDocument();
 
   const countries = panel("Countries");
-  expect(countries.getByText("Not known includes every visit from before country lookup came back")).toBeInTheDocument();
+  expect(countries.getByText("Not known covers visits with no country on record, including every visit from before country lookup came back")).toBeInTheDocument();
   expect(countries.getByText("US")).toBeInTheDocument();
   expect(countries.getByText("United States")).toBeInTheDocument();
   expect(countries.getByText("Bangladesh")).toBeInTheDocument();
@@ -329,6 +331,30 @@ test("panels: funnel, outcomes, platforms, qualities, countries, pages, hours, v
 
   expect(screen.getByRole("link", { name: "IP Geolocation by DB-IP" })).toBeInTheDocument();
   expect(screen.getByText(/\(06:00 your time\)/)).toBeInTheDocument();
+});
+
+test("fetches with no platform are a final muted Other links row and a gray slice, so the legend adds up to the centre", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify(REPORT_7D_NO_PLATFORM), { status: 200 })));
+  render(<AnalyticsPage {...props()} />);
+  await screen.findByText("Sep 17 to Sep 23, your local time");
+  const region = screen.getByRole("region", { name: "Platforms" });
+  const platforms = within(region);
+  expect(platforms.getByText("2,812")).toBeInTheDocument();
+  const rows = platforms.getAllByRole("listitem");
+  expect(rows).toHaveLength(6);
+  const counts = rows.map((row) => Number(within(row).getByText(/^[\d,]+$/).textContent?.replace(/,/g, "")));
+  expect(counts.reduce((a, b) => a + b, 0)).toBe(2812);
+  expect(within(rows[0]).getByText("X (Twitter)")).toBeInTheDocument();
+  expect(within(rows[0]).getByText("1,628")).toBeInTheDocument();
+  expect(within(rows[0]).getByText("58%")).toBeInTheDocument();
+  const other = within(rows[5]);
+  expect(other.getByText("Other links").className).toContain("text-text-muted");
+  expect(other.getByText("56")).toBeInTheDocument();
+  expect(other.getByText("2.0%")).toBeInTheDocument();
+  expect(other.queryByText(/worked$/)).not.toBeInTheDocument();
+  const sectors = region.querySelectorAll(".recharts-pie-sector path");
+  expect(sectors).toHaveLength(6);
+  expect(sectors[5].getAttribute("fill")).toBe(COLORS.gray);
 });
 
 test("a fresh install shows an empty state in every panel and dashes on the ratio tiles", async () => {

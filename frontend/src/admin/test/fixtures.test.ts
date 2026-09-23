@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { Report, SeriesValues } from "../lib/api";
-import { EMPTY_REPORT, REPORT_7D, REPORT_90D, REPORT_TODAY, REPORTS, RESOLVERS } from "./fixtures";
+import { EMPTY_REPORT, REPORT_7D, REPORT_7D_NO_PLATFORM, REPORT_90D, REPORT_TODAY, REPORTS, RESOLVERS } from "./fixtures";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 const seriesSum = (r: Report, key: keyof SeriesValues, side: "cur" | "prev") => sum(r.series.map((p) => p[side]?.[key] ?? 0));
@@ -29,7 +29,8 @@ function checkShape(r: Report) {
   expect(r.countries.length).toBeLessThanOrEqual(11);
   expect(r.pages.length).toBeLessThanOrEqual(12);
   expect(sum(r.outcomes.map((o) => o.count))).toBe(r.totals.fetches);
-  expect(sum(r.platforms.map((p) => p.fetches))).toBe(r.totals.fetches);
+  // Platforms count only fetches with a platform (spec B3), so they can sum to less.
+  expect(sum(r.platforms.map((p) => p.fetches))).toBeLessThanOrEqual(r.totals.fetches);
   expect(sum(r.platforms.map((p) => p.ok))).toBe(r.totals.ok_fetches);
   expect(sum(r.platforms.map((p) => p.downloads))).toBe(r.totals.downloads);
   expect(sum(r.qualities.map((q) => q.count))).toBe(r.totals.downloads);
@@ -61,6 +62,16 @@ test("7d: daily buckets with a previous period, totals equal the series sums", (
   expect(REPORT_7D.totals.ok_fetches / REPORT_7D.totals.fetches).toBeCloseTo(0.91, 2);
   expect(REPORT_7D.outcomes[1]).toEqual({ outcome: "not_found", count: 163 });
   expect(REPORT_7D.platforms[0].platform).toBe("twitter");
+});
+
+test("7d without a platform on the invalid links: the platforms sum to the fetches minus those links", () => {
+  checkShape(REPORT_7D_NO_PLATFORM);
+  // Every other fixture attributes each fetch to a platform; this one does not.
+  for (const r of [REPORT_7D, REPORT_TODAY, REPORT_90D, EMPTY_REPORT]) expect(sum(r.platforms.map((p) => p.fetches))).toBe(r.totals.fetches);
+  const invalid = REPORT_7D_NO_PLATFORM.outcomes.find((o) => o.outcome === "invalid_url")?.count ?? 0;
+  expect(invalid).toBe(56);
+  expect(sum(REPORT_7D_NO_PLATFORM.platforms.map((p) => p.fetches))).toBe(REPORT_7D_NO_PLATFORM.totals.fetches - invalid);
+  expect(REPORT_7D_NO_PLATFORM.platforms.every((p) => p.ok <= p.fetches)).toBe(true);
 });
 
 test("today: 24 hourly buckets with integer keys, null after the current hour", () => {
