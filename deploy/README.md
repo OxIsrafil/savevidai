@@ -82,6 +82,10 @@ will 404 at Caddy (host mismatch) which still proves Caddy is up.
   reach Let's Encrypt directly for the cert, and Cloudflare's free proxy is not
   for serving large volumes of video (their ToS), which is exactly your traffic.
 - TTL: set low (e.g. 60s) a few minutes before cutover so it propagates fast.
+- DNS-only also means `CF-Connecting-IP` and `CF-IPCountry` can only come from
+  the client. The Caddyfile strips every `CF-*` header and the app ignores them
+  unless `TRUST_CLOUDFLARE_HEADERS=1`. Leave that unset; read its note in
+  `app.env.example` before ever orange-clouding.
 
 Within a minute or two Caddy issues the cert and the site is live from the VPS.
 Watch it:
@@ -126,6 +130,11 @@ docker compose -f compose.prod.yaml up -d --build
 - **Maintenance mode:** the in-dashboard admin toggle still works (it is an
   in-memory flag; a container restart clears it to Live, same as before). The
   `MAINTENANCE_MODE` env var in `deploy/app.env` is the hard-override backup.
+- **Caddyfile changes:** the up command only rebuilds the app; the Caddy
+  container keeps running on the Caddyfile it read at start (a `caddy reload`
+  inside it still sees the pre-pull file, because git replaces the file and
+  the bind mount stays on the old one). After a pull that touches the
+  Caddyfile, run `docker compose -f compose.prod.yaml restart caddy`.
 - **Logs:** `docker compose -f compose.prod.yaml logs -f app`.
 - **Bandwidth:** check the Hetzner console traffic graph. At ~0.6 TB/month you
   have ~30x headroom on the 20 TB allowance.

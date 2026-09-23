@@ -82,7 +82,7 @@ run `goaccess /data/access.log --log-format=CADDY` for visitor counts.
 
 ## Analytics (optional, privacy-first)
 
-The hosted site records aggregate usage so the maintainer can see growth and spot extraction breakage. What is stored: per-event timestamp, type (visit/fetch/download), outcome (quality label or error code), a 2-letter country (from Cloudflare, when proxied), and a daily-rotating HMAC hash used to estimate unique visitors. What is not stored: IP addresses, any identifier that survives a day, cookies for visitors, or anything that identifies a person. Two coarse buckets aid triage without weakening this: `source` (a browser-categorized traffic bucket such as search or direct, derived on the client with no referrer URL kept) and `visitor_kind` (new vs returning, a localStorage-based estimate consistent with the no-tracking stance, with no cross-day ID stored). Events are pruned after 90 days.
+The hosted site records aggregate usage so the maintainer can see growth and spot extraction breakage. What is stored: per-event timestamp, type (visit/fetch/download), outcome (quality label or error code), a 2-letter country (looked up offline from the IP, which is then discarded), and a daily-rotating HMAC hash used to estimate unique visitors. What is not stored: IP addresses, any identifier that survives a day, cookies for visitors, or anything that identifies a person. Two coarse buckets aid triage without weakening this: `source` (a browser-categorized traffic bucket such as search or direct, derived on the client with no referrer URL kept) and `visitor_kind` (new vs returning, a localStorage-based estimate consistent with the no-tracking stance, with no cross-day ID stored). Events are pruned after 90 days.
 
 Analytics is off by default. It activates only when all of `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `ADMIN_PASSWORD`, and `ANALYTICS_SALT` are set, so self-hosted instances collect nothing unless you deliberately configure them. The admin dashboard lives at `/admin` behind a password.
 
@@ -98,7 +98,7 @@ Analytics is off by default. It activates only when all of `TURSO_DATABASE_URL`,
    - `TURSO_AUTH_TOKEN`: your Turso auth token
    - `ADMIN_PASSWORD`: a long random value (it doubles as session-signing key material; use at least 32 random characters)
    - `ANALYTICS_SALT`: another long random value (used to salt the visitor hash; use at least 32 random characters)
-3. Optional: proxy your domain through Cloudflare (orange cloud) to enable country data collection via the `CF-IPCountry` header.
+3. Optional: countries come from an offline DB-IP Lite lookup that needs a directory for its database (`GEOIP_DIR`, or next to a local `ANALYTICS_DB_PATH`); see `deploy/README.md`. Cloudflare's `CF-IPCountry` header is used instead only when the domain is proxied through Cloudflare (orange cloud) with `TRUST_CLOUDFLARE_HEADERS=1` and the `request_header -CF-*` line removed from the Caddyfile. Only do this if the origin accepts traffic from Cloudflare's IP ranges alone; otherwise anyone can forge the header (and `CF-Connecting-IP`, which then keys the rate limits). See `deploy/app.env.example`.
 
 ## License
 

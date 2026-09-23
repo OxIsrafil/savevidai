@@ -68,11 +68,17 @@ Recharts and lucide-react loaded by the admin entry only.
 - Deploy is MANUAL, no auto-deploy anywhere: `ssh root@159.195.159.26`, `cd /opt/savevidai`,
   `git pull && docker compose -f compose.prod.yaml up -d --build`. A GitHub read-only DEPLOY KEY
   on the VPS lets it pull the private repo over SSH (git remote is the `git@github.com:` SSH URL).
+  `up --build` only recreates the app container: a pull that changes the Caddyfile also needs
+  `docker compose -f compose.prod.yaml restart caddy`.
 - GitHub Actions CI still runs on every push (tests + ruff + build) but does NOT deploy. Render
   was decommissioned (its free tier bandwidth-SUSPENDED the site under a KOL traffic surge -
   SaveVid proxies download bytes, so egress scales with usage; the VPS bundles ~unlimited traffic).
 - Cloudflare: `savevidai.israfill.dev` is an A record -> the VPS IP, DNS-only (grey cloud) so Caddy
   can issue its cert and video streams direct off the box. Do NOT orange-cloud it (video volume).
+  So CF-* headers can only come from the client: Caddy strips them (`request_header -CF-*`) and
+  `backend/app/client_ip.py` ignores CF-Connecting-IP / CF-IPCountry unless
+  `TRUST_CLOUDFLARE_HEADERS=1` (keep it unset). The client IP is the first X-Forwarded-For hop,
+  safe only because Caddy has no trusted_proxies and overwrites XFF with the real peer.
 - Env/secrets live in `deploy/app.env` on the VPS (gitignored). See `deploy/app.env.example` +
   `deploy/README.md` for the full var list and runbook.
 - Reddit galleries + share links need optional REDDIT_CLIENT_ID/SECRET (a reddit "script" app);
