@@ -30,6 +30,16 @@ test("updates write the URL with pushState and keep the other key", () => {
   expect(window.location.search).toBe("");
 });
 
+test("two quick updates in one handler both land in the URL and in state", () => {
+  const { result } = renderHook(() => useUrlState());
+  act(() => {
+    result.current[1]({ range: "30d" });
+    result.current[1]({ page: "site" });
+  });
+  expect(result.current[0]).toEqual({ page: "site", range: "30d" });
+  expect(window.location.search).toBe("?page=site&range=30d");
+});
+
 test("popstate restores both keys from the URL", () => {
   const { result } = renderHook(() => useUrlState());
   act(() => {
@@ -40,4 +50,10 @@ test("popstate restores both keys from the URL", () => {
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
   expect(result.current[0]).toEqual({ page: "analytics", range: "today" });
+  // The next update builds on the restored keys, not on the state from before the pop.
+  act(() => {
+    result.current[1]({ page: "site" });
+  });
+  expect(result.current[0]).toEqual({ page: "site", range: "today" });
+  expect(window.location.search).toBe("?page=site&range=today");
 });
