@@ -157,7 +157,7 @@ test.each(cases)("$name shell static sections match its string table", ({ shell,
   expect(text(doc.querySelector("footer.site-footer nav.footer-links a"))).toBe(strings.footer.xLink);
 
   const credits = Array.from(doc.querySelectorAll(".credit")).map(text);
-  // builtBy is a text node next to the @israfill link, and Hindi flips that
+  // builtBy is a text node next to the @israfilv2 link, and Hindi flips that
   // order, so the assertion is containment rather than equality here. The case
   // below is what pins the order per locale.
   expect(credits[0]).toContain(strings.footer.builtBy);
@@ -168,11 +168,11 @@ test.each(cases)("$name shell footer credit puts builtBy on its locale's side of
   const { doc } = shellRoot(shell);
 
   const credit = doc.querySelector(".credit");
-  const link = credit?.querySelector('a[href="https://x.com/israfill"]');
-  expect(link, "credit row has no @israfill link").not.toBeNull();
+  const link = credit?.querySelector('a[href="https://x.com/israfilv2"]');
+  expect(link, "credit row has no @israfilv2 link").not.toBeNull();
 
   // Hindi is head-final: the doc (section 2.14) renders the name first and
-  // "ne banaya" after it, the reverse of "built by @israfill". Containment
+  // "ne banaya" after it, the reverse of "built by @israfilv2". Containment
   // alone would pass the English node order under a Hindi string, which reads
   // as broken grammar to the only people who can tell.
   const handle = norm(link?.textContent);

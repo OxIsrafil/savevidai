@@ -1,7 +1,7 @@
 # SaveVid AI
 
 <p align="center">
-  <a href="https://x.com/israfill"><img src="https://img.shields.io/badge/follow%20%40israfill%20on%20x-000000?style=for-the-badge&logo=x&logoColor=white" alt="Follow @israfill on X" /></a>
+  <a href="https://x.com/israfilv2"><img src="https://img.shields.io/badge/follow%20%40israfilv2%20on%20x-000000?style=for-the-badge&logo=x&logoColor=white" alt="Follow @israfilv2 on X" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="License: MIT" /></a>
 </p>
 
@@ -106,6 +106,6 @@ MIT
 
 <p align="center">
   <b>SaveVid AI<span>.</span></b><br/>
-  built by <a href="https://x.com/israfill"><b>@israfill</b></a> ·
+  built by <a href="https://x.com/israfilv2"><b>@israfilv2</b></a> ·
   <a href="https://savevidai.israfill.dev">savevidai.israfill.dev</a>
 </p>

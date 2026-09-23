@@ -1,7 +1,7 @@
 # SaveVid AI - project context
 
 Social video downloader, ad-free since 2026-09-06 (owner pulled the ads). Live at https://savevidai.israfill.dev
-Private repo: https://github.com/OxIsrafil/savevidai (owner: OxIsrafil, X: @israfill).
+Private repo: https://github.com/OxIsrafil/savevidai (owner: OxIsrafil, X: @israfilv2).
 
 This file is auto-loaded into every chat opened in this repo. Read it first, then check
 the owner's global memory and the ledger below before starting work.

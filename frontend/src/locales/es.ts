@@ -117,7 +117,7 @@ export const esShared: SharedStrings = {
     brand: "SaveVid AI",
     linksLabel: "Enlaces de SaveVid AI",
     platformsLabel: "Todos los descargadores",
-    xLink: "X · @israfill",
+    xLink: "X · @israfilv2",
     builtBy: "hecho por",
     copyright: "© 2026 SaveVid AI",
   },

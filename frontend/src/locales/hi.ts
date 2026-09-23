@@ -120,9 +120,9 @@ export const hiShared: SharedStrings = {
     brand: "SaveVid AI",
     linksLabel: "SaveVid AI लिंक",
     platformsLabel: "सभी डाउनलोडर",
-    xLink: "X · @israfill",
+    xLink: "X · @israfilv2",
     // Hindi is head-final, so this is a POSTfix: the hi shell must render the
-    // @israfill link and then this text node ("<a>@israfill</a> ने बनाया"),
+    // @israfilv2 link and then this text node ("<a>@israfilv2</a> ने बनाया"),
     // the reverse of the en/es order. Doc section 2.14.
     builtBy: "ने बनाया",
     copyright: "© 2026 SaveVid AI",

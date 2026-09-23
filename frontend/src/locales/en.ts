@@ -113,7 +113,7 @@ export const enShared: SharedStrings = {
     brand: "SaveVid AI",
     linksLabel: "SaveVid AI links",
     platformsLabel: "All downloaders",
-    xLink: "X · @israfill",
+    xLink: "X · @israfilv2",
     builtBy: "built by",
     copyright: "© 2026 SaveVid AI",
   },
