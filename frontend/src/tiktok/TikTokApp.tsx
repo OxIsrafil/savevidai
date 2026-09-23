@@ -12,7 +12,7 @@ import { EASE_OUT, fadeRise, heroStill } from "../lib/motion";
 import { enTikTok } from "../locales/en";
 import type { PageStrings } from "../locales/types";
 
-// A stable public photo/video post, used as the one-click live demo.
+// A stable public photo/video post, used as the example chip's live demo.
 const EXAMPLE_URL = "https://www.tiktok.com/@scout2015/video/6718335390845095173";
 
 // Module-level (not component-level) so it survives React StrictMode's dev-time

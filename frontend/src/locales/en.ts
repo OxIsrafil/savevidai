@@ -141,7 +141,7 @@ export const enTwitter: PageStrings = {
     title: "Twitter/X Video Downloader - Free, Fast, Instant | SaveVid AI",
     description:
       "Download Twitter/X videos and GIFs in original quality. No fake download buttons, no forced redirects. Free and instant.",
-    ogDescription: "Paste a post link, pick a quality, done. No fake buttons, one real click.",
+    ogDescription: "Paste a post link, pick a quality, done. No fake buttons.",
   },
   hero: {
     h1a: "Twitter/X Video",
@@ -149,7 +149,7 @@ export const enTwitter: PageStrings = {
     lede: "Paste tweet URL and get the video in 2 seconds.",
     placeholder: "Paste a Twitter/X post link",
     inputAriaLabel: "Twitter/X post link",
-    note: "Straight from Twitter's CDN. No fake buttons, one real click.",
+    note: "Straight from Twitter's CDN. No fake buttons.",
   },
   chipKeys: ["example", "noLogin", "noWatermark", "originalQuality"],
   footerDescription: "Twitter/X video downloader. No fake buttons. One paste, every quality.",
@@ -185,7 +185,7 @@ export const enTikTok: PageStrings = {
     description:
       "Download TikTok videos without the watermark, in original quality. No fake download buttons, no forced redirects. Free and instant.",
     ogDescription:
-      "Paste a TikTok link, get it without the watermark, in seconds. No fake buttons, one real click.",
+      "Paste a TikTok link, get it without the watermark, in seconds. No fake buttons.",
   },
   hero: {
     h1a: "TikTok Video",
@@ -193,7 +193,7 @@ export const enTikTok: PageStrings = {
     lede: "Paste a TikTok link, get it without the watermark, in seconds.",
     placeholder: "Paste a TikTok video link",
     inputAriaLabel: "TikTok video link",
-    note: "Clean file, no watermark. No fake buttons, one real click.",
+    note: "Clean file, no watermark. No fake buttons.",
   },
   chipKeys: ["example", "noLogin", "noWatermark", "originalQuality"],
   footerDescription: "TikTok video downloader. No fake buttons. One paste, no watermark.",
@@ -229,7 +229,7 @@ export const enReddit: PageStrings = {
     description:
       "Download Reddit videos with the audio merged in, in original quality. No fake download buttons, no forced redirects. Free and instant.",
     ogDescription:
-      "Paste a Reddit post link, get the video with audio, in seconds. No fake buttons, one real click.",
+      "Paste a Reddit post link, get the video with audio, in seconds. No fake buttons.",
   },
   hero: {
     h1a: "Reddit Video",
@@ -237,7 +237,7 @@ export const enReddit: PageStrings = {
     lede: "Paste a Reddit post link, get the video with audio, in seconds.",
     placeholder: "Paste a Reddit post link",
     inputAriaLabel: "Reddit post link",
-    note: "Video and audio merged into one file. No fake buttons, one real click.",
+    note: "Video and audio merged into one file. No fake buttons.",
   },
   chipKeys: ["example", "noLogin", "withAudio", "originalQuality"],
   footerDescription: "Reddit video downloader. No fake buttons. One paste, audio merged in.",
@@ -273,18 +273,18 @@ export const enInstagram: PageStrings = {
     description:
       "Download Instagram reels and videos in HD. No fake download buttons, no forced redirects. Free and instant.",
     ogDescription:
-      "Paste an Instagram link, get the video in seconds. No fake buttons, one real click.",
+      "Paste an Instagram link, get the video in seconds. No fake buttons.",
   },
   hero: {
     h1a: "Instagram Reel",
     h1b: "Downloader",
-    lede: "Paste an Instagram link, get the video in HD. No fake buttons, one real click.",
+    lede: "Paste an Instagram link, get the video in HD. No fake buttons.",
     placeholder: "Paste an Instagram reel or post link",
     inputAriaLabel: "Instagram reel or post link",
     note: "Carousel posts save the first photo or video only, for now.",
   },
   chipKeys: ["example", "noLogin", "hdQuality", "publicOnly"],
-  footerDescription: "Instagram reel downloader. No fake buttons. One paste, one real click.",
+  footerDescription: "Instagram reel downloader. No fake buttons.",
   steps: [
     {
       heading: "Paste the Instagram link",
@@ -295,7 +295,7 @@ export const enInstagram: PageStrings = {
       body: "The preview appears in about a second, with the video or photo ready to save.",
     },
     {
-      heading: "One real click",
+      heading: "No fake buttons",
       body: "The file saves straight to your device with a clean filename. No fake buttons, no detours.",
     },
   ],
@@ -317,18 +317,18 @@ export const enFacebook: PageStrings = {
     description:
       "Download Facebook videos and reels in HD. No fake download buttons, no forced redirects. Free and instant.",
     ogDescription:
-      "Paste a Facebook link, get the video in seconds. No fake buttons, one real click.",
+      "Paste a Facebook link, get the video in seconds. No fake buttons.",
   },
   hero: {
     h1a: "Facebook Video",
     h1b: "Downloader",
-    lede: "Paste a Facebook link, get the video in HD. No fake buttons, one real click.",
+    lede: "Paste a Facebook link, get the video in HD. No fake buttons.",
     placeholder: "Paste a Facebook video or reel link",
     inputAriaLabel: "Facebook video or reel link",
     note: "Photo posts and private videos are not supported: public videos and reels only.",
   },
   chipKeys: ["example", "noLogin", "hdQuality", "publicOnly"],
-  footerDescription: "Facebook video downloader. No fake buttons. One paste, one real click.",
+  footerDescription: "Facebook video downloader. No fake buttons.",
   steps: [
     {
       heading: "Paste the Facebook link",
@@ -339,7 +339,7 @@ export const enFacebook: PageStrings = {
       body: "The preview appears in about a second, with the video ready to save.",
     },
     {
-      heading: "One real click",
+      heading: "No fake buttons",
       body: "The video saves straight to your device with a clean filename. No fake buttons, no detours.",
     },
   ],

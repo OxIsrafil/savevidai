@@ -12,7 +12,7 @@ import { EASE_OUT, fadeRise, heroStill } from "./lib/motion";
 import { enTwitter } from "./locales/en";
 import type { PageStrings } from "./locales/types";
 
-// The maker's own video post, used as the one-click live demo.
+// The maker's own video post, used as the example chip's live demo.
 const EXAMPLE_URL = "https://x.com/israfill/status/2077383034639094193";
 
 // Module-level (not component-level) so it survives React StrictMode's dev-time

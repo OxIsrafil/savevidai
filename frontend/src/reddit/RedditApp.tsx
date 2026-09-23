@@ -12,8 +12,8 @@ import { EASE_OUT, fadeRise, heroStill } from "../lib/motion";
 import { enReddit } from "../locales/en";
 import type { PageStrings } from "../locales/types";
 
-// A stable public video post, used as the one-click live demo. Live-verified
-// resolving through the anonymous path on 2026-07-23.
+// A stable public video post, used as the example chip's live demo.
+// Live-verified resolving through the anonymous path on 2026-07-23.
 const EXAMPLE_URL =
   "https://www.reddit.com/r/funny/comments/d8qo81/baby_crocodiles_sound_like_theyre_shooting_laser/";
 

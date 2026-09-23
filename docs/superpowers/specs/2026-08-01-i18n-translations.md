@@ -43,8 +43,8 @@ Conventions used below:
     The Twitter Q4 variant uses the second form of each: that is compliant.
   - iOS wording preserved: the Files app + the share sheet, both named.
     es "la app Archivos" + "la hoja para compartir"; hi "Files ऐप" + "शेयर शीट".
-  - "one real click" register preserved: es "un solo clic real",
-    hi "बस एक असली क्लिक".
+  - No click counts (2026-09-23): the follow popup makes a save two clicks, so
+    no string in any locale says how many clicks a download takes.
 - Owner voice: direct, human, short sentences, no corporate filler. No
   "nuestra plataforma", no "experiencia de usuario", no "आपके अनुभव को बेहतर".
 
@@ -298,9 +298,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: Twitter/X के वीडियो और GIF ओरिजिनल क्वालिटी में डाउनलोड करें। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं। फ़्री और तुरंत।
 
 **og:description + twitter:description** (same string, both tags)
-- en: Paste a post link, pick a quality, done. No fake buttons, one real click.
-- es: Pega el enlace del post, elige una calidad, listo. Sin botones falsos, un solo clic real.
-- hi: पोस्ट का लिंक पेस्ट करें, क्वालिटी चुनें, हो गया। कोई नकली बटन नहीं, बस एक असली क्लिक।
+- en: Paste a post link, pick a quality, done. No fake buttons.
+- es: Pega el enlace del post, elige una calidad, listo. Sin botones falsos.
+- hi: पोस्ट का लिंक पेस्ट करें, क्वालिटी चुनें, हो गया। कोई नकली बटन नहीं।
 
 **hero h1** (part A + part B)
 - en: `Twitter/X Video` + `Downloader`
@@ -323,9 +323,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: Twitter/X पोस्ट का लिंक
 
 **hero note**
-- en: Straight from Twitter's CDN. No fake buttons, one real click.
-- es: Directo desde el CDN de Twitter. Sin botones falsos, un solo clic real.
-- hi: सीधे Twitter के CDN से। कोई नकली बटन नहीं, बस एक असली क्लिक।
+- en: Straight from Twitter's CDN. No fake buttons.
+- es: Directo desde el CDN de Twitter. Sin botones falsos.
+- hi: सीधे Twitter के CDN से। कोई नकली बटन नहीं।
 
 **chips**: `chip.example`, `chip.noLogin`, `chip.noWatermark`, `chip.originalQuality`
 
@@ -372,9 +372,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Is SaveVid AI really free and safe?
 - es Q: ¿SaveVid AI es de verdad gratis y seguro?
 - hi Q: क्या SaveVid AI सच में फ़्री और सुरक्षित है?
-- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click.
-- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real.
-- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है।
+- en A: Yes. No fake download buttons and no forced redirects.
+- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas.
+- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं।
 
 **Q2 [JSON-LD]**
 - en Q: What quality do I get?
@@ -439,9 +439,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: TikTok वीडियो बिना वॉटरमार्क, ओरिजिनल क्वालिटी में डाउनलोड करें। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं। फ़्री और तुरंत।
 
 **og:description + twitter:description**
-- en: Paste a TikTok link, get it without the watermark, in seconds. No fake buttons, one real click.
-- es: Pega un enlace de TikTok y obtén el video sin marca de agua, en segundos. Sin botones falsos, un solo clic real.
-- hi: TikTok का लिंक पेस्ट करें, कुछ ही सेकंड में बिना वॉटरमार्क वीडियो पाएँ। कोई नकली बटन नहीं, बस एक असली क्लिक।
+- en: Paste a TikTok link, get it without the watermark, in seconds. No fake buttons.
+- es: Pega un enlace de TikTok y obtén el video sin marca de agua, en segundos. Sin botones falsos.
+- hi: TikTok का लिंक पेस्ट करें, कुछ ही सेकंड में बिना वॉटरमार्क वीडियो पाएँ। कोई नकली बटन नहीं।
 
 **hero h1**
 - en: `TikTok Video` + `Downloader`
@@ -464,9 +464,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: TikTok वीडियो का लिंक
 
 **hero note**
-- en: Clean file, no watermark. No fake buttons, one real click.
-- es: Archivo limpio, sin marca de agua. Sin botones falsos, un solo clic real.
-- hi: साफ़ फ़ाइल, कोई वॉटरमार्क नहीं। कोई नकली बटन नहीं, बस एक असली क्लिक।
+- en: Clean file, no watermark. No fake buttons.
+- es: Archivo limpio, sin marca de agua. Sin botones falsos.
+- hi: साफ़ फ़ाइल, कोई वॉटरमार्क नहीं। कोई नकली बटन नहीं।
 
 **chips**: `chip.example`, `chip.noLogin`, `chip.noWatermark`, `chip.originalQuality`
 
@@ -521,9 +521,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Is the TikTok downloader really free?
 - es Q: ¿El descargador de TikTok es de verdad gratis?
 - hi Q: क्या TikTok डाउनलोडर सच में फ़्री है?
-- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click.
-- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real.
-- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है।
+- en A: Yes. No fake download buttons and no forced redirects.
+- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas.
+- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं।
 
 **Q3 [JSON-LD]**
 - en Q: Can I download TikTok photo slideshows?
@@ -588,9 +588,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: Reddit वीडियो ऑडियो के साथ, ओरिजिनल क्वालिटी में डाउनलोड करें। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं। फ़्री और तुरंत।
 
 **og:description + twitter:description**
-- en: Paste a Reddit post link, get the video with audio, in seconds. No fake buttons, one real click.
-- es: Pega el enlace de un post de Reddit y obtén el video con audio, en segundos. Sin botones falsos, un solo clic real.
-- hi: Reddit पोस्ट का लिंक पेस्ट करें, कुछ ही सेकंड में ऑडियो के साथ वीडियो पाएँ। कोई नकली बटन नहीं, बस एक असली क्लिक।
+- en: Paste a Reddit post link, get the video with audio, in seconds. No fake buttons.
+- es: Pega el enlace de un post de Reddit y obtén el video con audio, en segundos. Sin botones falsos.
+- hi: Reddit पोस्ट का लिंक पेस्ट करें, कुछ ही सेकंड में ऑडियो के साथ वीडियो पाएँ। कोई नकली बटन नहीं।
 
 **hero h1**
 - en: `Reddit Video` + `Downloader`
@@ -613,9 +613,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: Reddit पोस्ट का लिंक
 
 **hero note**
-- en: Video and audio merged into one file. No fake buttons, one real click.
-- es: Video y audio unidos en un solo archivo. Sin botones falsos, un solo clic real.
-- hi: वीडियो और ऑडियो एक ही फ़ाइल में। कोई नकली बटन नहीं, बस एक असली क्लिक।
+- en: Video and audio merged into one file. No fake buttons.
+- es: Video y audio unidos en un solo archivo. Sin botones falsos.
+- hi: वीडियो और ऑडियो एक ही फ़ाइल में। कोई नकली बटन नहीं।
 
 **chips**: `chip.example`, `chip.noLogin`, `chip.withAudio`, `chip.originalQuality`
 (no watermark chip here: that claim is Twitter/TikTok-only)
@@ -679,9 +679,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Is the Reddit downloader really free?
 - es Q: ¿El descargador de Reddit es de verdad gratis?
 - hi Q: क्या Reddit डाउनलोडर सच में फ़्री है?
-- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click.
-- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real.
-- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है।
+- en A: Yes. No fake download buttons and no forced redirects.
+- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas.
+- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं।
 
 **Q4 [JSON-LD]**
 - en Q: Is it safe to use SaveVid AI for Reddit?
@@ -738,9 +738,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: Instagram की रील और वीडियो HD में डाउनलोड करें। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं। फ़्री और तुरंत।
 
 **og:description + twitter:description**
-- en: Paste an Instagram link, get the video in seconds. No fake buttons, one real click.
-- es: Pega un enlace de Instagram y obtén el video en segundos. Sin botones falsos, un solo clic real.
-- hi: Instagram का लिंक पेस्ट करें, कुछ ही सेकंड में वीडियो पाएँ। कोई नकली बटन नहीं, बस एक असली क्लिक।
+- en: Paste an Instagram link, get the video in seconds. No fake buttons.
+- es: Pega un enlace de Instagram y obtén el video en segundos. Sin botones falsos.
+- hi: Instagram का लिंक पेस्ट करें, कुछ ही सेकंड में वीडियो पाएँ। कोई नकली बटन नहीं।
 
 **hero h1**
 - en: `Instagram Reel` + `Downloader`
@@ -748,9 +748,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: `Instagram रील` + `डाउनलोडर`
 
 **lede**
-- en: Paste an Instagram link, get the video in HD. No fake buttons, one real click.
-- es: Pega un enlace de Instagram y obtén el video en HD. Sin botones falsos, un solo clic real.
-- hi: Instagram का लिंक पेस्ट करें और HD में वीडियो पाएँ। कोई नकली बटन नहीं, बस एक असली क्लिक।
+- en: Paste an Instagram link, get the video in HD. No fake buttons.
+- es: Pega un enlace de Instagram y obtén el video en HD. Sin botones falsos.
+- hi: Instagram का लिंक पेस्ट करें और HD में वीडियो पाएँ। कोई नकली बटन नहीं।
 
 **input placeholder**
 - en: Paste an Instagram reel or post link
@@ -770,9 +770,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 **chips**: `chip.example`, `chip.noLogin`, `chip.hdQuality`, `chip.publicOnly`
 
 **footer description**
-- en: Instagram reel downloader. No fake buttons. One paste, one real click.
-- es: Descargador de reels de Instagram. Sin botones falsos. Pegas una vez, un solo clic real.
-- hi: Instagram रील डाउनलोडर। कोई नकली बटन नहीं। एक पेस्ट, बस एक असली क्लिक।
+- en: Instagram reel downloader. No fake buttons.
+- es: Descargador de reels de Instagram. Sin botones falsos.
+- hi: Instagram रील डाउनलोडर। कोई नकली बटन नहीं।
 
 #### How it works
 
@@ -797,9 +797,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: करीब एक सेकंड में प्रीव्यू आ जाता है, वीडियो या फ़ोटो सेव करने के लिए तैयार।
 
 **Step 3 heading**
-- en: One real click
-- es: Un solo clic real
-- hi: बस एक असली क्लिक
+- en: No fake buttons
+- es: Sin botones falsos
+- hi: कोई नकली बटन नहीं
 
 **Step 3 body**
 - en: The file saves straight to your device with a clean filename. No fake buttons, no detours.
@@ -820,9 +820,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Is the Instagram downloader free?
 - es Q: ¿El descargador de Instagram es gratis?
 - hi Q: क्या Instagram डाउनलोडर फ़्री है?
-- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click.
-- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real.
-- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है।
+- en A: Yes. No fake download buttons and no forced redirects.
+- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas.
+- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं।
 
 **Q3 [JSON-LD]**
 - en Q: Can I download photo carousels?
@@ -887,9 +887,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: Facebook के वीडियो और रील HD में डाउनलोड करें। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं। फ़्री और तुरंत।
 
 **og:description + twitter:description**
-- en: Paste a Facebook link, get the video in seconds. No fake buttons, one real click.
-- es: Pega un enlace de Facebook y obtén el video en segundos. Sin botones falsos, un solo clic real.
-- hi: Facebook का लिंक पेस्ट करें, कुछ ही सेकंड में वीडियो पाएँ। कोई नकली बटन नहीं, बस एक असली क्लिक।
+- en: Paste a Facebook link, get the video in seconds. No fake buttons.
+- es: Pega un enlace de Facebook y obtén el video en segundos. Sin botones falsos.
+- hi: Facebook का लिंक पेस्ट करें, कुछ ही सेकंड में वीडियो पाएँ। कोई नकली बटन नहीं।
 
 **hero h1**
 - en: `Facebook Video` + `Downloader`
@@ -897,9 +897,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: `Facebook वीडियो` + `डाउनलोडर`
 
 **lede**
-- en: Paste a Facebook link, get the video in HD. No fake buttons, one real click.
-- es: Pega un enlace de Facebook y obtén el video en HD. Sin botones falsos, un solo clic real.
-- hi: Facebook का लिंक पेस्ट करें और HD में वीडियो पाएँ। कोई नकली बटन नहीं, बस एक असली क्लिक।
+- en: Paste a Facebook link, get the video in HD. No fake buttons.
+- es: Pega un enlace de Facebook y obtén el video en HD. Sin botones falsos.
+- hi: Facebook का लिंक पेस्ट करें और HD में वीडियो पाएँ। कोई नकली बटन नहीं।
 
 **input placeholder**
 - en: Paste a Facebook video or reel link
@@ -919,9 +919,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 **chips**: `chip.example`, `chip.noLogin`, `chip.hdQuality`, `chip.publicOnly`
 
 **footer description**
-- en: Facebook video downloader. No fake buttons. One paste, one real click.
-- es: Descargador de videos de Facebook. Sin botones falsos. Pegas una vez, un solo clic real.
-- hi: Facebook वीडियो डाउनलोडर। कोई नकली बटन नहीं। एक पेस्ट, बस एक असली क्लिक।
+- en: Facebook video downloader. No fake buttons.
+- es: Descargador de videos de Facebook. Sin botones falsos.
+- hi: Facebook वीडियो डाउनलोडर। कोई नकली बटन नहीं।
 
 #### How it works
 
@@ -946,9 +946,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - hi: करीब एक सेकंड में प्रीव्यू आ जाता है, वीडियो सेव करने के लिए तैयार।
 
 **Step 3 heading**
-- en: One real click
-- es: Un solo clic real
-- hi: बस एक असली क्लिक
+- en: No fake buttons
+- es: Sin botones falsos
+- hi: कोई नकली बटन नहीं
 
 **Step 3 body**
 - en: The video saves straight to your device with a clean filename. No fake buttons, no detours.
@@ -969,9 +969,9 @@ maps 1:1 onto English because Hindi is head-final: "<Platform> वीडिय�
 - en Q: Is the Facebook downloader free?
 - es Q: ¿El descargador de Facebook es gratis?
 - hi Q: क्या Facebook डाउनलोडर फ़्री है?
-- en A: Yes. No fake download buttons and no forced redirects: your download is always one real click.
-- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas: tu descarga siempre es un solo clic real.
-- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं: आपका डाउनलोड हमेशा बस एक असली क्लिक होता है।
+- en A: Yes. No fake download buttons and no forced redirects.
+- es A: Sí. Sin botones de descarga falsos ni redirecciones forzadas.
+- hi A: हाँ। कोई नकली डाउनलोड बटन नहीं, कोई ज़बरदस्ती रीडायरेक्ट नहीं।
 
 **Q3 [JSON-LD]**
 - en Q: Can I download photos or private videos?

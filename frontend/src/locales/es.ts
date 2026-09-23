@@ -146,7 +146,7 @@ export const esTwitter: PageStrings = {
     description:
       "Descarga videos y GIFs de Twitter/X en calidad original. Sin botones de descarga falsos ni redirecciones forzadas. Gratis y al instante.",
     ogDescription:
-      "Pega el enlace del post, elige una calidad, listo. Sin botones falsos, un solo clic real.",
+      "Pega el enlace del post, elige una calidad, listo. Sin botones falsos.",
   },
   hero: {
     h1a: "Descargar videos",
@@ -154,7 +154,7 @@ export const esTwitter: PageStrings = {
     lede: "Pega la URL del tweet y obtén el video en 2 segundos.",
     placeholder: "Pega el enlace de un post de Twitter/X",
     inputAriaLabel: "Enlace de un post de Twitter/X",
-    note: "Directo desde el CDN de Twitter. Sin botones falsos, un solo clic real.",
+    note: "Directo desde el CDN de Twitter. Sin botones falsos.",
   },
   chipKeys: ["example", "noLogin", "noWatermark", "originalQuality"],
   footerDescription:
@@ -191,7 +191,7 @@ export const esTikTok: PageStrings = {
     description:
       "Descarga videos de TikTok sin la marca de agua, en calidad original. Sin botones de descarga falsos ni redirecciones forzadas. Gratis y al instante.",
     ogDescription:
-      "Pega un enlace de TikTok y obtén el video sin marca de agua, en segundos. Sin botones falsos, un solo clic real.",
+      "Pega un enlace de TikTok y obtén el video sin marca de agua, en segundos. Sin botones falsos.",
   },
   hero: {
     h1a: "Descargar videos",
@@ -199,7 +199,7 @@ export const esTikTok: PageStrings = {
     lede: "Pega un enlace de TikTok y obtén el video sin marca de agua, en segundos.",
     placeholder: "Pega el enlace de un video de TikTok",
     inputAriaLabel: "Enlace de un video de TikTok",
-    note: "Archivo limpio, sin marca de agua. Sin botones falsos, un solo clic real.",
+    note: "Archivo limpio, sin marca de agua. Sin botones falsos.",
   },
   chipKeys: ["example", "noLogin", "noWatermark", "originalQuality"],
   footerDescription:
@@ -236,7 +236,7 @@ export const esReddit: PageStrings = {
     description:
       "Descarga videos de Reddit con el audio ya unido, en calidad original. Sin botones de descarga falsos ni redirecciones forzadas. Gratis y al instante.",
     ogDescription:
-      "Pega el enlace de un post de Reddit y obtén el video con audio, en segundos. Sin botones falsos, un solo clic real.",
+      "Pega el enlace de un post de Reddit y obtén el video con audio, en segundos. Sin botones falsos.",
   },
   hero: {
     h1a: "Descargar videos",
@@ -244,7 +244,7 @@ export const esReddit: PageStrings = {
     lede: "Pega el enlace de un post de Reddit y obtén el video con audio, en segundos.",
     placeholder: "Pega el enlace de un post de Reddit",
     inputAriaLabel: "Enlace de un post de Reddit",
-    note: "Video y audio unidos en un solo archivo. Sin botones falsos, un solo clic real.",
+    note: "Video y audio unidos en un solo archivo. Sin botones falsos.",
   },
   chipKeys: ["example", "noLogin", "withAudio", "originalQuality"],
   footerDescription:
@@ -281,19 +281,19 @@ export const esInstagram: PageStrings = {
     description:
       "Descarga reels y videos de Instagram en HD. Sin botones de descarga falsos ni redirecciones forzadas. Gratis y al instante.",
     ogDescription:
-      "Pega un enlace de Instagram y obtén el video en segundos. Sin botones falsos, un solo clic real.",
+      "Pega un enlace de Instagram y obtén el video en segundos. Sin botones falsos.",
   },
   hero: {
     h1a: "Descargar reels",
     h1b: "de Instagram",
-    lede: "Pega un enlace de Instagram y obtén el video en HD. Sin botones falsos, un solo clic real.",
+    lede: "Pega un enlace de Instagram y obtén el video en HD. Sin botones falsos.",
     placeholder: "Pega el enlace de un reel o post de Instagram",
     inputAriaLabel: "Enlace de un reel o post de Instagram",
     note: "Por ahora, de los posts en carrusel se guarda solo la primera foto o video.",
   },
   chipKeys: ["example", "noLogin", "hdQuality", "publicOnly"],
   footerDescription:
-    "Descargador de reels de Instagram. Sin botones falsos. Pegas una vez, un solo clic real.",
+    "Descargador de reels de Instagram. Sin botones falsos.",
   steps: [
     {
       heading: "Pega el enlace de Instagram",
@@ -304,7 +304,7 @@ export const esInstagram: PageStrings = {
       body: "La vista previa aparece en un segundo, con tu archivo listo para guardar.",
     },
     {
-      heading: "Un solo clic real",
+      heading: "Sin botones falsos",
       body: "El archivo se guarda directo en tu dispositivo con un nombre de archivo limpio. Sin botones falsos, sin rodeos.",
     },
   ],
@@ -326,19 +326,19 @@ export const esFacebook: PageStrings = {
     description:
       "Descarga videos y reels de Facebook en HD. Sin botones de descarga falsos ni redirecciones forzadas. Gratis y al instante.",
     ogDescription:
-      "Pega un enlace de Facebook y obtén el video en segundos. Sin botones falsos, un solo clic real.",
+      "Pega un enlace de Facebook y obtén el video en segundos. Sin botones falsos.",
   },
   hero: {
     h1a: "Descargar videos",
     h1b: "de Facebook",
-    lede: "Pega un enlace de Facebook y obtén el video en HD. Sin botones falsos, un solo clic real.",
+    lede: "Pega un enlace de Facebook y obtén el video en HD. Sin botones falsos.",
     placeholder: "Pega el enlace de un video o reel de Facebook",
     inputAriaLabel: "Enlace de un video o reel de Facebook",
     note: "Los posts de fotos y los videos privados no funcionan: solo videos y reels públicos.",
   },
   chipKeys: ["example", "noLogin", "hdQuality", "publicOnly"],
   footerDescription:
-    "Descargador de videos de Facebook. Sin botones falsos. Pegas una vez, un solo clic real.",
+    "Descargador de videos de Facebook. Sin botones falsos.",
   steps: [
     {
       heading: "Pega el enlace de Facebook",
@@ -349,7 +349,7 @@ export const esFacebook: PageStrings = {
       body: "La vista previa aparece en un segundo, con el video listo para guardar.",
     },
     {
-      heading: "Un solo clic real",
+      heading: "Sin botones falsos",
       body: "El video se guarda directo en tu dispositivo con un nombre de archivo limpio. Sin botones falsos, sin rodeos.",
     },
   ],
