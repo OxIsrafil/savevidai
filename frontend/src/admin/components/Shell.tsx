@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { FocusEvent, ReactNode } from "react";
 import { motion } from "motion/react";
 import { ChartColumn, ExternalLink, LogOut, Server } from "lucide-react";
 import type { Page } from "../lib/range";
@@ -14,6 +14,15 @@ const ITEM = "relative flex shrink-0 items-center gap-3 rounded-field px-3 py-2 
 const QUIET = "text-text-muted hover:text-text-primary";
 
 /**
+ * Chromium does not scroll a row to a newly focused item that is already partly in view, so on
+ * a phone Sign out could keep half of itself, and its focus ring, past the edge. Reveal it whole;
+ * the row's 12px scroll padding leaves room for the ring. jsdom has no scrollIntoView.
+ */
+function reveal(e: FocusEvent<HTMLElement>) {
+  e.target.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+}
+
+/**
  * From 768px: a 240px sticky sidebar with the nav and, at the bottom, View site and Sign out.
  * Below: a top block with the wordmark row, then one horizontally scrolling row of pills that
  * ends with Sign out. One DOM for both, so nothing is duplicated.
@@ -26,7 +35,9 @@ export function Shell({ page, maintenanceOn, onNavigate, onSignOut, children }: 
           <Wordmark />
           <span className="rounded-full bg-brand-dim px-2 py-0.5 text-[10px] font-medium tracking-wide text-brand-link uppercase">Admin</span>
         </div>
-        <nav aria-label="Admin" className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-1 md:flex-col">
+        {/* The scroller clips its overflow, and the first row of items touches its top edge, so
+            6px of top padding (taken back by the negative margin) leaves room for the 5px focus ring. */}
+        <nav aria-label="Admin" onFocus={reveal} className="-mt-1.5 flex scroll-px-3 gap-1 overflow-x-auto px-3 pt-1.5 pb-3 md:flex-1 md:flex-col">
           {NAV.map((item) => {
             const active = item.page === page;
             const Icon = item.icon;

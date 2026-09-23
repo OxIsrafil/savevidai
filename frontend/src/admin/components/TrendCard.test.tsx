@@ -58,6 +58,66 @@ test("four metric tabs carry the totals and deltas; the active one is selected a
   expect(screen.getByText("Fetches per day")).toBeInTheDocument();
 });
 
+test("the metric tabs follow the tabs keyboard pattern: arrows move and select with wrap, Home and End jump", async () => {
+  render(<TrendCard report={REPORT_7D} compare="the 7 days before" size={SIZE} />);
+  const tabs = screen.getAllByRole("tab");
+  const selected = () => tabs.findIndex((t) => t.getAttribute("aria-selected") === "true");
+  await userEvent.tab();
+  expect(tabs[0]).toHaveFocus();
+  await userEvent.keyboard("{ArrowRight}");
+  expect(tabs[1]).toHaveFocus();
+  expect(selected()).toBe(1);
+  expect(screen.getByText("Fetches per day")).toBeInTheDocument();
+  await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
+  expect(tabs[3]).toHaveFocus();
+  expect(selected()).toBe(3);
+  expect(screen.getByText("Failed fetches per day")).toBeInTheDocument();
+  await userEvent.keyboard("{ArrowRight}");
+  expect(tabs[0]).toHaveFocus();
+  expect(selected()).toBe(0);
+  await userEvent.keyboard("{End}");
+  expect(tabs[3]).toHaveFocus();
+  expect(selected()).toBe(3);
+  await userEvent.keyboard("{Home}");
+  expect(tabs[0]).toHaveFocus();
+  expect(selected()).toBe(0);
+  expect(screen.getByText("Visitors per day")).toBeInTheDocument();
+});
+
+test("only the selected tab is in the Tab order, and every tab controls one tabpanel labelled by the selected tab", async () => {
+  render(
+    <>
+      <button type="button">Before</button>
+      <TrendCard report={REPORT_7D} compare="the 7 days before" size={SIZE} />
+      <button type="button">After</button>
+    </>,
+  );
+  const tabs = screen.getAllByRole("tab");
+  expect(tabs.map((t) => t.tabIndex)).toEqual([0, -1, -1, -1]);
+  await userEvent.click(tabs[2]);
+  expect(tabs.map((t) => t.tabIndex)).toEqual([-1, -1, 0, -1]);
+  screen.getByRole("button", { name: "Before" }).focus();
+  await userEvent.tab();
+  expect(tabs[2]).toHaveFocus();
+  await userEvent.tab();
+  expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+  await userEvent.tab({ shift: true });
+  expect(tabs[2]).toHaveFocus();
+
+  const panel = screen.getByRole("tabpanel");
+  expect(panel.id).not.toBe("");
+  expect(new Set(tabs.map((t) => t.id)).size).toBe(4);
+  for (const tab of tabs) {
+    expect(tab.id).not.toBe("");
+    expect(tab).toHaveAttribute("aria-controls", panel.id);
+  }
+  expect(panel).toHaveAttribute("aria-labelledby", tabs[2].id);
+  expect(within(panel).getByText("Downloads per day")).toBeInTheDocument();
+  // The chart inside the panel stays hidden from screen readers; the tabs carry its numbers.
+  expect(panel).not.toHaveAttribute("aria-hidden");
+  expect(panel.querySelector("[aria-hidden='true'] svg.recharts-surface")).not.toBeNull();
+});
+
 test("draws the dashed previous line and its legend only with a previous period", () => {
   const { container, rerender } = render(<TrendCard report={REPORT_7D} compare="the 7 days before" size={SIZE} />);
   expect(container.querySelector("svg.recharts-surface")).not.toBeNull();

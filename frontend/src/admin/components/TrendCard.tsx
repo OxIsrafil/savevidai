@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState, type KeyboardEvent } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { Report, SeriesMetric } from "../lib/api";
@@ -48,7 +48,11 @@ export function TrendTooltip({ active, payload, color, showPrev }: { active?: bo
 /** Four metric tabs that double as headline numbers, over this period as a filled line and the one before dashed. */
 export function TrendCard({ report, compare, size }: { report: Report; compare: string; size?: ChartSize }) {
   const [metric, setMetric] = useState<SeriesMetric>("visitors");
-  const gradientId = `trend-${useId().replace(/:/g, "")}`;
+  const uid = useId().replace(/:/g, "");
+  const gradientId = `trend-${uid}`;
+  const tabId = (key: SeriesMetric) => `trend-${uid}-tab-${key}`;
+  const panelId = `trend-${uid}-panel`;
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   // The 700ms draw-in is off when the device asks for reduced motion (spec F2).
   const reduceMotion = useReducedMotion();
   const current = METRICS.find((m) => m.key === metric) ?? METRICS[0];
@@ -57,6 +61,17 @@ export function TrendCard({ report, compare, size }: { report: Report; compare: 
   const hasPrev = report.has_previous;
   const totals = report.totals;
   const previous = report.previous;
+
+  // WAI-ARIA tabs with automatic activation: only the selected tab is in the Tab order; the
+  // arrow keys move and select, wrapping at the ends, and Home and End jump to the first and last.
+  function onTabKeyDown(e: KeyboardEvent<HTMLButtonElement>, i: number) {
+    const last = METRICS.length - 1;
+    const next = e.key === "ArrowRight" ? (i === last ? 0 : i + 1) : e.key === "ArrowLeft" ? (i === 0 ? last : i - 1) : e.key === "Home" ? 0 : e.key === "End" ? last : null;
+    if (next === null) return;
+    e.preventDefault();
+    setMetric(METRICS[next].key);
+    tabRefs.current[next]?.focus();
+  }
 
   // The chart is aria-hidden (the tabs carry the numbers), so recharts' keyboard layer is off: no hidden tab stop.
   const chart = (
@@ -84,12 +99,25 @@ export function TrendCard({ report, compare, size }: { report: Report; compare: 
           return (
             <button
               key={m.key}
+              ref={(el) => {
+                tabRefs.current[i] = el;
+              }}
+              id={tabId(m.key)}
               role="tab"
               type="button"
               aria-selected={active}
+              aria-controls={panelId}
+              tabIndex={active ? 0 : -1}
               onClick={() => setMetric(m.key)}
+              onKeyDown={(e) => onTabKeyDown(e, i)}
               className={cn(
-                "@container relative flex min-w-0 flex-col items-start border-line/50 px-5 pt-4 pb-4 text-left transition-colors sm:px-6 sm:pt-5",
+                // The card clips its overflow, which would cut an outside ring on every edge
+                // that meets the card's, so these tabs draw their ring inside. The tabs in the
+                // card's top corners take its radius so the ring follows the rounded corner.
+                "@container relative flex min-w-0 flex-col items-start border-line/50 px-5 pt-4 pb-4 text-left transition-colors focus-visible:-outline-offset-3 sm:px-6 sm:pt-5",
+                i === 0 && "rounded-tl-card",
+                i === 1 && "max-sm:rounded-tr-card",
+                i === 3 && "sm:rounded-tr-card",
                 i < 2 && "max-sm:border-b",
                 i % 2 === 0 && "max-sm:border-r",
                 i < 3 && "sm:border-r",
@@ -110,7 +138,7 @@ export function TrendCard({ report, compare, size }: { report: Report; compare: 
         })}
       </div>
 
-      <div className="px-3 pt-5 pb-4 sm:px-6">
+      <div role="tabpanel" id={panelId} aria-labelledby={tabId(metric)} className="px-3 pt-5 pb-4 sm:px-6">
         <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 px-2 text-xs text-text-muted sm:px-0">
           <span className="text-[13px] text-text-secondary">
             {current.label} per {report.bucket}

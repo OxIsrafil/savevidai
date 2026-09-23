@@ -34,3 +34,28 @@ test("no On pill while the site is live; Site is current on the site page", () =
   expect(screen.getByRole("button", { name: "Site" })).toHaveAttribute("aria-current", "page");
   expect(screen.getByRole("button", { name: "Analytics" })).not.toHaveAttribute("aria-current");
 });
+
+test("a nav item that takes focus is scrolled fully into view, so the phone row never leaves one half hidden", async () => {
+  // jsdom has no layout and no scrollIntoView, so record the calls instead.
+  const proto = Element.prototype as unknown as { scrollIntoView?: (arg?: unknown) => void };
+  const own = Object.prototype.hasOwnProperty.call(proto, "scrollIntoView");
+  const real = proto.scrollIntoView;
+  const calls: Array<{ text: string | null; arg: unknown }> = [];
+  proto.scrollIntoView = function (this: Element, arg?: unknown) {
+    calls.push({ text: this.textContent, arg });
+  };
+  try {
+    render(
+      <Shell page="analytics" maintenanceOn={false} onNavigate={() => {}} onSignOut={() => {}}>
+        <p>body</p>
+      </Shell>,
+    );
+    for (let i = 0; i < 4; i++) await userEvent.tab();
+    expect(screen.getByRole("button", { name: "Sign out" })).toHaveFocus();
+    expect(calls.map((c) => c.text)).toEqual(["Analytics", "Site", "View site", "Sign out"]);
+    for (const c of calls) expect(c.arg).toEqual({ block: "nearest", inline: "nearest" });
+  } finally {
+    if (own) proto.scrollIntoView = real;
+    else delete proto.scrollIntoView;
+  }
+});
