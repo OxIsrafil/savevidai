@@ -1,6 +1,7 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { fakeServer } from "../test/fakeServer";
+import { EMPTY_REPORT } from "../test/fixtures";
 import { wholeText } from "../test/text";
 import { AnalyticsPage, type AnalyticsPageProps } from "./AnalyticsPage";
 
@@ -138,4 +139,142 @@ test("a failed first load reports unavailable; a 401 reports unauthorized", asyn
   render(<AnalyticsPage {...p2} />);
   await vi.waitFor(() => expect(p2.onUnauthorized).toHaveBeenCalledTimes(1));
   expect(p2.onUnavailable).not.toHaveBeenCalled();
+});
+
+test("the eight tiles read from the 7d report", async () => {
+  vi.stubGlobal("fetch", fakeServer().fetch);
+  render(<AnalyticsPage {...props()} />);
+  await screen.findByText("Sep 17 to Sep 23, your local time");
+  const tile = (label: string) => within(screen.getByText(label).closest(".rounded-card") as HTMLElement);
+  expect(tile("Success rate").getByText("91%")).toBeInTheDocument();
+  expect(tile("Success rate").getByText("+2%")).toHaveAttribute("title", "Compared with the 7 days before");
+  expect(tile("Success rate").getByText("links that returned media")).toBeInTheDocument();
+  expect(tile("Conversion").getByText("68%")).toBeInTheDocument();
+  expect(tile("Conversion").getByText("0%")).toBeInTheDocument();
+  expect(tile("Conversion").getByText("visitors who downloaded")).toBeInTheDocument();
+  expect(tile("Downloads per visitor").getByText("1.3")).toBeInTheDocument();
+  expect(tile("Downloads per visitor").getByText("per visitor a day")).toBeInTheDocument();
+  expect(tile("Visitors a day").getByText("261")).toBeInTheDocument();
+  expect(tile("Visitors a day").getByText("+8%")).toBeInTheDocument();
+  expect(tile("Visitors a day").getByText("average of full days")).toBeInTheDocument();
+  expect(tile("Returning").getByText("26%")).toBeInTheDocument();
+  expect(tile("Returning").getByText("+3%")).toBeInTheDocument();
+  expect(tile("Returning").getByText("of visitors came back")).toBeInTheDocument();
+  expect(tile("Page views").getByText("2,236")).toBeInTheDocument();
+  expect(tile("Page views").getByText("+10%")).toBeInTheDocument();
+  expect(tile("Page views").getByText("1.3 per visitor")).toBeInTheDocument();
+  expect(tile("Peak at once").getByText("14")).toBeInTheDocument();
+  expect(tile("Peak at once").getByText("Sep 20 at 21:15")).toBeInTheDocument();
+  expect(tile("Peak at once").queryByText(/%$/)).not.toBeInTheDocument();
+  expect(tile("Resolver errors").getByText("17")).toBeInTheDocument();
+  expect(tile("Resolver errors").getByText("-19%").className).toContain("text-success");
+  expect(tile("Resolver errors").getByText("failures on our side")).toBeInTheDocument();
+});
+
+test("today: Visitors a day shows a dash with no delta; the hours panel counts quiet hours", async () => {
+  vi.stubGlobal("fetch", fakeServer().fetch);
+  render(<AnalyticsPage {...props({ range: "today" })} />);
+  await screen.findByText("Sep 23, your local time");
+  const tile = within(screen.getByText("Visitors a day").closest(".rounded-card") as HTMLElement);
+  expect(tile.getByText("-")).toBeInTheDocument();
+  expect(tile.getByText("needs a full day")).toBeInTheDocument();
+  expect(tile.queryByText(/%$/)).not.toBeInTheDocument();
+  expect(screen.getByText("12:00 to 13:00")).toBeInTheDocument();
+  expect(screen.getByText("busiest, 40 fetches. 10 hours had none")).toBeInTheDocument();
+});
+
+test("panels: funnel, outcomes, platforms, qualities, countries, pages, hours, visitors, sources and the footnote", async () => {
+  vi.stubGlobal("fetch", fakeServer().fetch);
+  render(<AnalyticsPage {...props()} />);
+  await screen.findByText("Sep 17 to Sep 23, your local time");
+  const panel = (name: string) => within(screen.getByRole("region", { name }));
+
+  const funnel = panel("From visit to download");
+  expect(funnel.getByText("Each visitor counted once a day")).toBeInTheDocument();
+  expect(funnel.getByText("Pasted a link")).toBeInTheDocument();
+  expect(funnel.getByText("Got a result")).toBeInTheDocument();
+  expect(funnel.getByText("1,187")).toBeInTheDocument();
+  expect(funnel.getByText("80%")).toBeInTheDocument();
+
+  const outcomes = panel("Fetch outcomes");
+  expect(outcomes.getByText("What happened to each link")).toBeInTheDocument();
+  expect(outcomes.getAllByText("Worked")).toHaveLength(2);
+  expect(outcomes.getAllByText("91%")).toHaveLength(2);
+  expect(outcomes.getAllByText("Deleted or missing")).toHaveLength(2);
+  expect(outcomes.getAllByText("163")).toHaveLength(2);
+  expect(outcomes.getByText("Failed on our side")).toBeInTheDocument();
+  expect(outcomes.getByText("Resolver error")).toBeInTheDocument();
+  expect(outcomes.getByText("Unsupported post")).toBeInTheDocument();
+  expect(outcomes.getByText("5.8%")).toBeInTheDocument();
+
+  const platforms = panel("Platforms");
+  expect(platforms.getByText("Where the links came from")).toBeInTheDocument();
+  expect(platforms.getByText("2,812")).toBeInTheDocument();
+  expect(platforms.getByText("X (Twitter)")).toBeInTheDocument();
+  expect(platforms.getByText("60%")).toBeInTheDocument();
+  expect(platforms.getByText("92% worked")).toBeInTheDocument();
+  expect(platforms.getByText("Facebook")).toBeInTheDocument();
+
+  const qualities = panel("Qualities");
+  expect(qualities.getByText("What people saved")).toBeInTheDocument();
+  expect(qualities.getByText("1080p")).toBeInTheDocument();
+  expect(qualities.getByText("Photo")).toBeInTheDocument();
+  expect(qualities.getByRole("button", { name: "Show all (9)" })).toBeInTheDocument();
+
+  const countries = panel("Countries");
+  expect(countries.getByText("Not known includes every visit from before country lookup came back")).toBeInTheDocument();
+  expect(countries.getByText("US")).toBeInTheDocument();
+  expect(countries.getByText("United States")).toBeInTheDocument();
+  expect(countries.getByText("Bangladesh")).toBeInTheDocument();
+  const last = countries.getAllByRole("listitem").at(-1) as HTMLElement;
+  expect(within(last).getByText("Not known")).toBeInTheDocument();
+  expect(within(last).getByText("290")).toBeInTheDocument();
+
+  const pages = panel("Pages");
+  expect(pages.getByText("Which pages people used")).toBeInTheDocument();
+  expect(pages.getByText("X (Twitter), English")).toBeInTheDocument();
+  expect(pages.getByText("986")).toBeInTheDocument();
+  expect(pages.getByText("TikTok, Hindi")).toBeInTheDocument();
+  expect(pages.getByText("X (Twitter), language not recorded")).toBeInTheDocument();
+
+  const hours = panel("Busiest hours");
+  expect(hours.getByText("When people use it")).toBeInTheDocument();
+  expect(hours.getByText("14:00 to 15:00")).toBeInTheDocument();
+
+  const visitors = panel("New and returning");
+  expect(visitors.getByText("From the visit beacon; people who only pasted a link are not split")).toBeInTheDocument();
+  expect(visitors.getByText("1,522")).toBeInTheDocument();
+  expect(visitors.getByText("1,120")).toBeInTheDocument();
+  expect(visitors.getByText("26%")).toBeInTheDocument();
+  expect(visitors.getByText("Traffic sources")).toBeInTheDocument();
+  expect(visitors.getByText("Search")).toBeInTheDocument();
+  expect(visitors.getByText("1,204")).toBeInTheDocument();
+  expect(visitors.getByText("Other sites")).toBeInTheDocument();
+  expect(visitors.getByText("Between pages")).toBeInTheDocument();
+
+  expect(screen.getByRole("link", { name: "IP Geolocation by DB-IP" })).toBeInTheDocument();
+  expect(screen.getByText(/\(06:00 your time\)/)).toBeInTheDocument();
+});
+
+test("a fresh install shows an empty state in every panel and dashes on the ratio tiles", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify(EMPTY_REPORT), { status: 200 })));
+  render(<AnalyticsPage {...props()} />);
+  await screen.findByText("Nothing in this range yet");
+  expect(screen.getAllByText("No links pasted in this range yet")).toHaveLength(3);
+  expect(screen.getAllByText("No visits in this range yet")).toHaveLength(2);
+  expect(screen.getByText("Nothing saved in this range yet")).toBeInTheDocument();
+  expect(screen.getByText("No visitors in this range yet")).toBeInTheDocument();
+  expect(screen.getByText("No page views in this range yet")).toBeInTheDocument();
+  expect(screen.getAllByText("-")).toHaveLength(5);
+  expect(screen.getByText("- per visitor")).toBeInTheDocument();
+  expect(within(screen.getByRole("region", { name: "Countries" })).getByText("Where visitors are")).toBeInTheDocument();
+});
+
+test("Failed on our side counts resolver errors only; the unknown country row is muted", async () => {
+  vi.stubGlobal("fetch", fakeServer().fetch);
+  render(<AnalyticsPage {...props()} />);
+  await screen.findByText("Sep 17 to Sep 23, your local time");
+  const failed = within(screen.getByRole("region", { name: "Fetch outcomes" })).getByText("Failed on our side").closest("div") as HTMLElement;
+  expect(within(failed).getByText("17")).toBeInTheDocument();
+  expect(within(screen.getByRole("region", { name: "Countries" })).getByText("Not known").className).toContain("text-text-muted");
 });
