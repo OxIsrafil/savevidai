@@ -19,16 +19,16 @@ import sys
 from app.analytics.store import SqliteStore, Store, TursoStore
 
 EVENT_COLUMNS = ["id", "ts", "type", "outcome", "country", "visitor",
-                 "platform", "source", "visitor_kind"]
+                 "platform", "source", "visitor_kind", "locale"]
 
 _SELECT = (
-    "SELECT id, ts, type, outcome, country, visitor, platform, source, visitor_kind "
+    "SELECT id, ts, type, outcome, country, visitor, platform, source, visitor_kind, locale "
     "FROM events ORDER BY id"
 )
 _INSERT = (
     "INSERT INTO events "
-    "(id, ts, type, outcome, country, visitor, platform, source, visitor_kind) "
-    "VALUES (?,?,?,?,?,?,?,?,?)"
+    "(id, ts, type, outcome, country, visitor, platform, source, visitor_kind, locale) "
+    "VALUES (?,?,?,?,?,?,?,?,?,?)"
 )
 
 

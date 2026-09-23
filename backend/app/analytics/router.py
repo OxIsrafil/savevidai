@@ -34,6 +34,7 @@ class EventIn(BaseModel):
     platform: str | None = None
     source: str | None = None
     visitor_kind: str | None = None
+    locale: str | None = None
 
     @field_validator("type")
     @classmethod
@@ -70,6 +71,13 @@ class EventIn(BaseModel):
             raise ValueError("bad visitor_kind")
         return v
 
+    @field_validator("locale")
+    @classmethod
+    def _locale(cls, v):
+        if v is not None and v not in ("en", "es", "hi"):
+            raise ValueError("bad locale")
+        return v
+
 
 class LoginIn(BaseModel):
     password: str
@@ -100,8 +108,9 @@ def event(request: Request, payload: EventIn) -> Response:
     outcome = payload.quality if payload.type == "download" else None
     source = payload.source if payload.type == "visit" else None
     visitor_kind = payload.visitor_kind if payload.type == "visit" else None
+    locale = payload.locale if payload.type == "visit" else None
     service.record_from_request(request, payload.type, outcome, platform=payload.platform,
-                                source=source, visitor_kind=visitor_kind)
+                                source=source, visitor_kind=visitor_kind, locale=locale)
     return Response(status_code=204)
 
 

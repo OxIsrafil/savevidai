@@ -173,3 +173,82 @@ def test_make_store_local_cfg_roundtrip_on_real_file(tmp_path):
     rows = store.query("SELECT type, outcome, country, visitor FROM events", [])
     assert rows == [{"type": "fetch", "outcome": "ok", "country": "BD", "visitor": "vh"}]
     assert db.exists()
+
+
+def test_ensure_locale_column_is_a_pure_migration_step():
+    from app.analytics.store import _ensure_locale_column
+    assert _ensure_locale_column({"id", "ts", "locale"}) == []
+    assert _ensure_locale_column({"id", "ts"}) == ["ALTER TABLE events ADD COLUMN locale TEXT"]
+
+
+def test_locale_column_present_and_idempotent():
+    s = SqliteStore(":memory:")
+    s.init_schema()
+    s.init_schema()  # second call must not raise (migration idempotent)
+    s.execute_many([(
+        ("INSERT INTO events (ts, type, outcome, country, visitor, source, visitor_kind, locale) "
+         "VALUES (?,?,?,?,?,?,?,?)"),
+        ["2026-09-20 10:00:00", "visit", None, None, "vh", "direct", "new", "hi"],
+    )])
+    rows = s.query("SELECT locale FROM events", [])
+    assert rows[0]["locale"] == "hi"
+
+
+def test_locale_alter_migration_on_legacy_table():
+    # Simulate the production table from before this change: every column
+    # except locale. init_schema must ALTER it in, idempotently.
+    s = SqliteStore(":memory:")
+    s._conn.execute("""CREATE TABLE events (
+        id      INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts      TEXT NOT NULL,
+        type    TEXT NOT NULL,
+        outcome TEXT,
+        country TEXT,
+        visitor TEXT NOT NULL,
+        platform TEXT,
+        source TEXT,
+        visitor_kind TEXT
+    )""")
+    s._conn.commit()
+
+    cols_before = {r[1] for r in s._conn.execute("PRAGMA table_info(events)")}
+    assert "locale" not in cols_before
+
+    s.init_schema()  # exercises the ALTER TABLE ... ADD COLUMN path
+    cols_after = {r[1] for r in s._conn.execute("PRAGMA table_info(events)")}
+    assert "locale" in cols_after
+
+    s.init_schema()  # second call must be idempotent, no raise
+
+    s.execute_many([(
+        "INSERT INTO events (ts, type, outcome, country, visitor, locale) VALUES (?,?,?,?,?,?)",
+        ["2026-09-20 11:00:00", "visit", None, None, "vl", "es"],
+    )])
+    assert s.query("SELECT locale FROM events", [])[0]["locale"] == "es"
+
+
+LEGACY_COLS = ("id", "ts", "type", "outcome", "country", "visitor", "platform", "source",
+               "visitor_kind")
+
+
+def _turso_with_fake_pipeline(monkeypatch, cols):
+    # TursoStore.init_schema talks HTTP; stand the pipeline in with a recorder
+    # and answer the PRAGMA through query() so no network is involved.
+    store = TursoStore("libsql://db.turso.io", "tok")
+    pipelines: list[list[str]] = []
+    monkeypatch.setattr(store, "_pipeline", lambda stmts: pipelines.append([s for s, _ in stmts]))
+    monkeypatch.setattr(store, "query", lambda sql, args: [{"name": c} for c in cols])
+    return store, pipelines
+
+
+def test_turso_init_schema_adds_the_locale_column_when_missing(monkeypatch):
+    store, pipelines = _turso_with_fake_pipeline(monkeypatch, LEGACY_COLS)
+    store.init_schema()
+    assert pipelines[-1] == ["ALTER TABLE events ADD COLUMN locale TEXT"]
+
+
+def test_turso_init_schema_is_idempotent_once_locale_exists(monkeypatch):
+    store, pipelines = _turso_with_fake_pipeline(monkeypatch, LEGACY_COLS + ("locale",))
+    store.init_schema()
+    assert len(pipelines) == 1  # only the CREATE IF NOT EXISTS pipeline, no ALTER
+    assert not any("locale" in sql for sql in pipelines[0])

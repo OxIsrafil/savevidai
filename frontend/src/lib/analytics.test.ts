@@ -111,3 +111,56 @@ test("a visit beacon carries source and visitor_kind from visitContext", () => {
     visitor_kind: "new",
   });
 });
+
+function stubVisitGlobals(lang?: string) {
+  const store: Record<string, string> = {};
+  vi.stubGlobal("localStorage", {
+    getItem: (k: string) => (k in store ? store[k] : null),
+    setItem: (k: string, v: string) => {
+      store[k] = v;
+    },
+    removeItem: (k: string) => {
+      delete store[k];
+    },
+  });
+  vi.stubGlobal(
+    "document",
+    lang === undefined ? { referrer: "" } : { referrer: "", documentElement: { lang } },
+  );
+  vi.stubGlobal("location", { hostname: "savevidai.israfill.dev" });
+}
+
+test("visitContext reads the page language from <html lang>", () => {
+  for (const lang of ["en", "es", "hi"]) {
+    stubVisitGlobals(lang);
+    expect(visitContext()).toEqual({ source: "direct", visitor_kind: "new", locale: lang });
+  }
+});
+
+test("visitContext omits locale for any other language or when lang is missing", () => {
+  for (const lang of ["fr", "en-US", "EN", ""]) {
+    stubVisitGlobals(lang);
+    const ctx = visitContext();
+    expect(ctx).toEqual({ source: "direct", visitor_kind: "new" });
+    expect(ctx).not.toHaveProperty("locale");
+  }
+  stubVisitGlobals(undefined);
+  expect(visitContext()).not.toHaveProperty("locale");
+});
+
+test("a visit beacon carries the locale next to source and visitor_kind", () => {
+  stubVisitGlobals("hi");
+  const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
+    new Response(null, { status: 204 }),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  sendEvent("visit", { platform: "tiktok", ...visitContext() });
+  const [, init] = fetchMock.mock.calls[0];
+  expect(JSON.parse(String(init?.body))).toEqual({
+    type: "visit",
+    platform: "tiktok",
+    source: "direct",
+    visitor_kind: "new",
+    locale: "hi",
+  });
+});

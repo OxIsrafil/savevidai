@@ -36,6 +36,11 @@ def _ensure_visitor_kind_column(existing_cols: set[str]) -> list[str]:
     return [] if "visitor_kind" in existing_cols else ["ALTER TABLE events ADD COLUMN visitor_kind TEXT"]
 
 
+def _ensure_locale_column(existing_cols: set[str]) -> list[str]:
+    """Return the ALTER statements needed to add the locale column, or []."""
+    return [] if "locale" in existing_cols else ["ALTER TABLE events ADD COLUMN locale TEXT"]
+
+
 class Store(Protocol):
     def init_schema(self) -> None: ...
     def execute_many(self, statements: list[tuple[str, list]]) -> None: ...
@@ -60,6 +65,7 @@ class SqliteStore:
                 _ensure_platform_column(cols)
                 + _ensure_source_column(cols)
                 + _ensure_visitor_kind_column(cols)
+                + _ensure_locale_column(cols)
             )
             for stmt in migrations:
                 self._conn.execute(stmt)
@@ -122,6 +128,7 @@ class TursoStore:
             _ensure_platform_column(cols)
             + _ensure_source_column(cols)
             + _ensure_visitor_kind_column(cols)
+            + _ensure_locale_column(cols)
         )
         if migration:
             self._pipeline([(stmt, []) for stmt in migration])

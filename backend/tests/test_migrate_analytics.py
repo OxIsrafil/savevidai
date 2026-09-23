@@ -67,7 +67,7 @@ def test_copy_events_copies_everything_field_for_field(tmp_path):
     assert dst_rows[1] == {
         "id": 2, "ts": "2026-07-03 10:00:00", "type": "download", "outcome": None,
         "country": "BD", "visitor": "visitor-2", "platform": None, "source": "direct",
-        "visitor_kind": None,
+        "visitor_kind": None, "locale": None,
     }
 
 

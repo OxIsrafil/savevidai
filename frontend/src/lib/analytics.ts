@@ -8,6 +8,7 @@ export function sendEvent(
     platform?: string;
     source?: string;
     visitor_kind?: string;
+    locale?: string;
   } = {},
 ): void {
   try {
@@ -77,11 +78,24 @@ export function classifySource(referrer: string, currentHost: string): string {
   return "referral";
 }
 
+// The page language as the shells set it on <html lang>. Only the three
+// languages the site ships are reported; anything else omits the field.
+const LOCALES = new Set(["en", "es", "hi"]);
+
+function pageLocale(): string | undefined {
+  try {
+    const lang = document.documentElement?.lang;
+    return typeof lang === "string" && LOCALES.has(lang) ? lang : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Read the current page context for a visit beacon. Guards every global access
  * so it never throws; falls back to a direct/new visit on any failure.
  */
-export function visitContext(): { source: string; visitor_kind: string } {
+export function visitContext(): { source: string; visitor_kind: string; locale?: string } {
   try {
     const source = classifySource(
       document.referrer || "",
@@ -100,7 +114,8 @@ export function visitContext(): { source: string; visitor_kind: string } {
       visitor_kind = "new";
     }
 
-    return { source, visitor_kind };
+    const locale = pageLocale();
+    return locale ? { source, visitor_kind, locale } : { source, visitor_kind };
   } catch {
     return { source: "direct", visitor_kind: "new" };
   }

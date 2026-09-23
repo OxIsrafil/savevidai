@@ -149,3 +149,38 @@ def test_disabled_returns_404(monkeypatch):
     client = TestClient(create_app(), raise_server_exceptions=False)
     assert client.post("/api/event", json={"type": "visit"}).status_code == 404
     assert client.get("/api/admin/stats?days=30&tz=0").status_code == 404
+
+
+def test_visit_event_records_locale(enabled_client):
+    client, svc, store = enabled_client
+    for locale in ("en", "es", "hi"):
+        r = client.post("/api/event", json={"type": "visit", "locale": locale})
+        assert r.status_code == 204, locale
+    svc.recorder().flush()
+    rows = store.query("SELECT locale FROM events WHERE type='visit' ORDER BY id", [])
+    assert [r["locale"] for r in rows] == ["en", "es", "hi"]
+
+
+def test_visit_event_without_locale_stores_null(enabled_client):
+    client, svc, store = enabled_client
+    assert client.post("/api/event", json={"type": "visit"}).status_code == 204
+    svc.recorder().flush()
+    assert store.query("SELECT locale FROM events", []) == [{"locale": None}]
+
+
+def test_visit_event_rejects_bad_locale(enabled_client):
+    client, *_ = enabled_client
+    for bad in ("fr", "EN", "en-US", "", "es "):
+        r = client.post("/api/event", json={"type": "visit", "locale": bad})
+        assert r.status_code == 422, bad
+
+
+def test_download_event_drops_locale(enabled_client):
+    client, svc, store = enabled_client
+    r = client.post(
+        "/api/event", json={"type": "download", "quality": "hd", "platform": "tiktok", "locale": "es"}
+    )
+    assert r.status_code == 204
+    svc.recorder().flush()
+    rows = store.query("SELECT locale FROM events WHERE type='download'", [])
+    assert rows == [{"locale": None}]
