@@ -38,7 +38,6 @@ export function App() {
     setMaintenance(null);
     setPhase("login");
   }, []);
-  const toUnavailable = useCallback(() => setPhase("unavailable"), []);
 
   useVisibleInterval(() => setTick((t) => t + 1), REFRESH_MS, phase === "shell");
 
@@ -65,6 +64,8 @@ export function App() {
   if (phase === "checking") body = <CheckingView />;
   else if (phase === "login") body = <LoginView onSignedIn={() => setPhase("shell")} />;
   else if (phase === "off") body = <AnalyticsOffView />;
+  // Only a failed probe is full screen. A report that fails after a good probe is a card inside
+  // the Analytics page, so the nav and the Site page's maintenance switch stay reachable.
   else if (phase === "unavailable") body = <UnavailableView onRetry={() => void check()} />;
   else
     body = (
@@ -80,7 +81,6 @@ export function App() {
             onRangeChange={(range) => setUrl({ range })}
             onGoToSite={() => setUrl({ page: "site" })}
             onUnauthorized={toLogin}
-            onUnavailable={toUnavailable}
           />
         )}
       </Shell>

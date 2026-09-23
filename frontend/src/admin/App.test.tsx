@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { App } from "./App";
@@ -158,9 +158,27 @@ test("a 503 probe shows Unavailable, and Retry recovers", async () => {
   render(<App />);
   expect(await screen.findByRole("heading", { name: "Analytics is unavailable" })).toBeInTheDocument();
   expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+  // The session state is unknown after a failed probe, so this one is full screen: no shell.
+  expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   server.state.probeStatus = 200;
   await userEvent.click(screen.getByRole("button", { name: "Retry" }));
   expect(await screen.findByRole("heading", { name: "Last 7 days" })).toBeInTheDocument();
+});
+
+test("a failed first report keeps the shell: the nav stays and the Site page shows the maintenance switch and resolver health", async () => {
+  const server = fakeServer({ reportStatus: 503 });
+  vi.stubGlobal("fetch", server.fetch);
+  render(<App />);
+  expect(await screen.findByRole("heading", { name: "Analytics is unavailable" })).toBeInTheDocument();
+  const nav = screen.getByRole("navigation", { name: "Admin" });
+  expect(within(nav).getByRole("button", { name: "Analytics" })).toHaveAttribute("aria-current", "page");
+  expect(within(nav).getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+  await userEvent.click(within(nav).getByRole("button", { name: "Site" }));
+  expect(screen.getByRole("heading", { name: "Site" })).toBeInTheDocument();
+  const switchCard = screen.getByRole("region", { name: "Maintenance" });
+  expect(await within(switchCard).findByRole("button", { name: "Turn on maintenance" })).toBeInTheDocument();
+  const health = screen.getByRole("region", { name: "Last 24 hours" });
+  expect(await within(health).findByText("X (Twitter)")).toBeInTheDocument();
 });
 
 test("while maintenance is on, the Site nav item carries the On pill", async () => {

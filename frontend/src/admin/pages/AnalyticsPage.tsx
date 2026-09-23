@@ -21,6 +21,7 @@ import { RangeTabs } from "../components/RangeTabs";
 import { Reveal } from "../components/Reveal";
 import { SegmentBar } from "../components/SegmentBar";
 import { TrendCard, type ChartSize } from "../components/TrendCard";
+import { UnavailableCard } from "../components/UnavailableView";
 import { cn } from "../components/styles";
 
 export type AnalyticsPageProps = {
@@ -31,7 +32,6 @@ export type AnalyticsPageProps = {
   onRangeChange: (range: RangeKey) => void;
   onGoToSite: () => void;
   onUnauthorized: () => void;
-  onUnavailable: () => void;
   /** Tests pass a fixed chart size; production measures the container. */
   chartSize?: ChartSize;
 };
@@ -41,27 +41,28 @@ type Loaded = { report: Report; updatedAt: Date };
 const NO_LINKS = "No links pasted in this range yet";
 const NO_VISITS = "No visits in this range yet";
 
-export function AnalyticsPage({ range, tz, tick, maintenance, onRangeChange, onGoToSite, onUnauthorized, onUnavailable, chartSize }: AnalyticsPageProps) {
+export function AnalyticsPage({ range, tz, tick, maintenance, onRangeChange, onGoToSite, onUnauthorized, chartSize }: AnalyticsPageProps) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [failed, setFailed] = useState(false);
-  const loadedRef = useRef(loaded);
-  loadedRef.current = loaded;
-  const handlers = useRef({ onUnauthorized, onUnavailable });
-  handlers.current = { onUnauthorized, onUnavailable };
+  // Retry on the unavailable card bumps this to refetch the report; the session is not re-probed.
+  const [attempt, setAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
+  const unauthorized = useRef(onUnauthorized);
+  unauthorized.current = onUnauthorized;
 
-  // One fetch per range change and per refresh tick. A response that arrives after the
+  // One fetch per range change, refresh tick and Retry. A response that arrives after the
   // range moved on is dropped by the cleanup flag, so the page never shows the wrong range.
   useEffect(() => {
     let alive = true;
     void fetchReport(range, tz).then((result) => {
       if (!alive) return;
+      setRetrying(false);
       if (result === "unauthorized") {
-        handlers.current.onUnauthorized();
+        unauthorized.current();
         return;
       }
       if (result === "error") {
-        if (loadedRef.current === null) handlers.current.onUnavailable();
-        else setFailed(true);
+        setFailed(true);
         return;
       }
       setLoaded({ report: result, updatedAt: new Date() });
@@ -70,12 +71,19 @@ export function AnalyticsPage({ range, tz, tick, maintenance, onRangeChange, onG
     return () => {
       alive = false;
     };
-  }, [range, tz, tick]);
+  }, [range, tz, tick, attempt]);
+
+  function retry() {
+    if (retrying) return;
+    setRetrying(true);
+    setAttempt((n) => n + 1);
+  }
 
   const report = loaded?.report ?? null;
   // The old numbers stay on screen at 50% until the new range arrives; the pill moved already.
   const pending = report !== null && report.range !== range;
-  const note = failed ? "Could not refresh, trying again" : loaded ? `Updated ${formatClock(loaded.updatedAt)}` : undefined;
+  // Without a report a failure is the unavailable card below, not this line.
+  const note = loaded ? (failed ? "Could not refresh, trying again" : `Updated ${formatClock(loaded.updatedAt)}`) : undefined;
 
   return (
     <div>
@@ -99,6 +107,10 @@ export function AnalyticsPage({ range, tz, tick, maintenance, onRangeChange, onG
           </div>
           <Footnote tz={tz} />
         </>
+      ) : failed ? (
+        <Reveal i={1} className="mt-6">
+          <UnavailableCard busy={retrying} onRetry={retry} />
+        </Reveal>
       ) : null}
     </div>
   );

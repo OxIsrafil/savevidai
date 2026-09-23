@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Panel } from "./Panel";
+import { Spinner } from "./Spinner";
 import { Wordmark } from "./Wordmark";
 import { CARD, cn, PRIMARY_BUTTON } from "./styles";
 
@@ -19,15 +21,34 @@ function Frame({ title, children }: { title: string; children: ReactNode }) {
 
 const CODE = "font-mono text-[12px] text-text-secondary";
 
-/** The probe or the first report failed with anything but 401 or 404. */
+const UNAVAILABLE_TITLE = "Analytics is unavailable";
+const UNAVAILABLE_TEXT = "The dashboard could not reach the analytics service. The public site is not affected.";
+
+/** The probe failed with anything but 401 or 404: the session state is unknown, so there is no shell. */
 export function UnavailableView({ onRetry }: { onRetry: () => void }) {
   return (
-    <Frame title="Analytics is unavailable">
-      <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">The dashboard could not reach the analytics service. The public site is not affected.</p>
+    <Frame title={UNAVAILABLE_TITLE}>
+      <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">{UNAVAILABLE_TEXT}</p>
       <button type="button" onClick={onRetry} className={cn(PRIMARY_BUTTON, "mt-6")}>
         Retry
       </button>
     </Frame>
+  );
+}
+
+/**
+ * The first report failed after a good probe: the same message as a card inside the Analytics
+ * page, so the nav, and with it the Site page's maintenance switch, stays reachable. Retry
+ * refetches the report. Busy is aria-disabled, not disabled, so the button keeps keyboard focus.
+ */
+export function UnavailableCard({ onRetry, busy }: { onRetry: () => void; busy: boolean }) {
+  return (
+    <Panel title={UNAVAILABLE_TITLE} hint={UNAVAILABLE_TEXT}>
+      <button type="button" onClick={onRetry} aria-disabled={busy || undefined} className={cn(PRIMARY_BUTTON, "sm:w-auto aria-disabled:pointer-events-none aria-disabled:opacity-50")}>
+        {busy ? <Spinner /> : null}
+        Retry
+      </button>
+    </Panel>
   );
 }
 

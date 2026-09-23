@@ -1,4 +1,5 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test, vi } from "vitest";
 import { fakeServer } from "../test/fakeServer";
 import { EMPTY_REPORT } from "../test/fixtures";
@@ -20,7 +21,6 @@ function props(over: Partial<AnalyticsPageProps> = {}): AnalyticsPageProps {
     onRangeChange: vi.fn(),
     onGoToSite: vi.fn(),
     onUnauthorized: vi.fn(),
-    onUnavailable: vi.fn(),
     chartSize: SIZE,
     ...over,
   };
@@ -118,7 +118,7 @@ test("a refresh tick refetches; a failed refresh keeps the numbers and says so; 
   expect(screen.queryByText(/^Updated/)).not.toBeInTheDocument();
   expect(screen.getByText("Sep 17 to Sep 23, your local time")).toBeInTheDocument();
   expect(screen.getByText(wholeText("6 on the site now"))).toBeInTheDocument();
-  expect(p.onUnavailable).not.toHaveBeenCalled();
+  expect(screen.queryByRole("region", { name: "Analytics is unavailable" })).not.toBeInTheDocument();
   server.state.reportStatus = 200;
   rerender(<AnalyticsPage {...p} tick={2} />);
   expect(await screen.findByText(/^Updated/)).toBeInTheDocument();
@@ -126,19 +126,94 @@ test("a refresh tick refetches; a failed refresh keeps the numbers and says so; 
   expect(server.urls("/api/admin/report")).toHaveLength(3);
 });
 
-test("a failed first load reports unavailable; a 401 reports unauthorized", async () => {
+const UNAVAILABLE = "Analytics is unavailable";
+
+test("a failed first load shows the unavailable card in the page, without the live strip or the body; a later tick that works shows the page", async () => {
   const server = fakeServer({ reportStatus: 503 });
   vi.stubGlobal("fetch", server.fetch);
   const p = props();
-  render(<AnalyticsPage {...p} />);
-  await vi.waitFor(() => expect(p.onUnavailable).toHaveBeenCalledTimes(1));
+  const { rerender } = render(<AnalyticsPage {...p} />);
+  const card = within(await screen.findByRole("region", { name: UNAVAILABLE }));
+  expect(card.getByRole("heading", { name: UNAVAILABLE })).toBeInTheDocument();
+  expect(card.getByText("The dashboard could not reach the analytics service. The public site is not affected.")).toBeInTheDocument();
+  expect(card.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+  // The header and the range tabs stay; nothing that needs a report is drawn.
+  expect(screen.getByRole("heading", { name: "Last 7 days" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "7 days" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByText(wholeText("6 on the site now"))).not.toBeInTheDocument();
+  expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Platforms" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Could not refresh, trying again")).not.toBeInTheDocument();
   expect(p.onUnauthorized).not.toHaveBeenCalled();
 
+  server.state.reportStatus = 200;
+  rerender(<AnalyticsPage {...p} tick={1} />);
+  expect(await screen.findByText("Sep 17 to Sep 23, your local time")).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: UNAVAILABLE })).not.toBeInTheDocument();
+  expect(screen.getByText(wholeText("6 on the site now"))).toBeInTheDocument();
+  expect(screen.getAllByRole("tab")).toHaveLength(4);
+  expect(screen.getByText(/^Updated \d\d:\d\d$/)).toBeInTheDocument();
+});
+
+test("Retry on the unavailable card refetches the report, never the session, and shows the data", async () => {
+  const server = fakeServer({ reportStatus: 503 });
+  vi.stubGlobal("fetch", server.fetch);
+  render(<AnalyticsPage {...props()} />);
+  await screen.findByRole("region", { name: UNAVAILABLE });
+  server.state.reportStatus = 200;
+  await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+  expect(await screen.findByText("Sep 17 to Sep 23, your local time")).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: UNAVAILABLE })).not.toBeInTheDocument();
+  expect(screen.getAllByRole("tab")).toHaveLength(4);
+  expect(server.urls("/api/admin/report")).toEqual(["/api/admin/report?range=7d&tz=360", "/api/admin/report?range=7d&tz=360"]);
+  expect(server.urls("/api/admin/maintenance")).toEqual([]);
+});
+
+test("Retry is busy while it runs: a second tap sends nothing, and a failed Retry keeps the card", async () => {
+  const server = fakeServer({ reportStatus: 503 });
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let reportCalls = 0;
+  const real = server.fetch;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      if (String(input).startsWith("/api/admin/report") && ++reportCalls === 2) await gate;
+      return real(input, init);
+    }),
+  );
+  render(<AnalyticsPage {...props()} />);
+  await screen.findByRole("region", { name: UNAVAILABLE });
+  const retry = screen.getByRole("button", { name: "Retry" });
+  await userEvent.click(retry);
+  expect(retry).toHaveAttribute("aria-disabled", "true");
+  await userEvent.click(retry);
+  expect(reportCalls).toBe(2);
+  release();
+  // Testing Library's waitFor, not vi.waitFor: the held answer lands inside act.
+  await waitFor(() => expect(retry).not.toHaveAttribute("aria-disabled"));
+  expect(screen.getByRole("region", { name: UNAVAILABLE })).toBeInTheDocument();
+  expect(retry).toHaveFocus();
+});
+
+test("a 401 on the first load, or on a Retry, reports unauthorized", async () => {
   vi.stubGlobal("fetch", fakeServer({ authed: false }).fetch);
+  const p = props();
+  render(<AnalyticsPage {...p} />);
+  await vi.waitFor(() => expect(p.onUnauthorized).toHaveBeenCalledTimes(1));
+  expect(screen.queryByRole("region", { name: UNAVAILABLE })).not.toBeInTheDocument();
+  cleanup();
+
+  const server = fakeServer({ reportStatus: 503 });
+  vi.stubGlobal("fetch", server.fetch);
   const p2 = props();
   render(<AnalyticsPage {...p2} />);
+  await screen.findByRole("region", { name: UNAVAILABLE });
+  server.state.reportStatus = 401;
+  await userEvent.click(screen.getByRole("button", { name: "Retry" }));
   await vi.waitFor(() => expect(p2.onUnauthorized).toHaveBeenCalledTimes(1));
-  expect(p2.onUnavailable).not.toHaveBeenCalled();
 });
 
 test("the eight tiles read from the 7d report", async () => {
