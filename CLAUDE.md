@@ -29,18 +29,36 @@ its own dedicated SEO page:
 
 ## Admin dashboard (`/admin`)
 
-Owner-only, cookie-auth. Enabled by `ADMIN_PASSWORD` + `ANALYTICS_SALT` plus a storage backend.
-Storage selection (`backend/app/analytics/config.py`): `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`
-both set -> Turso (legacy, still supported); else `ANALYTICS_DB_PATH` set -> local SQLite file;
-else disabled. LIVE on the VPS using a LOCAL SQLite file at `/data/analytics.db` (the
-`analytics_data` Docker volume, survives rebuilds). Turso was decommissioned 2026-07-25 after a
-rows-read quota scare; `scripts/migrate_analytics.py` did the one-time copy. Contains:
-- One-click maintenance toggle (in-memory flag; instant, fail-safe, no redeploy). Also togglable
-  via `MAINTENANCE_MODE` env var as a hard override.
-- Analytics: privacy-first, aggregate-only. Daily-rotating HMAC visitor hash (IP discarded, never
-  stored), country, fetch/download/visit counts, top platforms/countries/qualities, error rates,
-  avg active users/day (7d+30d), traffic sources, new vs returning. NO referrer URLs, NO cross-day
-  IDs - any new event field MUST stay aggregate and non-identifying.
+Owner-only, cookie-auth (`svid_admin`, 30 days, `Path=/api/admin`). `POST /api/admin/logout`
+clears it in this browser only; changing `ADMIN_PASSWORD` signs out everywhere. Enabled by
+`ADMIN_PASSWORD` + `ANALYTICS_SALT` plus a storage backend. Storage selection
+(`backend/app/analytics/config.py`): `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` both set -> Turso
+(legacy, still supported); else `ANALYTICS_DB_PATH` set -> local SQLite file; else disabled. LIVE
+on the VPS using a LOCAL SQLite file at `/data/analytics.db` (the `analytics_data` Docker volume,
+survives rebuilds). Turso was decommissioned 2026-07-25; `scripts/migrate_analytics.py` did the
+one-time copy.
+
+Redesigned 2026-09-23 after the premium store admin (spec
+`docs/superpowers/specs/2026-09-23-admin-redesign-design.md`): dark only, system SF font,
+sidebar with Analytics and Site, admin-only Tailwind tokens in `frontend/src/admin/admin.css`,
+Recharts and lucide-react loaded by the admin entry only.
+- Analytics: range tabs Today / 7 / 30 / 90 days (`?range=`), each compared with the period
+  before (same length, shifted back; 90 days never has one because data is kept 90 days). Four
+  metric tabs, eight tiles, funnel, fetch outcomes, platforms, qualities, countries, pages,
+  busiest hours, new vs returning, traffic sources. Refreshes every 30s while the tab is visible.
+- API: `GET /api/admin/report?range=&tz=` and `GET /api/admin/resolvers?tz=` (24-hour
+  per-platform health), both in `backend/app/analytics/report.py` with an injectable `now`
+  (never SQLite `datetime('now')`); maintenance GET/POST unchanged.
+- Countries: offline DB-IP Lite lookup (`backend/app/analytics/geo.py`), the IP used in memory
+  only. A daemon thread, started only when `GEOIP_UPDATE` is truthy (the Dockerfile sets it),
+  refreshes `/data/geoip/dbip-country-lite.mmdb` monthly. Licence CC BY 4.0: the admin footnote
+  must keep the "IP Geolocation by DB-IP" link.
+- Visit events carry `locale` (en/es/hi) from the shell's `lang`, for the Pages panel.
+- Site page: one-click maintenance toggle (in-memory flag; instant, fail-safe, no redeploy;
+  `MAINTENANCE_MODE` env var is a hard override) and resolver health for the last 24 hours.
+- Analytics stay privacy-first and aggregate-only: daily-rotating HMAC visitor hash (IP
+  discarded, never stored), country code, locale, fetch/download/visit counts. NO referrer URLs,
+  NO cross-day IDs; any new event field MUST stay aggregate and non-identifying.
 
 ## Deployment
 

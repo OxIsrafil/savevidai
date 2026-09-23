@@ -20,7 +20,7 @@ def enabled_client(monkeypatch):
     monkeypatch.setattr("app.resolve.analytics", svc, raising=False)
     # https base_url: the admin cookie is Secure, so httpx only sends it back
     # over an https-scheme origin (matches real deployment; plain http would
-    # silently drop the cookie and every post-login stats call would 401).
+    # silently drop the cookie and every post-login call would 401).
     client = TestClient(create_app(), base_url="https://testserver", raise_server_exceptions=False)
     return client, svc, store
 
@@ -121,25 +121,25 @@ def test_download_event_ignores_source(enabled_client):
     assert rows == [{"source": None}]
 
 
-def test_login_and_stats_gate(enabled_client):
+def test_login_and_report_gate(enabled_client):
     client, *_ = enabled_client
     # no cookie -> 401
-    assert client.get("/api/admin/stats?days=30&tz=360").status_code == 401
+    assert client.get("/api/admin/report?range=7d&tz=360").status_code == 401
     # wrong pw -> 401
     assert client.post("/api/admin/login", json={"password": "nope"}).status_code == 401
     # right pw -> 200 + cookie
     ok = client.post("/api/admin/login", json={"password": "pw-long"})
     assert ok.status_code == 204
-    # cookie now present on the client -> stats 200
-    s = client.get("/api/admin/stats?days=30&tz=360")
+    # cookie now present on the client -> report 200
+    s = client.get("/api/admin/report?range=7d&tz=360")
     assert s.status_code == 200
     assert "totals" in s.json()
 
 
-def test_stats_bad_tz(enabled_client):
+def test_report_bad_tz(enabled_client):
     client, *_ = enabled_client
     client.post("/api/admin/login", json={"password": "pw-long"})
-    assert client.get("/api/admin/stats?days=30&tz=abc").status_code == 422
+    assert client.get("/api/admin/report?range=7d&tz=abc").status_code == 422
 
 
 def test_disabled_returns_404(monkeypatch):
@@ -148,7 +148,7 @@ def test_disabled_returns_404(monkeypatch):
     monkeypatch.setattr("app.analytics.router.service", svc)
     client = TestClient(create_app(), raise_server_exceptions=False)
     assert client.post("/api/event", json={"type": "visit"}).status_code == 404
-    assert client.get("/api/admin/stats?days=30&tz=0").status_code == 404
+    assert client.get("/api/admin/report?range=7d&tz=0").status_code == 404
 
 
 def test_visit_event_records_locale(enabled_client):

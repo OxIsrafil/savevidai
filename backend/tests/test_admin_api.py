@@ -252,3 +252,10 @@ def test_disabled_returns_404_for_every_new_route(monkeypatch):
     assert client.get("/api/admin/report?range=7d&tz=0").status_code == 404
     assert client.get("/api/admin/resolvers?tz=0").status_code == 404
     assert client.post("/api/admin/logout").status_code == 404
+
+
+def test_old_stats_endpoint_is_gone(enabled_client):
+    client, *_ = enabled_client
+    _login(client)
+    res = client.get("/api/admin/stats?days=30&tz=0")
+    assert res.status_code == 404

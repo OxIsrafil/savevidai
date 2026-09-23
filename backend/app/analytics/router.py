@@ -14,7 +14,6 @@ from . import auth as _auth_mod
 from .auth import check_password, make_cookie, verify_cookie
 from .report import compute_report, compute_resolvers, parse_range, parse_tz
 from .service import service
-from .stats import compute_stats
 
 router = APIRouter()
 
@@ -23,7 +22,7 @@ COOKIE = "svid_admin"
 
 # Carry-forward fix from the Task 4 review: auth.make_cookie/verify_cookie call
 # auth._key(password) on every invocation, re-running PBKDF2-HMAC-SHA256 with
-# 100k iterations each time. /api/admin/stats is polled every 60s and calls
+# 100k iterations each time. /api/admin/report is polled every 30s and calls
 # verify_cookie per request, so uncached this is a CPU-amplification vector.
 # The admin password is fixed for the process lifetime, so memoize the
 # derivation here (auth.py's public API is unchanged; this wraps the module's
@@ -150,25 +149,6 @@ def logout() -> Response:
     resp = Response(status_code=204)
     resp.delete_cookie(COOKIE, path="/api/admin", secure=True, httponly=True, samesite="strict")
     return resp
-
-
-@router.get("/api/admin/stats")
-def stats(request: Request, days: int = 30, tz: str = "0") -> JSONResponse:
-    _require_enabled()
-    cfg = service.config()
-    cookie = request.cookies.get(COOKIE, "")
-    if not verify_cookie(cookie, cfg.admin_password, time.time()):
-        return JSONResponse(status_code=401, content={"error": "unauthorized"})
-    try:
-        tz_min = parse_tz(tz)
-    except ValueError:
-        return JSONResponse(status_code=422, content={"error": "bad_tz"})
-    days = max(1, min(int(days), 365))
-    store = service.recorder()._store
-    try:
-        return JSONResponse(compute_stats(store, days, tz_min))
-    except Exception:
-        return JSONResponse(status_code=503, content={"error": "analytics_unavailable"})
 
 
 @router.get("/api/admin/report")
