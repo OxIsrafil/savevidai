@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { EMPTY_REPORT, REPORT_7D, REPORT_90D, REPORT_TODAY } from "../test/fixtures";
+import { formatPercent } from "./format";
 import {
   conversion,
   countDelta,
@@ -91,4 +92,14 @@ test("successTone: green from 90%, yellow from 70%, red below, none without look
   expect(successTone(100, 89)).toBe("yellow");
   expect(successTone(100, 70)).toBe("yellow");
   expect(successTone(100, 69)).toBe("red");
+});
+
+// The colour follows the whole percent the Site page shows, not the raw rate.
+test.each([
+  [8996, "90%", "green"],
+  [8949, "89%", "yellow"],
+  [6951, "70%", "yellow"],
+] as const)("successTone(10000, %i) shows %s and is %s", (ok, shown, tone) => {
+  expect(formatPercent(ok / 10000)).toBe(shown);
+  expect(successTone(10000, ok)).toBe(tone);
 });

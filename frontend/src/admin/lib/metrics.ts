@@ -57,11 +57,13 @@ export function quietHours(hours: HourRow[]): number {
   return hours.filter((h) => h.fetches === 0).length;
 }
 
-/** Resolver health colour: green at 90% and up, yellow at 70% and up, red below, none without lookups. */
+/** Resolver health colour: green at 90% and up, yellow at 70% and up, red below, none without lookups.
+ *  Judged on the whole percent the Site page shows (the same rounding as formatPercent), so 0.8996,
+ *  shown as 90%, is green. */
 export function successTone(fetches: number, ok: number): "green" | "yellow" | "red" | "none" {
   if (fetches === 0) return "none";
-  const rate = ok / fetches;
-  if (rate >= 0.9) return "green";
-  if (rate >= 0.7) return "yellow";
+  const pct = Math.round((ok / fetches) * 100);
+  if (pct >= 90) return "green";
+  if (pct >= 70) return "yellow";
   return "red";
 }

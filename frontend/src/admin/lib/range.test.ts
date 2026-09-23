@@ -70,3 +70,8 @@ test("currentTz is minutes east of UTC (the sign of getTimezoneOffset flipped)",
   vi.spyOn(Date.prototype, "getTimezoneOffset").mockReturnValue(300);
   expect(currentTz()).toBe(-300);
 });
+
+test("currentTz is a plain 0 at a zero offset, never -0", () => {
+  vi.spyOn(Date.prototype, "getTimezoneOffset").mockReturnValue(0);
+  expect(Object.is(currentTz(), 0), "currentTz() must be +0, not -0").toBe(true);
+});

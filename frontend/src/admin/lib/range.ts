@@ -40,7 +40,9 @@ export function bucketWord(range: RangeKey): "hour" | "day" {
   return range === "today" ? "hour" : "day";
 }
 
-/** Minutes east of UTC, the sign the backend expects (getTimezoneOffset is UTC minus local). */
+/** Minutes east of UTC, the sign the backend expects (getTimezoneOffset is UTC minus local).
+ *  A zero offset comes back as 0, never -0, which toBe and toEqual would tell apart from 0. */
 export function currentTz(): number {
-  return -new Date().getTimezoneOffset();
+  const tz = -new Date().getTimezoneOffset();
+  return tz === 0 ? 0 : tz;
 }
