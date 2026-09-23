@@ -80,8 +80,10 @@ rows-read quota scare; `scripts/migrate_analytics.py` did the one-time copy. Con
   (fresh implementer subagent per task + adversarial review after each + whole-branch review).
 - Specs live in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, the running
   build ledger in `.superpowers/sdd/progress.md` (read it to see what's been done and why).
-- Model split (owner rule): Fable 5 for planning/spec/brainstorming, Opus for building
-  (implementer + fix subagents). See global memory `model-preferences`.
+- Model split (owner rule, updated 2026-09-23): use the model the owner selected for the
+  session (Opus 5.5 now) for implementers, fixers and heavy reviews, Sonnet for per-task
+  reviews, Haiku for small mechanical checks. Never dispatch Fable unless the owner selects
+  it. See global memory `model-preferences`.
 - TDD always. Real live verification (browser + prod curl), never "should work".
 
 ## Conventions (hard rules)
