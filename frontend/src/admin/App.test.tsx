@@ -131,6 +131,7 @@ test("the nav switches pages, writes the URL, and popstate restores it", async (
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
   expect(screen.getByRole("heading", { name: "Site" })).toBeInTheDocument();
+  expect(await screen.findByText("X (Twitter)")).toBeInTheDocument();
 });
 
 test("?page=site on load opens the Site page", async () => {
@@ -238,4 +239,25 @@ test("a 401 on a refresh returns to the login view", async () => {
     await vi.advanceTimersByTimeAsync(10);
   });
   expect(screen.getByLabelText("Password")).toBeInTheDocument();
+});
+
+test("maintenance turned on from the Site page shows in the nav pill and the live strip, and Go live clears it", async () => {
+  const server = fakeServer();
+  vi.stubGlobal("fetch", server.fetch);
+  render(<App />);
+  await screen.findByText("Sep 17 to Sep 23, your local time");
+  await userEvent.click(screen.getByRole("link", { name: "Site is live" }));
+  expect(screen.getByRole("heading", { name: "Site" })).toBeInTheDocument();
+  expect(window.location.search).toBe("?page=site");
+  await userEvent.click(await screen.findByRole("button", { name: "Turn on maintenance" }));
+  await userEvent.click(screen.getByRole("button", { name: "Tap to confirm" }));
+  expect(await screen.findByText("In maintenance")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Site On" })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Analytics" }));
+  expect(await screen.findByRole("link", { name: "Maintenance is on" })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("link", { name: "Maintenance is on" }));
+  expect(screen.getByRole("heading", { name: "Site" })).toBeInTheDocument();
+  await userEvent.click(await screen.findByRole("button", { name: "Go live" }));
+  expect(await screen.findByText("Live")).toBeInTheDocument();
+  expect(screen.queryByText("On")).not.toBeInTheDocument();
 });
