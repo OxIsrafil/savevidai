@@ -1,5 +1,11 @@
 savevidai.israfill.dev {
 	encode zstd gzip
+	# The DNS record is DNS-only (grey cloud), so Cloudflare never proxies this
+	# box and every CF-* header that arrives (CF-Connecting-IP, CF-IPCountry,
+	# ...) was written by the client. Drop them all before the app sees them.
+	# If the record is ever orange-clouded, remove this line and read the
+	# TRUST_CLOUDFLARE_HEADERS note in deploy/app.env.example first.
+	request_header -CF-*
 	reverse_proxy app:8000
 	log {
 		output file /data/access.log
