@@ -1,58 +1,9 @@
-import re
-
+from .report import _TIER_LADDER, _bucket_quality, _tzmod, parse_tz  # noqa: F401
 from .store import Store
 
-_MAX_TZ = 840  # +/- 14 hours
-
-# Standard resolution ladder (pixel heights). fxtwitter and reddit emit the raw
-# source height as the quality label (`{height}p`), so odd-aspect / portrait
-# videos produce non-standard values like 1124p or 1054p that would otherwise
-# each become their own row in the dashboard's "Top qualities" panel. We snap
-# each raw height to the nearest rung for display; named labels (hd/sd/photo/...
-# from TikTok) are not heights and pass through untouched.
-# Note: the label is the source HEIGHT, so tall portrait clips bias upward (a
-# 720x1280 portrait video is height 1280 and snaps to 1440p, not 1080p). That is
-# inherent to bucketing by height, not a snapping bug.
-_TIER_LADDER = (144, 240, 360, 480, 720, 1080, 1440, 2160)
-_HEIGHT_LABEL = re.compile(r"^(\d+)p$")
-
-
-def _bucket_quality(label: str) -> str:
-    """Snap a `{height}p` quality label to the nearest standard tier; return any
-    non-height label (hd, sd, video, photo, album, sound, ...) unchanged. Exact
-    midpoint ties resolve to the lower tier (the quality actually guaranteed)."""
-    m = _HEIGHT_LABEL.match(label)
-    if not m:
-        return label
-    h = int(m.group(1))
-    # min() scans the ascending ladder and keeps the FIRST minimal difference,
-    # so an exact tie lands on the lower rung.
-    tier = min(_TIER_LADDER, key=lambda t: abs(t - h))
-    return f"{tier}p"
-
-
-def parse_tz(raw) -> int:
-    """Validate the timezone offset (minutes east of UTC). Must be an integer in
-    [-840, 840]; anything else raises ValueError (guards the SQL modifier)."""
-    if raw is None or raw == "":
-        raise ValueError("tz required")
-    if isinstance(raw, float) and not raw.is_integer():
-        # int(3.5) would silently truncate to 3 instead of rejecting; a real
-        # (non-HTTP) caller could pass a fractional float directly.
-        raise ValueError("tz must be an integer")
-    try:
-        tz = int(raw)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("tz must be an integer") from exc
-    if tz < -_MAX_TZ or tz > _MAX_TZ:
-        raise ValueError("tz out of range")
-    return tz
-
-
-def _tzmod(tz: int) -> str:
-    # tz is a validated int, safe to inline into the SQLite datetime modifier.
-    sign = "+" if tz >= 0 else "-"
-    return f"{sign}{abs(tz)} minutes"
+# parse_tz, _tzmod, _bucket_quality and _TIER_LADDER moved to report.py and are
+# re-exported here (hence the noqa) so router.py and tests/test_stats.py keep
+# importing them from this module until the cleanup task deletes it.
 
 
 def _local(tz: int) -> str:

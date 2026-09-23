@@ -1,0 +1,491 @@
+"""Report tests run against a FIXED clock: NOW = 2026-09-23 07:30 UTC. Every
+seed is written relative to it (absolute UTC text or the at() helper), so the
+numbers below never drift with the calendar."""
+import inspect
+from datetime import UTC, datetime, timedelta
+
+import pytest
+
+from app.analytics import report
+from app.analytics.report import (
+    RANGES,
+    Window,
+    _bucket_quality,
+    compute_report,
+    has_previous,
+    parse_range,
+    parse_tz,
+    windows,
+)
+from app.analytics.store import SqliteStore
+
+NOW = datetime(2026, 9, 23, 7, 30, tzinfo=UTC)
+
+COLS = ("ts", "type", "outcome", "country", "visitor", "platform", "source", "visitor_kind")
+_INSERT = f"INSERT INTO events ({', '.join(COLS)}) VALUES ({', '.join('?' * len(COLS))})"
+
+TOTAL_KEYS = {
+    "visitors", "page_views", "fetches", "ok_fetches", "failed_fetches", "upstream_errors",
+    "downloads", "downloaded_visitors", "new_visitors", "returning_visitors", "complete_days",
+    "complete_day_visitors",
+}
+
+
+def at(**delta) -> str:
+    """UTC text of NOW shifted by timedelta(**delta), e.g. at(minutes=-4)."""
+    return (NOW + timedelta(**delta)).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def seeded(rows) -> SqliteStore:
+    """Rows are tuples in COLS order; short tuples are padded with NULLs."""
+    s = SqliteStore(":memory:")
+    s.init_schema()
+    s.execute_many([(_INSERT, list(r) + [None] * (len(COLS) - len(r))) for r in rows])
+    return s
+
+
+def zeros() -> dict:
+    return {"visitors": 0, "fetches": 0, "downloads": 0, "failed_fetches": 0}
+
+
+# ---- helpers ported from tests/test_stats.py ---------------------------------
+
+def test_parse_tz_valid():
+    assert parse_tz("360") == 360
+    assert parse_tz(-300) == -300
+    assert parse_tz(0) == 0
+
+
+def test_parse_tz_rejects():
+    for bad in ["abc", "841", "-841", "1); DROP TABLE events;--", None, ""]:
+        with pytest.raises(ValueError):
+            parse_tz(bad)
+
+
+def test_parse_tz_rejects_non_integer_float():
+    # A non-HTTP caller could pass a real float; int(3.5) would silently
+    # truncate to 3 instead of rejecting it. String "3.5" already raises
+    # via int(), this covers the float-arrives-directly path.
+    with pytest.raises(ValueError):
+        parse_tz(3.5)
+    with pytest.raises(ValueError):
+        parse_tz(-3.5)
+
+
+def test_parse_tz_boundary_inclusive():
+    assert parse_tz(840) == 840
+    assert parse_tz(-840) == -840
+    assert parse_tz("840") == 840
+    assert parse_tz("-840") == -840
+
+
+def test_bucket_quality_snaps_heights_to_nearest_standard_tier():
+    # Raw pixel-height labels (fxtwitter/reddit emit `{height}p` verbatim, so
+    # portrait/odd-aspect videos produce values like 1124p, 1054p, 680p) snap to
+    # the nearest standard rung on the ladder.
+    assert _bucket_quality("1124p") == "1080p"
+    assert _bucket_quality("1054p") == "1080p"
+    assert _bucket_quality("680p") == "720p"
+    assert _bucket_quality("500p") == "480p"
+    assert _bucket_quality("400p") == "360p"
+    # Exact standard tiers are unchanged.
+    assert _bucket_quality("1080p") == "1080p"
+    assert _bucket_quality("360p") == "360p"
+    # A genuine hi-res video is not squashed into 1080p.
+    assert _bucket_quality("1440p") == "1440p"
+    assert _bucket_quality("2100p") == "2160p"
+    # Exact midpoint ties resolve to the lower (guaranteed) tier.
+    assert _bucket_quality("600p") == "480p"
+
+
+def test_bucket_quality_passes_named_labels_through():
+    # TikTok emits named labels; they are not heights and must survive verbatim.
+    for label in ("hd", "sd", "video", "photo", "album", "sound"):
+        assert _bucket_quality(label) == label
+
+
+def test_parse_range_defaults_and_rejects():
+    assert parse_range(None) == "7d"
+    assert parse_range("") == "7d"
+    for key in RANGES:
+        assert parse_range(key) == key
+    for bad in ("7", "week", "1d", "TODAY", "365d", "7d "):
+        with pytest.raises(ValueError):
+            parse_range(bad)
+
+
+def test_report_never_reads_the_database_clock():
+    # Every bound is a parameter computed from `now`; the SQLite clock would
+    # make the numbers depend on wall time and defeat the index.
+    src = inspect.getsource(report)
+    assert "datetime('now'" not in src
+    assert 'datetime("now"' not in src
+
+
+# ---- windows (spec B2) --------------------------------------------------------
+
+# (tz, range) -> ((current start, current end), (previous start, previous end)) as
+# UTC text. Worked from NOW = 2026-09-23 07:30 UTC:
+#   tz 0:    L = 07:30, M0 = 2026-09-23 00:00
+#   tz +360: L = 13:30, M0 = 2026-09-23 00:00 local = 2026-09-22 18:00 UTC
+#   tz -300: L = 02:30, M0 = 2026-09-23 00:00 local = 2026-09-23 05:00 UTC
+BOUNDS = {
+    (0, "today"): (("2026-09-23 00:00:00", "2026-09-23 07:30:00"),
+                   ("2026-09-22 00:00:00", "2026-09-22 07:30:00")),
+    (0, "7d"): (("2026-09-17 00:00:00", "2026-09-23 07:30:00"),
+                ("2026-09-10 00:00:00", "2026-09-16 07:30:00")),
+    (0, "30d"): (("2026-08-25 00:00:00", "2026-09-23 07:30:00"),
+                 ("2026-07-26 00:00:00", "2026-08-24 07:30:00")),
+    (0, "90d"): (("2026-06-26 00:00:00", "2026-09-23 07:30:00"),
+                 ("2026-03-28 00:00:00", "2026-06-25 07:30:00")),
+    (360, "today"): (("2026-09-22 18:00:00", "2026-09-23 07:30:00"),
+                     ("2026-09-21 18:00:00", "2026-09-22 07:30:00")),
+    (360, "7d"): (("2026-09-16 18:00:00", "2026-09-23 07:30:00"),
+                  ("2026-09-09 18:00:00", "2026-09-16 07:30:00")),
+    (360, "30d"): (("2026-08-24 18:00:00", "2026-09-23 07:30:00"),
+                   ("2026-07-25 18:00:00", "2026-08-24 07:30:00")),
+    (360, "90d"): (("2026-06-25 18:00:00", "2026-09-23 07:30:00"),
+                   ("2026-03-27 18:00:00", "2026-06-25 07:30:00")),
+    (-300, "today"): (("2026-09-23 05:00:00", "2026-09-23 07:30:00"),
+                      ("2026-09-22 05:00:00", "2026-09-22 07:30:00")),
+    (-300, "7d"): (("2026-09-17 05:00:00", "2026-09-23 07:30:00"),
+                   ("2026-09-10 05:00:00", "2026-09-16 07:30:00")),
+    (-300, "30d"): (("2026-08-25 05:00:00", "2026-09-23 07:30:00"),
+                    ("2026-07-26 05:00:00", "2026-08-24 07:30:00")),
+    (-300, "90d"): (("2026-06-26 05:00:00", "2026-09-23 07:30:00"),
+                    ("2026-03-28 05:00:00", "2026-06-25 07:30:00")),
+}
+
+
+@pytest.mark.parametrize(("tz", "range_key"), sorted(BOUNDS))
+def test_windows_utc_bounds(tz, range_key):
+    current, previous = windows(range_key, tz, NOW)
+    (cs, ce), (ps, pe) = BOUNDS[(tz, range_key)]
+    assert (current.start_utc, current.end_utc) == (cs, ce)
+    assert (previous.start_utc, previous.end_utc) == (ps, pe)
+    # The previous window is the current one shifted back by exactly N days.
+    n = RANGES[range_key]
+    assert current.start - previous.start == timedelta(days=n)
+    assert current.end - previous.end == timedelta(days=n)
+
+
+def test_windows_require_an_aware_now():
+    with pytest.raises(ValueError):
+        windows("7d", 0, NOW.replace(tzinfo=None))
+
+
+def test_window_dates_and_bucket_per_range():
+    empty = seeded([])
+    expected = {
+        "today": ("2026-09-23", "2026-09-23", "hour", 1),
+        "7d": ("2026-09-17", "2026-09-23", "day", 7),
+        "30d": ("2026-08-25", "2026-09-23", "day", 30),
+        "90d": ("2026-06-26", "2026-09-23", "day", 90),
+    }
+    for range_key, (start, end, bucket, length) in expected.items():
+        out = compute_report(empty, range_key, 360, NOW)
+        assert out["range"] == range_key
+        assert out["tz"] == 360
+        assert out["window"] == {"start": start, "end": end}
+        assert out["bucket"] == bucket
+        assert len(out["series"]) == (24 if bucket == "hour" else length)
+        assert out["totals"]["complete_days"] == length - 1
+
+
+def test_last_midnight_is_the_complete_days_cut():
+    current, previous = windows("7d", 360, NOW)
+    assert current.last_midnight_utc == "2026-09-22 18:00:00"
+    assert previous.last_midnight_utc == "2026-09-15 18:00:00"
+    today, yesterday = windows("today", -300, NOW)
+    assert today.last_midnight_utc == today.start_utc == "2026-09-23 05:00:00"
+    assert yesterday.last_midnight_utc == "2026-09-22 05:00:00"
+    assert isinstance(today, Window)
+
+
+def test_bounds_are_inclusive_start_exclusive_end_with_a_gap_between_windows():
+    # tz +360, 7d: previous [09-09 18:00, 09-16 07:30), current [09-16 18:00, now).
+    # The previous window is cut at the same time of day, so the rest of local
+    # 09-16 (07:30 to 18:00 UTC) belongs to neither window.
+    s = seeded([
+        ("2026-09-09 18:00:00", "visit", None, None, "p-start", "twitter", "direct", "new"),
+        ("2026-09-16 07:29:59", "fetch", "ok", None, "p-last", "twitter"),
+        ("2026-09-16 07:30:00", "fetch", "ok", None, "gap-1", "twitter"),
+        ("2026-09-16 17:59:59", "fetch", "ok", None, "gap-2", "twitter"),
+        ("2026-09-16 18:00:00", "fetch", "ok", None, "c-start", "twitter"),
+        ("2026-09-23 07:29:59", "fetch", "ok", None, "c-last", "twitter"),
+        ("2026-09-23 07:30:00", "fetch", "ok", None, "c-end", "twitter"),
+    ])
+    out = compute_report(s, "7d", 360, NOW)
+    assert out["has_previous"] is True
+    assert out["totals"]["fetches"] == 2
+    assert out["totals"]["visitors"] == 2
+    assert out["previous"]["fetches"] == 1
+    assert out["previous"]["page_views"] == 1
+    assert out["previous"]["visitors"] == 2
+
+
+# ---- has_previous -------------------------------------------------------------
+
+def test_has_previous_false_on_an_empty_store():
+    out = compute_report(seeded([]), "7d", 0, NOW)
+    assert out["has_previous"] is False
+    assert out["previous"] is None
+    assert all(row["prev"] is None for row in out["series"])
+
+
+def test_has_previous_needs_the_oldest_event_at_or_before_the_previous_start():
+    _, previous = windows("7d", 0, NOW)
+    assert previous.start_utc == "2026-09-10 00:00:00"
+    after = seeded([("2026-09-10 00:00:01", "visit", None, None, "v", "twitter")])
+    assert has_previous(after, previous) is False
+    at_start = seeded([("2026-09-10 00:00:00", "visit", None, None, "v", "twitter")])
+    assert has_previous(at_start, previous) is True
+    before = seeded([("2026-09-01 00:00:00", "visit", None, None, "v", "twitter")])
+    assert has_previous(before, previous) is True
+
+
+def test_has_previous_is_false_for_90d_under_90_day_retention():
+    # 90d compares with the 90 days before; retention prunes at 90 days, so the
+    # oldest row is never early enough. The first second of the current window
+    # is 89 days back and does not qualify.
+    s = seeded([("2026-06-26 00:00:00", "visit", None, None, "v", "twitter")])
+    out = compute_report(s, "90d", 0, NOW)
+    assert out["has_previous"] is False
+    assert out["previous"] is None
+
+
+# ---- totals (spec B3) ---------------------------------------------------------
+
+def _seed_week() -> SqliteStore:
+    """tz 0, 7d. Previous window [09-10 00:00, 09-16 07:30), gap until 09-17
+    00:00, current window [09-17 00:00, 09-23 07:30)."""
+    return seeded([
+        # previous window, starting on its very first second (has_previous)
+        ("2026-09-10 00:00:00", "visit", None, "BD", "vOld", "twitter", "direct", "new"),
+        ("2026-09-15 12:00:00", "visit", None, "US", "vP", "tiktok", "search", "returning"),
+        ("2026-09-15 12:01:00", "fetch", "ok", "US", "vP", "tiktok"),
+        # the gap: after the previous end, before the current start
+        ("2026-09-16 12:00:00", "fetch", "ok", "US", "vG", "reddit"),
+        # current window
+        ("2026-09-20 10:00:00", "visit", None, "BD", "v1", "twitter", "search", "new"),
+        ("2026-09-20 10:01:00", "fetch", "ok", "BD", "v1", "twitter"),
+        ("2026-09-20 10:02:00", "download", "1080p", "BD", "v1", "twitter"),
+        ("2026-09-20 11:00:00", "visit", None, "US", "v2", "tiktok", "direct", "returning"),
+        ("2026-09-20 11:01:00", "fetch", "no_video", "US", "v2", "tiktok"),
+        ("2026-09-21 09:00:00", "fetch", "ok", "BD", "v1", "twitter"),
+        ("2026-09-22 05:00:00", "fetch", "upstream_error", None, "v3", "reddit"),
+        ("2026-09-22 05:01:00", "fetch", "ok", None, "v3", "reddit"),
+        ("2026-09-22 05:02:00", "download", "hd", None, "v3", "reddit"),
+        ("2026-09-23 07:00:00", "visit", None, "ES", "v4", "instagram", "social", "new"),
+        ("2026-09-23 07:29:59", "download", "720p", "ES", "v5", "reddit"),
+        # exactly `now`: outside the half-open window
+        ("2026-09-23 07:30:00", "fetch", "ok", "ES", "vX", "facebook"),
+    ])
+
+
+def test_totals_every_key_for_the_current_window():
+    out = compute_report(_seed_week(), "7d", 0, NOW)
+    assert set(out["totals"]) == TOTAL_KEYS
+    assert out["totals"] == {
+        # visitor-days: (09-20 v1) (09-20 v2) (09-21 v1) (09-22 v3) (09-23 v4) (09-23 v5)
+        "visitors": 6,
+        "page_views": 3,
+        "fetches": 5,
+        "ok_fetches": 3,
+        "failed_fetches": 2,
+        "upstream_errors": 1,
+        "downloads": 3,
+        # ok fetch AND download on the same visitor-day: (09-20 v1), (09-22 v3);
+        # v5 downloaded without an ok fetch and does not count
+        "downloaded_visitors": 2,
+        "new_visitors": 2,
+        "returning_visitors": 1,
+        "complete_days": 6,
+        # visitor-days before local 09-23 00:00
+        "complete_day_visitors": 4,
+    }
+
+
+def test_totals_for_the_previous_window_use_its_own_cuts():
+    out = compute_report(_seed_week(), "7d", 0, NOW)
+    assert out["has_previous"] is True
+    assert set(out["previous"]) == TOTAL_KEYS
+    assert out["previous"] == {
+        "visitors": 2,
+        "page_views": 2,
+        "fetches": 1,
+        "ok_fetches": 1,
+        "failed_fetches": 0,
+        "upstream_errors": 0,
+        "downloads": 0,
+        "downloaded_visitors": 0,
+        "new_visitors": 1,
+        "returning_visitors": 1,
+        "complete_days": 6,
+        # both previous visitor-days fall before local 09-16 00:00
+        "complete_day_visitors": 2,
+    }
+
+
+def test_visitors_are_visitor_days_not_distinct_hashes():
+    # The same hash on two local days is two visitor-days (hashes rotate daily
+    # in production, so this is the only consistent reading).
+    s = seeded([
+        ("2026-09-20 10:00:00", "visit", None, "BD", "v1", "twitter", "direct", "new"),
+        ("2026-09-21 10:00:00", "visit", None, "BD", "v1", "twitter", "direct", "returning"),
+        ("2026-09-21 10:05:00", "fetch", "ok", "BD", "v1", "twitter"),
+    ])
+    out = compute_report(s, "7d", 0, NOW)
+    assert out["totals"]["visitors"] == 2
+    assert out["totals"]["new_visitors"] == 1
+    assert out["totals"]["returning_visitors"] == 0
+
+
+def test_downloaded_visitors_needs_an_ok_fetch_and_a_download_on_one_visitor_day():
+    s = seeded([
+        # a: ok fetch and download the same day -> counts
+        ("2026-09-20 10:00:00", "fetch", "ok", None, "a", "twitter"),
+        ("2026-09-20 10:01:00", "download", "1080p", None, "a", "twitter"),
+        # b: ok fetch one day, download the next -> neither day counts
+        ("2026-09-20 11:00:00", "fetch", "ok", None, "b", "twitter"),
+        ("2026-09-21 11:00:00", "download", "1080p", None, "b", "twitter"),
+        # c: failed fetch then a download -> no
+        ("2026-09-21 12:00:00", "fetch", "no_video", None, "c", "tiktok"),
+        ("2026-09-21 12:01:00", "download", "hd", None, "c", "tiktok"),
+        # d fetched ok, e downloaded: different people -> no
+        ("2026-09-22 09:00:00", "fetch", "ok", None, "d", "reddit"),
+        ("2026-09-22 09:01:00", "download", "720p", None, "e", "reddit"),
+    ])
+    out = compute_report(s, "7d", 0, NOW)
+    assert out["totals"]["downloaded_visitors"] == 1
+    assert out["totals"]["downloads"] == 4
+
+
+def test_new_vs_returning_split_counts_people_not_events():
+    # visitors count DISTINCT people, not page-load events, and the two
+    # buckets are non-overlapping: a brand-new visitor who browses multiple
+    # pages fires one 'new' and one-or-more 'returning' events on the SAME
+    # daily hash, yet must count as new only.
+    s = seeded([
+        ("2026-09-20 10:00:00", "visit", None, "BD", "vA", None, None, "new"),
+        ("2026-09-20 10:01:00", "visit", None, "BD", "vA", None, None, "returning"),
+        ("2026-09-20 10:02:00", "visit", None, "US", "vB", None, None, "returning"),
+        ("2026-09-20 10:03:00", "visit", None, "US", "vB", None, None, "returning"),
+        ("2026-09-20 10:04:00", "visit", None, "US", "vC", None, None, "new"),
+        # non-visit rows carry no visitor_kind and must be ignored
+        ("2026-09-20 10:05:00", "fetch", "ok", "US", "vA", None, None, None),
+    ])
+    out = compute_report(s, "7d", 0, NOW)
+    assert out["totals"]["new_visitors"] == 2
+    assert out["totals"]["returning_visitors"] == 1
+    assert out["totals"]["page_views"] == 5
+
+
+def test_today_has_no_complete_days():
+    out = compute_report(_seed_week(), "today", 0, NOW)
+    assert out["totals"]["complete_days"] == 0
+    assert out["totals"]["complete_day_visitors"] == 0
+    # today at tz 0 is [09-23 00:00, 07:30): v4 and v5 only
+    assert out["totals"]["visitors"] == 2
+    assert out["totals"]["downloads"] == 1
+
+
+# ---- series ---------------------------------------------------------------------
+
+def test_daily_series_keys_values_and_zero_fill():
+    out = compute_report(_seed_week(), "7d", 0, NOW)
+    rows = out["series"]
+    assert [r["key"] for r in rows] == [
+        "2026-09-17", "2026-09-18", "2026-09-19", "2026-09-20", "2026-09-21", "2026-09-22",
+        "2026-09-23",
+    ]
+    assert [r["prev_key"] for r in rows] == [
+        "2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13", "2026-09-14", "2026-09-15",
+        "2026-09-16",
+    ]
+    by_key = {r["key"]: r for r in rows}
+    assert by_key["2026-09-17"]["cur"] == zeros()
+    assert by_key["2026-09-20"]["cur"] == {"visitors": 2, "fetches": 2, "downloads": 1,
+                                           "failed_fetches": 1}
+    assert by_key["2026-09-21"]["cur"] == {"visitors": 1, "fetches": 1, "downloads": 0,
+                                           "failed_fetches": 0}
+    assert by_key["2026-09-22"]["cur"] == {"visitors": 1, "fetches": 2, "downloads": 1,
+                                           "failed_fetches": 1}
+    assert by_key["2026-09-23"]["cur"] == {"visitors": 2, "fetches": 0, "downloads": 1,
+                                           "failed_fetches": 0}
+    # previous series: vOld on 09-10, vP on 09-15, and the gap event on 09-16
+    # sits after that day's 07:30 cut so the last previous bucket stays empty
+    assert by_key["2026-09-17"]["prev"] == {"visitors": 1, "fetches": 0, "downloads": 0,
+                                            "failed_fetches": 0}
+    assert by_key["2026-09-22"]["prev"] == {"visitors": 1, "fetches": 1, "downloads": 0,
+                                            "failed_fetches": 0}
+    assert by_key["2026-09-23"]["prev"] == zeros()
+    assert by_key["2026-09-18"]["prev"] == zeros()
+
+
+def test_daily_series_buckets_by_local_day_at_tz_360():
+    # current window at +360 is UTC [09-16 18:00, 09-23 07:30)
+    s = seeded([
+        # local 09-16 23:59:59: in the gap (previous ended at 09-16 07:30 UTC)
+        ("2026-09-16 17:59:59", "fetch", "ok", None, "gap", "twitter"),
+        # local 09-17 00:00:00: first second of the window
+        ("2026-09-16 18:00:00", "visit", None, None, "first", "twitter", "direct", "new"),
+        # local 09-23 02:00: today
+        ("2026-09-22 20:00:00", "fetch", "ok", None, "late", "reddit"),
+    ])
+    out = compute_report(s, "7d", 360, NOW)
+    assert out["has_previous"] is False
+    by_key = {r["key"]: r for r in out["series"]}
+    assert list(by_key) == ["2026-09-17", "2026-09-18", "2026-09-19", "2026-09-20",
+                            "2026-09-21", "2026-09-22", "2026-09-23"]
+    assert by_key["2026-09-17"]["cur"] == {"visitors": 1, "fetches": 0, "downloads": 0,
+                                           "failed_fetches": 0}
+    assert by_key["2026-09-23"]["cur"] == {"visitors": 1, "fetches": 1, "downloads": 0,
+                                           "failed_fetches": 0}
+    assert all(r["prev"] is None for r in out["series"])
+    assert out["totals"]["fetches"] == 1
+
+
+def test_hourly_series_today_at_minus_300_with_nulls_after_the_current_hour():
+    # local now is 02:30 (hour 2); current [09-23 05:00, 07:30) UTC, previous
+    # [09-22 05:00, 07:30) UTC.
+    s = seeded([
+        ("2026-09-22 05:00:00", "fetch", "ok", None, "v8", "twitter"),
+        ("2026-09-22 06:00:00", "visit", None, None, "v7", "twitter", "direct", "new"),
+        # local 09-22 23:59:59: neither window
+        ("2026-09-23 04:59:59", "fetch", "ok", None, "v9", "twitter"),
+        ("2026-09-23 05:00:00", "visit", None, None, "v1", "twitter", "direct", "new"),
+        ("2026-09-23 06:10:00", "fetch", "ok", None, "v1", "twitter"),
+        ("2026-09-23 07:29:59", "fetch", "ok", None, "v2", "tiktok"),
+    ])
+    out = compute_report(s, "today", -300, NOW)
+    assert out["bucket"] == "hour"
+    assert out["has_previous"] is True
+    assert out["window"] == {"start": "2026-09-23", "end": "2026-09-23"}
+    rows = out["series"]
+    assert len(rows) == 24
+    assert [r["key"] for r in rows] == list(range(24))
+    assert [r["prev_key"] for r in rows] == list(range(24))
+    assert rows[0]["cur"] == {"visitors": 1, "fetches": 0, "downloads": 0, "failed_fetches": 0}
+    assert rows[0]["prev"] == {"visitors": 1, "fetches": 1, "downloads": 0, "failed_fetches": 0}
+    assert rows[1]["cur"] == {"visitors": 1, "fetches": 1, "downloads": 0, "failed_fetches": 0}
+    assert rows[1]["prev"] == {"visitors": 1, "fetches": 0, "downloads": 0, "failed_fetches": 0}
+    assert rows[2]["cur"] == {"visitors": 1, "fetches": 1, "downloads": 0, "failed_fetches": 0}
+    assert rows[2]["prev"] == zeros()
+    for row in rows[3:]:
+        assert row["cur"] is None and row["prev"] is None
+    # v1 is active in hours 0 and 1 (counted in both buckets) but is one
+    # visitor-day in the totals
+    assert out["totals"]["visitors"] == 2
+    assert out["totals"]["fetches"] == 2
+    assert out["previous"]["visitors"] == 2
+    assert out["previous"]["fetches"] == 1
+
+
+def test_hourly_series_today_at_plus_360_cuts_after_hour_13():
+    out = compute_report(seeded([]), "today", 360, NOW)
+    rows = out["series"]
+    assert [r["cur"] for r in rows[:14]] == [zeros()] * 14
+    assert all(r["cur"] is None for r in rows[14:])
+    # no previous period: prev is null in every bucket, not only after now
+    assert all(r["prev"] is None for r in rows)
