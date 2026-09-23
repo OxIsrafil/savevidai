@@ -838,3 +838,67 @@ def test_resolvers_last_failure_floors_to_whole_minutes():
     s = seeded([(at(minutes=-60, seconds=-1), "fetch", "not_found", None, "t", "twitter")])
     row = compute_resolvers(s, 0, NOW)["platforms"][0]
     assert row["last_failure_min_ago"] == 60
+
+
+def test_resolvers_require_an_aware_now():
+    # the same guard as the report: a naive now would be read as the server's
+    # local time and shift the rolling 24 hours
+    naive = NOW.replace(tzinfo=None)
+    with pytest.raises(ValueError, match="now must be timezone-aware"):
+        compute_report(seeded([]), "7d", 0, naive)
+    with pytest.raises(ValueError, match="now must be timezone-aware"):
+        compute_resolvers(seeded([]), 0, naive)
+
+
+def test_countries_count_visitor_days_by_the_local_day():
+    # tz +360 puts local midnight at 18:00 UTC: a hash seen at 17:00 and 19:00
+    # UTC is two local days, so two visitor-days, the same as in the Visitors
+    # total (spec B3: date(<local ts>)).
+    s = seeded([
+        ("2026-09-20 17:00:00", "visit", None, "BD", "x", "twitter"),
+        ("2026-09-20 19:00:00", "fetch", "ok", "BD", "x", "twitter"),
+        ("2026-09-20 17:30:00", "visit", None, None, "y", "twitter"),
+        ("2026-09-20 18:30:00", "fetch", "ok", None, "y", "twitter"),
+    ])
+    out = compute_report(s, "7d", 360, NOW)
+    assert out["countries"] == [
+        {"country": "BD", "visitors": 2}, {"country": "unknown", "visitors": 2},
+    ]
+    assert sum(c["visitors"] for c in out["countries"]) == out["totals"]["visitors"]
+
+
+def test_live_upstream_counts_only_resolver_errors():
+    s = seeded([
+        (at(minutes=-10), "fetch", "upstream_error", None, "a", "reddit"),
+        (at(minutes=-10), "fetch", "not_found", None, "b", "twitter"),
+        (at(minutes=-10), "fetch", "no_video", None, "c", "tiktok"),
+    ])
+    assert compute_report(s, "today", 0, NOW)["live"] == {
+        "active_now": 0, "fetches_last_hour": 3, "upstream_last_hour": 1,
+    }
+
+
+def test_pages_sources_and_hours_count_events_not_people():
+    # one person loading the same page twice and pasting two links in one hour
+    s = seeded([
+        ("2026-09-20 10:00:00", "visit", None, None, "v", "twitter", "search", "new", "en"),
+        ("2026-09-20 10:05:00", "visit", None, None, "v", "twitter", "search", "returning", "en"),
+        ("2026-09-20 10:10:00", "fetch", "ok", None, "v", "twitter"),
+        ("2026-09-20 10:20:00", "fetch", "no_video", None, "v", "twitter"),
+    ])
+    out = compute_report(s, "7d", 0, NOW)
+    assert out["pages"] == [{"platform": "twitter", "locale": "en", "views": 2}]
+    assert out["sources"] == [{"source": "search", "visits": 2}]
+    assert out["hours"][10] == {"hour": 10, "fetches": 2}
+
+
+def test_a_fetch_with_no_outcome_is_no_outcome_row_and_no_resolver_failure():
+    s = seeded([
+        (at(minutes=-10), "fetch", None, None, "a", "twitter"),
+        (at(minutes=-9), "fetch", "ok", None, "b", "twitter"),
+    ])
+    assert compute_report(s, "today", 0, NOW)["outcomes"] == [{"outcome": "ok", "count": 1}]
+    assert compute_resolvers(s, 0, NOW)["platforms"][0] == {
+        "platform": "twitter", "fetches": 2, "ok": 1, "top_failure": None,
+        "last_failure_min_ago": None,
+    }

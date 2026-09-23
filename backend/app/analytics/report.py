@@ -207,11 +207,14 @@ def _visitor_days(store: Store, tz: int, start_utc: str, end_utc: str) -> dict:
     return rows[0]
 
 
-def totals(store: Store, window: Window, n: int) -> dict:
+def totals(store: Store, window: Window, n: int, days: dict | None = None) -> dict:
     """The totals block (spec B3) for one window. `n` is the range length in
-    days: complete days are the N-1 before the partial last day (0 for today)."""
+    days: complete days are the N-1 before the partial last day (0 for today).
+    `days` is this window's `_visitor_days` row when the caller already has it
+    (compute_report shares the current window's row with the funnel)."""
     counts = store.query(_COUNTS_SQL, [window.start_utc, window.end_utc])[0]
-    days = _visitor_days(store, window.tz, window.start_utc, window.end_utc)
+    if days is None:
+        days = _visitor_days(store, window.tz, window.start_utc, window.end_utc)
     kinds = store.query(_KINDS_SQL, [window.start_utc, window.end_utc])[0]
     complete_days = n - 1
     if complete_days:
@@ -318,9 +321,11 @@ def series(store: Store, current: Window, previous: Window, n: int, bucket: str,
 
 # ---- panels (current window only) ------------------------------------------
 
-def funnel(store: Store, window: Window) -> dict:
-    """Visitor-day funnel, nested so it can never grow step to step."""
-    days = _visitor_days(store, window.tz, window.start_utc, window.end_utc)
+def funnel(days: dict) -> dict:
+    """Visitor-day funnel, nested so it can never grow step to step. `days` is
+    the current window's `_visitor_days` row, the same one its totals read, so
+    the funnel runs no query of its own and `downloaded` always equals
+    totals.downloaded_visitors."""
     return {
         "visitors": days["visitors"],
         "fetched": days["fetched"],
@@ -480,17 +485,19 @@ def compute_report(store: Store, range_key: str, tz: int, now: datetime) -> dict
     current, previous = windows(range_key, tz, now)
     bucket = "hour" if range_key == "today" else "day"
     with_previous = has_previous(store, previous)
+    # One visitor-day pass over the current window feeds its totals and the funnel.
+    days = _visitor_days(store, current.tz, current.start_utc, current.end_utc)
     return {
         "range": range_key,
         "tz": tz,
         "bucket": bucket,
         "has_previous": with_previous,
         "window": {"start": current.first_date, "end": current.last_date},
-        "totals": totals(store, current, n),
+        "totals": totals(store, current, n, days),
         "previous": totals(store, previous, n) if with_previous else None,
         "series": series(store, current, previous, n, bucket, with_previous),
         "peak": peak(store, current),
-        "funnel": funnel(store, current),
+        "funnel": funnel(days),
         "outcomes": outcomes(store, current),
         "platforms": platforms(store, current),
         "qualities": qualities(store, current),
@@ -513,8 +520,9 @@ def compute_resolvers(store: Store, tz: int, now: datetime) -> dict:
     """Resolver health over the rolling 24 hours [now - 24h, now), fetch events
     only (spec B5). Always the five platforms in a fixed order. `tz` is
     accepted for symmetry with the report; the response carries no clock
-    times, so it does not influence the numbers."""
-    now_utc = now.astimezone(UTC).replace(tzinfo=None)
+    times, so it does not influence the numbers. `now` must be aware: a naive
+    one raises ValueError, as it does for the report."""
+    now_utc = _local_now(now, 0)  # naive UTC, behind the report's aware-now guard
     start, end = _fmt(now_utc - timedelta(hours=24)), _fmt(now_utc)
     failed = "type='fetch' AND platform IS NOT NULL AND outcome IS NOT NULL AND outcome != 'ok'"
     counts = {r["platform"]: r for r in store.query(
