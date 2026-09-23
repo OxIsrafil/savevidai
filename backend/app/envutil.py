@@ -11,5 +11,6 @@ def is_truthy(value: str | None) -> bool:
 
 def env_truthy(name: str) -> bool:
     """Shared truthy parsing for feature-flag env vars (MAINTENANCE_MODE,
-    GEOIP_UPDATE). One definition so the flags cannot drift apart."""
+    GEOIP_UPDATE, TRUST_CLOUDFLARE_HEADERS). One definition so the flags cannot
+    drift apart."""
     return is_truthy(os.environ.get(name))

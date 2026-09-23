@@ -4,6 +4,7 @@ import logging
 import os
 from types import SimpleNamespace
 
+import pytest
 from starlette.requests import Request
 
 from app.analytics import service as service_mod
@@ -64,9 +65,16 @@ def _service(reader=None) -> tuple[service_mod.AnalyticsService, SpyRecorder]:
     return svc, rec
 
 
+@pytest.fixture(autouse=True)
+def _cloudflare_untrusted(monkeypatch):
+    # Pin the production default (DNS-only, flag unset) even if the shell
+    # running the suite happens to export the flag.
+    monkeypatch.delenv("TRUST_CLOUDFLARE_HEADERS", raising=False)
+
+
 def test_record_passes_the_country_code_and_never_the_ip():
     svc, rec = _service(FakeReader({IP: {"country": {"iso_code": "US"}}}))
-    svc.record_from_request(_req({"CF-Connecting-IP": IP}), "visit", None, platform="twitter",
+    svc.record_from_request(_req({"X-Forwarded-For": IP}), "visit", None, platform="twitter",
                             source="search", visitor_kind="new", locale="es")
     assert len(rec.calls) == 1
     type_, kw = rec.calls[0]
@@ -78,15 +86,41 @@ def test_record_passes_the_country_code_and_never_the_ip():
     assert IP not in repr(rec.calls)
 
 
-def test_cf_ipcountry_header_is_no_longer_read():
+def test_an_untrusted_cf_ipcountry_header_is_ignored():
     svc, rec = _service(reader=None)
-    svc.record_from_request(_req({"CF-IPCountry": "BD", "CF-Connecting-IP": IP}), "fetch", "ok")
+    svc.record_from_request(_req({"CF-IPCountry": "BD", "X-Forwarded-For": IP}), "fetch", "ok")
     assert rec.calls[0][1]["country"] is None
+
+
+def test_a_forged_country_header_never_beats_the_lookup():
+    # DNS-only production: CF-IPCountry can only come from the client, so the
+    # offline lookup of the real peer decides.
+    svc, rec = _service(FakeReader({IP: {"country": {"iso_code": "US"}}}))
+    svc.record_from_request(_req({"CF-IPCountry": "KP", "CF-Connecting-IP": "6.6.6.6",
+                                  "X-Forwarded-For": IP}), "fetch", "ok")
+    assert rec.calls[0][1]["country"] == "US"
+
+
+def test_a_trusted_cloudflare_country_wins_over_the_lookup(monkeypatch):
+    monkeypatch.setenv("TRUST_CLOUDFLARE_HEADERS", "1")
+    svc, rec = _service(FakeReader({IP: {"country": {"iso_code": "US"}}}))
+    svc.record_from_request(_req({"CF-IPCountry": "BD", "X-Forwarded-For": IP}), "fetch", "ok")
+    assert rec.calls[0][1]["country"] == "BD"
+
+
+def test_an_invalid_trusted_country_falls_back_to_the_lookup(monkeypatch):
+    monkeypatch.setenv("TRUST_CLOUDFLARE_HEADERS", "1")
+    svc, rec = _service(FakeReader({IP: {"country": {"iso_code": "US"}}}))
+    for bad in ("XX", "<b>pwned</b>", "us"):
+        svc.record_from_request(_req({"CF-IPCountry": bad, "CF-Connecting-IP": IP}), "fetch",
+                                "ok")
+    assert [c[1]["country"] for c in rec.calls] == ["US", "US", "US"]
+    assert IP not in repr(rec.calls)
 
 
 def test_unknown_country_stays_null_without_breaking_the_event():
     svc, rec = _service(FakeReader({}))
-    svc.record_from_request(_req({"CF-Connecting-IP": "10.0.0.1"}), "fetch", "ok",
+    svc.record_from_request(_req({"X-Forwarded-For": "10.0.0.1"}), "fetch", "ok",
                             platform="reddit")
     assert rec.calls[0][1] == {"visitor": rec.calls[0][1]["visitor"], "outcome": "ok",
                                "country": None, "platform": "reddit", "source": None,
@@ -96,7 +130,7 @@ def test_unknown_country_stays_null_without_breaking_the_event():
 def test_raising_reader_and_unknown_ip_leave_no_trace_in_the_logs(caplog):
     caplog.set_level(logging.DEBUG, logger="savevidai.analytics")
     svc, rec = _service(RaisingReader({}))
-    svc.record_from_request(_req({"CF-Connecting-IP": IP}), "fetch", "ok")
+    svc.record_from_request(_req({"X-Forwarded-For": IP}), "fetch", "ok")
     # no client and no headers: client_ip() answers "unknown"
     svc.record_from_request(_req({}, client_host=None), "visit", None, visitor_kind="new")
     assert [c[1]["country"] for c in rec.calls] == [None, None]

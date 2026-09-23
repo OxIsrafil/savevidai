@@ -5,6 +5,7 @@ from app.analytics import service as service_mod
 from app.analytics.config import AnalyticsConfig
 from app.analytics.recorder import Recorder
 from app.analytics.store import SqliteStore
+from app.limits import limiter
 from app.main import create_app
 
 
@@ -119,6 +120,50 @@ def test_download_event_ignores_source(enabled_client):
     svc.recorder().flush()
     rows = store.query("SELECT source FROM events WHERE type='download'", [])
     assert rows == [{"source": None}]
+
+
+def test_event_ignores_forged_cloudflare_headers(enabled_client, monkeypatch):
+    # DNS-only production: CF-* headers can only come from the client. A forged
+    # country must not reach the dashboard, and rotating a forged
+    # CF-Connecting-IP must not mint a new visitor per request.
+    monkeypatch.delenv("TRUST_CLOUDFLARE_HEADERS", raising=False)
+    client, svc, store = enabled_client
+    for fake_ip in ("6.6.6.1", "6.6.6.2", "6.6.6.3"):
+        r = client.post("/api/event", json={"type": "visit"},
+                        headers={"CF-Connecting-IP": fake_ip, "CF-IPCountry": "KP"})
+        assert r.status_code == 204
+    svc.recorder().flush()
+    rows = store.query("SELECT country, visitor FROM events", [])
+    assert [row["country"] for row in rows] == [None, None, None]
+    assert len({row["visitor"] for row in rows}) == 1
+
+
+def test_event_records_validated_country_when_cloudflare_trusted(enabled_client, monkeypatch):
+    monkeypatch.setenv("TRUST_CLOUDFLARE_HEADERS", "1")
+    client, svc, store = enabled_client
+    for country in ("BD", "<b>pwned</b>"):
+        r = client.post("/api/event", json={"type": "visit"}, headers={"CF-IPCountry": country})
+        assert r.status_code == 204
+    svc.recorder().flush()
+    rows = store.query("SELECT country FROM events ORDER BY id", [])
+    assert [row["country"] for row in rows] == ["BD", None]
+
+
+def test_login_rate_limit_ignores_rotating_cf_connecting_ip(enabled_client, monkeypatch):
+    # 5/minute is the only brute-force guard on the password-only admin, and it
+    # is keyed by client_ip: a fresh forged CF-Connecting-IP per attempt must
+    # not buy a fresh bucket.
+    monkeypatch.delenv("TRUST_CLOUDFLARE_HEADERS", raising=False)
+    client, *_ = enabled_client
+    limiter.enabled = True
+    limiter.reset()
+    for i in range(5):
+        r = client.post("/api/admin/login", json={"password": "nope"},
+                        headers={"CF-Connecting-IP": f"6.6.6.{i}"})
+        assert r.status_code == 401
+    r = client.post("/api/admin/login", json={"password": "nope"},
+                    headers={"CF-Connecting-IP": "6.6.6.99"})
+    assert r.status_code == 429
 
 
 def test_login_and_report_gate(enabled_client):

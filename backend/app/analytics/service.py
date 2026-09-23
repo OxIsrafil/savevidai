@@ -4,7 +4,7 @@ from collections.abc import Mapping
 
 from fastapi import Request
 
-from ..client_ip import client_ip
+from ..client_ip import client_country, client_ip
 from ..envutil import is_truthy
 from .config import AnalyticsConfig
 from .geo import GEO_FILENAME, CountryLookup, GeoUpdater, resolve_geo_dir
@@ -61,10 +61,12 @@ class AnalyticsService:
         try:
             # The IP lives in this frame only: hashed for the daily visitor id,
             # looked up for the country, then dropped. It is never stored,
-            # logged or handed to the recorder.
+            # logged or handed to the recorder. A CF-IPCountry header wins only
+            # when TRUST_CLOUDFLARE_HEADERS is on (see client_ip.client_country);
+            # otherwise the offline lookup decides.
             ip = client_ip(request)
             visitor = visitor_hash(self._cfg.salt, ip, today_utc())
-            country = self._lookup.country(ip)
+            country = client_country(request) or self._lookup.country(ip)
             self._recorder.record(type, visitor=visitor, outcome=outcome, country=country,
                                   platform=platform, source=source, visitor_kind=visitor_kind,
                                   locale=locale)
