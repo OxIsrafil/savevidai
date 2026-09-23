@@ -145,3 +145,13 @@ test("TrendTooltip hides the earlier row without a previous period and renders n
   rerender(<TrendTooltip active payload={[{ payload: { label: "15:00", value: null, prev: null, prevLabel: "15:00" } }]} color="#0a84ff" showPrev />);
   expect(container).toBeEmptyDOMElement();
 });
+
+test("tab figures are never cut: no ellipsis, and the four tabs size their figures by the longest total", () => {
+  const { rerender } = render(<TrendCard report={REPORT_7D} compare="the 7 days before" size={SIZE} />);
+  for (const figure of ["1,742", "2,812", "2,310", "253"]) expect(screen.getByText(figure).className).not.toContain("truncate");
+  const fit = () => parseFloat(screen.getByRole("tablist").style.getPropertyValue("--fit"));
+  const short = fit();
+  expect(short).toBeGreaterThan(0);
+  rerender(<TrendCard report={REPORT_90D} compare="the 90 days before" size={SIZE} />);
+  expect(fit()).toBeGreaterThan(short);
+});

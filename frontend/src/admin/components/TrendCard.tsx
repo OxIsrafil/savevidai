@@ -7,7 +7,7 @@ import { change } from "../lib/delta";
 import { formatCompact, formatCount } from "../lib/format";
 import { isFlat, trendRows, type TrendRow } from "../lib/metrics";
 import { Delta } from "./Delta";
-import { CARD, cn } from "./styles";
+import { CARD, cn, fitStyle } from "./styles";
 
 export const METRICS: { key: SeriesMetric; label: string; color: string; invert?: boolean }[] = [
   { key: "visitors", label: "Visitors", color: COLORS.teal },
@@ -78,7 +78,7 @@ export function TrendCard({ report, compare, size }: { report: Report; compare: 
 
   return (
     <section className={cn(CARD, "overflow-hidden")}>
-      <div role="tablist" aria-label="Metric" className="grid grid-cols-2 border-b border-line/50 sm:grid-cols-4">
+      <div role="tablist" aria-label="Metric" className="grid grid-cols-2 border-b border-line/50 sm:grid-cols-4" style={fitStyle(METRICS.map((m) => formatCount(totals[m.key])))}>
         {METRICS.map((m, i) => {
           const active = m.key === metric;
           return (
@@ -89,7 +89,7 @@ export function TrendCard({ report, compare, size }: { report: Report; compare: 
               aria-selected={active}
               onClick={() => setMetric(m.key)}
               className={cn(
-                "relative flex min-w-0 flex-col items-start border-line/50 px-5 pt-4 pb-4 text-left transition-colors sm:px-6 sm:pt-5",
+                "@container relative flex min-w-0 flex-col items-start border-line/50 px-5 pt-4 pb-4 text-left transition-colors sm:px-6 sm:pt-5",
                 i < 2 && "max-sm:border-b",
                 i % 2 === 0 && "max-sm:border-r",
                 i < 3 && "sm:border-r",
@@ -100,7 +100,7 @@ export function TrendCard({ report, compare, size }: { report: Report; compare: 
                 <span aria-hidden="true" className="size-2 rounded-full transition-opacity" style={{ background: m.color, opacity: active ? 1 : 0.35 }} />
                 {m.label}
               </span>
-              <span className="mt-2.5 max-w-full truncate text-[22px] leading-none font-semibold tracking-[-0.025em] text-text-primary tabular-nums sm:text-[26px]">{formatCount(totals[m.key])}</span>
+              <span className="mt-2.5 text-[length:min(22px,calc(100cqi/var(--fit)))] leading-none font-semibold tracking-[-0.025em] whitespace-nowrap text-text-primary tabular-nums sm:text-[length:min(26px,calc(100cqi/var(--fit)))]">{formatCount(totals[m.key])}</span>
               <span className="mt-2.5 flex h-5 items-center">
                 {previous ? <Delta value={change(totals[m.key], previous[m.key])} compare={compare} invert={m.invert} /> : <span className="text-xs text-text-muted">No earlier period</span>}
               </span>

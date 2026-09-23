@@ -20,3 +20,18 @@ test("two or three tinted tiles with label and figure; a tone colours the figure
   rerender(<MiniStats items={[{ label: "A", value: "1" }, { label: "B", value: "2" }]} />);
   expect(container.querySelector("dl")?.className).toContain("grid-cols-2");
 });
+
+test("figures are never cut: no ellipsis, and the strip sizes them by its longest figure", () => {
+  const items = (visitors: string) => [
+    { label: "Visitors", value: visitors },
+    { label: "New", value: "1,120" },
+    { label: "Came back", value: "26%" },
+  ];
+  const { container, rerender } = render(<MiniStats items={items("1,522")} />);
+  for (const dd of Array.from(container.querySelectorAll("dd"))) expect(dd.className).not.toContain("truncate");
+  const fit = () => parseFloat((container.querySelector("dl") as HTMLElement).style.getPropertyValue("--fit"));
+  const short = fit();
+  expect(short).toBeGreaterThan(0);
+  rerender(<MiniStats items={items("123,456")} />);
+  expect(fit()).toBeGreaterThan(short);
+});
