@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source not "../admin";
 
 /* Self-hosted Onest (latin + latin-ext only; the site copy is English).
    Faces are hand-written so the main woff2 can be preloaded from the HTML head.
