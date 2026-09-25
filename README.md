@@ -16,9 +16,10 @@ device.
 
 ## How it works
 
-Tweet metadata is resolved via the FixTweet API; the video itself is streamed through a
-locked-down proxy (Twitter's CDN refuses cross-origin browser reads), which is what makes
-the in-page progress bar and clean filenames possible.
+Tweet metadata is resolved via the FixTweet API; the browser then reads the video straight
+from Twitter's CDN (with no Referer, which the CDN refuses from other sites), and a
+locked-down proxy re-streams it only when that direct read fails. Reading the bytes in the
+page is what makes the progress bar and clean filenames possible.
 
 ## Features
 
