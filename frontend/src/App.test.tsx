@@ -70,9 +70,9 @@ test("example chip resolves the showcase tweet and fills the input", async () =>
   // Filter to the resolve call specifically: a visit beacon may also hit fetch
   // on mount, so the resolve request isn't guaranteed to be the first call.
   const call = fetchMock.mock.calls.find(([url]) => String(url) === "/api/resolve");
-  expect(String(call?.[1]?.body)).toContain("/israfill/status/2077383034639094193");
+  expect(String(call?.[1]?.body)).toContain("/israfilv2/status/2103009452026962290");
   expect(screen.getByRole("textbox")).toHaveValue(
-    "https://x.com/israfill/status/2077383034639094193",
+    "https://x.com/israfilv2/status/2103009452026962290",
   );
 });
 

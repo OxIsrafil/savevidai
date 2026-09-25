@@ -13,7 +13,7 @@ import { enTwitter } from "./locales/en";
 import type { PageStrings } from "./locales/types";
 
 // The maker's own video post, used as the example chip's live demo.
-const EXAMPLE_URL = "https://x.com/israfill/status/2077383034639094193";
+const EXAMPLE_URL = "https://x.com/israfilv2/status/2103009452026962290";
 
 // Module-level (not component-level) so it survives React StrictMode's dev-time
 // double-invoke of effects and any remounts, guaranteeing one visit beacon per
