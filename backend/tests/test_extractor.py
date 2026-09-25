@@ -185,16 +185,95 @@ def test_extract_falls_back_to_vxtwitter_on_transport_error():
     assert res.items[0].variants[0].label == "720p"  # came from vxtwitter
 
 
+FX_404 = {"code": 404, "message": "NOT_FOUND", "tweet": None}
+
+
+def _fx_cached_404_then(uncached_body: dict):
+    """fxtwitter's edge serves a stale 404 for the plain URL; a cache-busting
+    query reaches the worker and gets `uncached_body`."""
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.query:
+            return httpx.Response(200, json=uncached_body)
+        return httpx.Response(404, json=FX_404)
+    return respond
+
+
 @respx.mock
-def test_extract_does_not_fall_back_on_not_found():
-    # fxtwitter gives a definitive 404 body; vxtwitter must NOT be called
+def test_extract_rechecks_a_not_found_past_the_fxtwitter_cache():
+    # Since 2026-09-15 fxtwitter 404s live posts (FxEmbed #2490) and caches the
+    # 404; a fresh request past the cache finds the post in full quality.
     fx = respx.get("https://api.fxtwitter.com/i/status/1").mock(
-        return_value=httpx.Response(404, json={"code": 404, "message": "NOT_FOUND"}))
-    vx = respx.get("https://api.vxtwitter.com/i/status/1").mock(return_value=httpx.Response(200, json=VX_VIDEO))
+        side_effect=_fx_cached_404_then(FX_VIDEO))
+    vx = respx.get("https://api.vxtwitter.com/i/status/1").mock(
+        return_value=httpx.Response(200, json=VX_VIDEO))
+    res = extract("1")
+    assert res.items[0].variants[0].label == "1080p"  # fxtwitter quality, not vxtwitter's
+    assert fx.call_count == 2 and not vx.called
+
+
+@respx.mock
+def test_extract_falls_back_to_vxtwitter_when_fxtwitter_keeps_saying_not_found():
+    respx.get("https://api.fxtwitter.com/i/status/1").mock(
+        return_value=httpx.Response(404, json=FX_404))
+    respx.get("https://api.vxtwitter.com/i/status/1").mock(
+        return_value=httpx.Response(200, json=VX_VIDEO))
+    res = extract("1")
+    assert res.items[0].variants[0].label == "720p"  # came from vxtwitter
+
+
+@respx.mock
+def test_extract_reports_not_found_only_when_every_source_agrees():
+    fx = respx.get("https://api.fxtwitter.com/i/status/1").mock(
+        return_value=httpx.Response(404, json=FX_404))
+    vx = respx.get("https://api.vxtwitter.com/i/status/1").mock(
+        return_value=httpx.Response(404, text="<html>not found</html>"))
     with pytest.raises(AppError) as exc:
         extract("1")
     assert exc.value.code == "not_found"
-    assert fx.called and not vx.called
+    assert fx.call_count == 2 and vx.call_count == 1
+
+
+@respx.mock
+def test_extract_recheck_keeps_no_video_and_private_answers():
+    respx.get("https://api.fxtwitter.com/i/status/1").mock(
+        side_effect=_fx_cached_404_then(FX_NO_VIDEO))
+    vx = respx.get("https://api.vxtwitter.com/i/status/1").mock(
+        return_value=httpx.Response(200, json=VX_VIDEO))
+    with pytest.raises(AppError) as exc:
+        extract("1")
+    assert exc.value.code == "no_video" and not vx.called
+    respx.get("https://api.fxtwitter.com/i/status/2").mock(
+        side_effect=_fx_cached_404_then({"code": 401, "message": "PRIVATE_TWEET"}))
+    with pytest.raises(AppError) as exc:
+        extract("2")
+    assert exc.value.code == "private_or_restricted"
+
+
+@respx.mock
+def test_extract_not_found_when_vxtwitter_is_down_too():
+    respx.get("https://api.fxtwitter.com/i/status/1").mock(
+        return_value=httpx.Response(404, json=FX_404))
+    respx.get("https://api.vxtwitter.com/i/status/1").mock(side_effect=httpx.ConnectError("down"))
+    with pytest.raises(AppError) as exc:
+        extract("1")
+    assert exc.value.code == "not_found"
+
+
+@respx.mock
+def test_extract_recheck_logs_the_outcome_but_never_the_post(caplog):
+    # The recheck log is the aggregate signal for how many 404s were false. It
+    # must not name the post: app logs sit next to access logs that hold IPs.
+    caplog.set_level("DEBUG", logger="savevidai.extractor")
+    tid = "2103009452026962290"
+    respx.get(f"https://api.fxtwitter.com/i/status/{tid}").mock(
+        return_value=httpx.Response(404, json=FX_404))
+    respx.get(f"https://api.vxtwitter.com/i/status/{tid}").mock(
+        return_value=httpx.Response(404, text="<html>not found</html>"))
+    with pytest.raises(AppError):
+        extract(tid)
+    messages = [r.getMessage() for r in caplog.records]
+    assert any("twitter 404 recheck" in m for m in messages)
+    assert not any(tid in m for m in messages)
 
 
 @respx.mock

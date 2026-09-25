@@ -5,11 +5,13 @@ without a logged-in account's cookies. The fxtwitter API (api.fxtwitter.com) nee
 no auth and returns video.twimg.com URLs. The browser cannot fetch those URLs
 directly (the CDN 403s cross-origin reads with no CORS headers), so the frontend
 downloads them through /api/proxy. vxtwitter is a lower-fidelity fallback (single
-quality) used only when fxtwitter has a transport/upstream failure. When extraction
-breaks, the fix is usually a FixTweet-side change, not ours; see CONTRIBUTING.
+quality) used when fxtwitter has a transport/upstream failure, or when its 404
+does not survive a recheck (see _recheck_not_found). When extraction breaks, the
+fix is usually a FixTweet-side change, not ours; see CONTRIBUTING.
 """
 import logging
 import re
+import secrets
 
 import httpx
 
@@ -30,15 +32,41 @@ def extract(tweet_id: str) -> ResolveResponse:
     try:
         return _map_guarded(map_fxtwitter, tweet_id, _get_json(_FX_URL.format(tweet_id)))
     except AppError as first:
+        if first.code == NOT_FOUND[0]:
+            return _recheck_not_found(tweet_id, first)
         if first.code != UPSTREAM[0]:
-            raise  # definitive not_found/private/no_video: do not retry
+            raise  # definitive private/no_video: do not retry
         try:
             return _map_guarded(map_vxtwitter, tweet_id, _get_json(_VX_URL.format(tweet_id)))
         except AppError:
             raise first from None
 
 
-def _map_guarded(mapper, tweet_id: str, body: dict) -> ResolveResponse:
+def _recheck_not_found(tweet_id: str, first: AppError) -> ResolveResponse:
+    """fxtwitter's 404 is not proof the post is gone. Since 2026-09-15 it answers
+    404 for many live posts (FxEmbed issue #2490, mostly age-restricted media),
+    and its edge cache keeps serving that 404. Ask fxtwitter again past the
+    cache, then vxtwitter, and report not_found only when neither finds the post.
+
+    The recheck logs which source answered and nothing about the post, so the
+    rate of false 404s stays measurable without recording what anyone saves."""
+    uncached = f"{_FX_URL.format(tweet_id)}?cb={secrets.token_hex(4)}"
+    for source, mapper, url in (("fxtwitter uncached", map_fxtwitter, uncached),
+                                ("vxtwitter", map_vxtwitter, _VX_URL.format(tweet_id))):
+        try:
+            result = _map_guarded(mapper, tweet_id, _get_json(url, quiet=True), quiet=True)
+        except AppError as exc:
+            if exc.code in (NO_VIDEO[0], PRIVATE[0]):
+                logger.warning("twitter 404 recheck: %s says %s", source, exc.code)
+                raise  # the post exists; this answer is more precise than not_found
+            continue
+        logger.warning("twitter 404 recheck: recovered via %s", source)
+        return result
+    logger.warning("twitter 404 recheck: confirmed not_found")
+    raise first
+
+
+def _map_guarded(mapper, tweet_id: str, body: dict, quiet: bool = False) -> ResolveResponse:
     """Run a mapper over untrusted upstream JSON; any shape we didn't anticipate
     becomes a clean upstream_error instead of an unhandled 500."""
     try:
@@ -47,29 +75,36 @@ def _map_guarded(mapper, tweet_id: str, body: dict) -> ResolveResponse:
         raise
     except Exception as exc:
         # Spec: upstream failures are logged with the tweet ID so FixTweet-side
-        # breakage (usually a schema change) is visible immediately.
-        logger.warning("mapping failed for tweet %s via %s: %r", tweet_id, mapper.__name__, exc)
+        # breakage (usually a schema change) is visible immediately. The 404
+        # recheck passes quiet=True: it runs on every not_found, and naming each
+        # of those posts would log what visitors try to save.
+        if not quiet:
+            logger.warning("mapping failed for tweet %s via %s: %r", tweet_id, mapper.__name__, exc)
         raise app_error(UPSTREAM) from exc
 
 
-def _get_json(url: str) -> dict:
+def _get_json(url: str, quiet: bool = False) -> dict:
     """GET and parse JSON. Any transport error or non-JSON body maps to UPSTREAM.
 
     Returns the parsed body regardless of HTTP status: FixTweet sends its JSON
     (with a `code` field) even on 404/401, and the caller interprets that code.
+    quiet=True skips the per-URL warnings (the URL names the post).
     """
     try:
         resp = httpx.get(url, headers={"User-Agent": _UA}, timeout=10.0, follow_redirects=True)
     except httpx.HTTPError as exc:
-        logger.warning("upstream fetch failed for %s: %r", url, exc)
+        if not quiet:
+            logger.warning("upstream fetch failed for %s: %r", url, exc)
         raise app_error(UPSTREAM) from exc
     try:
         body = resp.json()
     except ValueError as exc:
-        logger.warning("upstream returned non-JSON for %s (status %s)", url, resp.status_code)
+        if not quiet:
+            logger.warning("upstream returned non-JSON for %s (status %s)", url, resp.status_code)
         raise app_error(UPSTREAM) from exc
     if not isinstance(body, dict):
-        logger.warning("upstream returned non-object JSON for %s", url)
+        if not quiet:
+            logger.warning("upstream returned non-object JSON for %s", url)
         raise app_error(UPSTREAM)
     return body
 
