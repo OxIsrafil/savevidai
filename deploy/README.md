@@ -156,7 +156,7 @@ docker compose -f compose.prod.yaml up -d --build
 ## 6. Country lookup (DB-IP Lite)
 
 The admin's countries panel is fed by an offline lookup on the box: no header
-and no third-party call per visitor. The container keeps a copy of the free
+(unless `TRUST_CLOUDFLARE_HEADERS=1`) and no third-party call per visitor. The container keeps a copy of the free
 DB-IP "IP to Country Lite" database and looks each visitor's IP up in memory
 while the event is recorded. Only the two-letter country code is stored; the
 analytics path discards the IP right after the daily visitor hash and the
