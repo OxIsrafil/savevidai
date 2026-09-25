@@ -17,8 +17,11 @@ its own dedicated SEO page:
 ## Architecture (the resolve-based model - protect it)
 
 - The server only RESOLVES links to direct media URLs. The browser downloads the bytes.
-- `/api/proxy` re-streams CDN media when the browser can't fetch cross-origin (twimg, tiktokcdn,
-  redd.it). SSRF-locked: exact-host or dot-suffix allowlist, never substring, no redirect-follow.
+- The browser downloads straight from the CDN first (`frontend/src/lib/download.ts`: fetch with no
+  Referer, because video.twimg.com refuses a third-party one), but only for CDNs verified to allow
+  it: video.twimg.com, tiktokcdn*, fbcdn.net, cdninstagram.com. `/api/proxy` re-streams CDN media
+  as the fallback and for every other host (redd.it, tikwm.com). SSRF-locked: exact-host or
+  dot-suffix allowlist, never substring, no redirect-follow.
 - `/api/mux/{vid}/{h}.mp4` (Reddit only) merges v.redd.it's separate video+audio streams with
   `ffmpeg -c copy` into a per-request temp file, streams it, deletes it. NOTHING is stored.
 - Platform layer: `backend/app/platforms.py` detect_platform routes to per-platform resolvers
