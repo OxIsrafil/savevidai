@@ -4,6 +4,16 @@ export type Progress = { received: number; total: number | null };
 // back to the proxy. The body read is never timed: a large video takes a while.
 const DIRECT_HEADERS_TIMEOUT_MS = 15_000;
 
+// CDNs verified on 2026-09-25 to answer a no-referrer CORS fetch; i.redd.it refuses one.
+const DIRECT_HOSTS = [
+  "video.twimg.com",
+  "tiktokcdn.com",
+  "tiktokcdn-us.com",
+  "tiktokcdn-eu.com",
+  "fbcdn.net",
+  "cdninstagram.com",
+];
+
 /**
  * `handle_id`, unless they are the same string. Instagram is metadata-light:
  * there is no author to report, so handle and id are both the shortcode, and a
@@ -43,8 +53,24 @@ export function proxyUrl(url: string, filename: string): string {
   return `/api/proxy?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
 }
 
+// Exact host or dot-boundary suffix, never a substring (as in proxy.py), so a
+// lookalike such as video.twimg.com.evil.com never counts as a direct host.
+function isDirectHost(url: string): boolean {
+  if (!url.startsWith("https://")) return false;
+  try {
+    const host = new URL(url).hostname;
+    return DIRECT_HOSTS.some((d) => host === d || host.endsWith("." + d));
+  } catch {
+    return false;
+  }
+}
+
 async function readBlob(res: Response, onProgress: (p: Progress) => void): Promise<Blob> {
-  if (!res.ok || !res.body) throw new Error(`fetch failed: ${res.status}`);
+  if (!res.ok || !res.body) {
+    // Drop an unread error body so its connection is freed; a failed cancel is ignored.
+    void res.body?.cancel().catch(() => {});
+    throw new Error(`fetch failed: ${res.status}`);
+  }
   const total = Number(res.headers.get("content-length")) || null;
   const reader = res.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -95,10 +121,11 @@ function saveBlob(blob: Blob, filename: string): void {
  * Referer, so the direct fetch sends no Referer. If the direct attempt fails in
  * any way (refused, non-2xx, no body, a read error, or no headers in time), the
  * server proxy re-streams the file as the fallback and progress starts again
- * from zero. A partial direct download is never saved. Only absolute https URLs
- * get the direct attempt: site-relative ones are our own endpoints (Reddit's
- * /api/mux joins video and audio on the server) and are fetched from there.
- * Nothing is stored on the server either way.
+ * from zero. A partial direct download is never saved. Only the CDNs in
+ * DIRECT_HOSTS get the direct attempt. Every other URL goes straight to the
+ * server: hosts that refuse cross-origin reads (i.redd.it) or were never
+ * verified (tikwm.com), and our own site-relative endpoints (Reddit's /api/mux
+ * joins video and audio there). Nothing is stored on the server either way.
  */
 export async function downloadVariant(
   url: string,
@@ -107,7 +134,7 @@ export async function downloadVariant(
 ): Promise<void> {
   const fromServer = async () => readBlob(await fetch(proxyUrl(url, filename)), onProgress);
   let blob: Blob;
-  if (url.startsWith("https://")) {
+  if (isDirectHost(url)) {
     try {
       blob = await readBlob(await fetchDirect(url), onProgress);
     } catch {

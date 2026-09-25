@@ -15,10 +15,10 @@ function photo(n: number): MediaItem {
   return {
     index: n,
     kind: "image",
-    thumbnail: `https://pbs.twimg.com/p${n}.jpg`,
+    thumbnail: `https://p16-sign.tiktokcdn.com/p${n}.jpeg`,
     duration_seconds: null,
     variants: [
-      { label: "orig", width: 1080, height: 1920, url: `https://pbs.twimg.com/photo${n}.jpg`, size_bytes: 3 },
+      { label: "orig", width: 1080, height: 1920, url: `https://p16-sign.tiktokcdn.com/photo${n}.jpeg`, size_bytes: 3 },
     ],
   };
 }
@@ -29,7 +29,7 @@ const AUDIO: MediaItem = {
   thumbnail: null,
   duration_seconds: 30,
   variants: [
-    { label: "sound", width: null, height: null, url: "https://sf16.tiktok.com/track.mp3", size_bytes: 3 },
+    { label: "sound", width: null, height: null, url: "https://sf16.tiktokcdn.com/track.mp3", size_bytes: 3 },
   ],
 };
 
@@ -100,7 +100,7 @@ test("tapping one photo fires exactly one photo beacon and one direct fetch (pho
     platform: "tiktok",
   });
 
-  expect(downloads(fetchMock)).toEqual(["https://pbs.twimg.com/photo2.jpg"]);
+  expect(downloads(fetchMock)).toEqual(["https://p16-sign.tiktokcdn.com/photo2.jpeg"]);
   expect(saved).toEqual(["ada_222_photo_2.jpg"]);
 });
 
@@ -128,9 +128,9 @@ test("Save all fires exactly one album beacon and one direct fetch per photo", a
   });
 
   expect(downloads(fetchMock)).toEqual([
-    "https://pbs.twimg.com/photo1.jpg",
-    "https://pbs.twimg.com/photo2.jpg",
-    "https://pbs.twimg.com/photo3.jpg",
+    "https://p16-sign.tiktokcdn.com/photo1.jpeg",
+    "https://p16-sign.tiktokcdn.com/photo2.jpeg",
+    "https://p16-sign.tiktokcdn.com/photo3.jpeg",
   ]);
 });
 
@@ -151,7 +151,7 @@ function stubFailingPhoto(failUrl: string, order: string[]) {
 test("Save all: a failed photo is marked and the sweep continues sequentially, one album beacon", async () => {
   vi.useFakeTimers();
   const order: string[] = [];
-  const fetchMock = stubFailingPhoto("https://pbs.twimg.com/photo2.jpg", order);
+  const fetchMock = stubFailingPhoto("https://p16-sign.tiktokcdn.com/photo2.jpeg", order);
   vi.stubGlobal("fetch", fetchMock);
   const { container } = render(
     <PhotoGrid photos={PHOTOS} audio={null} handle="ada" id="222" platform="tiktok" />,
@@ -163,7 +163,7 @@ test("Save all: a failed photo is marked and the sweep continues sequentially, o
     fireEvent.click(screen.getByRole("button", { name: /save all/i }));
     await vi.advanceTimersByTimeAsync(0);
   });
-  expect(order).toEqual(["https://pbs.twimg.com/photo1.jpg"]);
+  expect(order).toEqual(["https://p16-sign.tiktokcdn.com/photo1.jpeg"]);
 
   // Advance past the first stagger: photo 2 starts, is refused, falls back to the
   // proxy (which fails too), and still nothing after it.
@@ -171,8 +171,8 @@ test("Save all: a failed photo is marked and the sweep continues sequentially, o
     await vi.advanceTimersByTimeAsync(STAGGER_MS);
   });
   expect(order.slice(1)).toEqual([
-    "https://pbs.twimg.com/photo2.jpg",
-    proxyUrl("https://pbs.twimg.com/photo2.jpg", "ada_222_photo_2.jpg"),
+    "https://p16-sign.tiktokcdn.com/photo2.jpeg",
+    proxyUrl("https://p16-sign.tiktokcdn.com/photo2.jpeg", "ada_222_photo_2.jpg"),
   ]);
 
   // Advance past the second stagger: photo 3 completes the sweep. Bounded advance
@@ -181,7 +181,7 @@ test("Save all: a failed photo is marked and the sweep continues sequentially, o
   await act(async () => {
     await vi.advanceTimersByTimeAsync(STAGGER_MS * 4);
   });
-  expect(order.slice(3)).toEqual(["https://pbs.twimg.com/photo3.jpg"]);
+  expect(order.slice(3)).toEqual(["https://p16-sign.tiktokcdn.com/photo3.jpeg"]);
 
   // Photo 2's tile is marked failed; photos 1 and 3 saved.
   const tiles = container.querySelectorAll(".photo-tile");
@@ -252,6 +252,6 @@ test("Sound fires one sound beacon and saves the track as sound.m4a", async () =
     platform: "tiktok",
   });
 
-  expect(downloads(fetchMock)).toEqual(["https://sf16.tiktok.com/track.mp3"]);
+  expect(downloads(fetchMock)).toEqual(["https://sf16.tiktokcdn.com/track.mp3"]);
   expect(saved).toEqual(["ada_222_sound.m4a"]);
 });

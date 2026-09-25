@@ -148,8 +148,10 @@ docker compose -f compose.prod.yaml up -d --build
 - Turso analytics DB, admin dashboard, ADMIN_PASSWORD, ANALYTICS_SALT: identical.
 - The app, Dockerfile, Caddyfile: unchanged. `compose.prod.yaml` just adds the
   env file and builds from source instead of pulling the stale GHCR image.
-- Downloads still proxy through the server. The point of the move is that a VPS
-  includes the bandwidth to do that at viral scale; Render meters it.
+- The download proxy was kept as it was through the move: the point was that a
+  VPS includes the bandwidth to proxy at viral scale, where Render meters it.
+  Since 2026-09-25 the browser fetches straight from the CDN first, and the
+  proxy is the fallback.
 
 ---
 

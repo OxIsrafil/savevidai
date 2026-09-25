@@ -138,6 +138,38 @@ describe("downloadVariant", () => {
     expect(await bytesOf(saves[0].blob)).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
+  test.each([
+    "https://v16-notes.tiktokcdn-us.com/video.mp4",
+    "https://p16-sign.tiktokcdn.com/photo.jpeg",
+    "https://v19.tiktokcdn-eu.com/video.mp4",
+    "https://video.fhan5-6.fna.fbcdn.net/v.mp4",
+    "https://scontent-mad1-1.cdninstagram.com/v.mp4",
+  ])("%s is a verified CDN and goes direct", async (url) => {
+    captureSaves();
+    const fetchMock = stubFetch(async () => ok([1, 2, 3]));
+    await downloadVariant(url, "f.mp4", () => {});
+    expect(urls(fetchMock)).toEqual([url]);
+  });
+
+  test.each([
+    ["https://i.redd.it/abc123.jpg", "refuses cross-origin reads"],
+    ["https://www.tikwm.com/video/media/play/7300.mp4", "is not a verified CDN"],
+    ["https://pbs.twimg.com/media/abc.jpg", "is not video.twimg.com itself"],
+    ["https://video.twimg.com.evil.com/v.mp4", "only looks like video.twimg.com"],
+    ["https://evilfbcdn.net/v.mp4", "ends in fbcdn.net without a dot boundary"],
+    ["https://video.twimg.com@evil.com/v.mp4", "has evil.com as its real host"],
+  ])("%s %s, so it makes exactly one request, to the proxy", async (url) => {
+    const saves = captureSaves();
+    const fetchMock = stubFetch(async () => ok([1, 2, 3]));
+    const progress: Progress[] = [];
+    await downloadVariant(url, "f.mp4", (p) => progress.push(p));
+    // Today's proxy request, no fetch options, and no progress reset: nothing
+    // was tried first.
+    expect(fetchMock.mock.calls).toEqual([[proxyUrl(url, "f.mp4")]]);
+    expect(progress).toEqual([{ received: 4, total: 4 }]);
+    expect(saves).toHaveLength(1);
+  });
+
   test("a refused direct fetch falls back to the proxy, restarting progress at 0", async () => {
     const saves = captureSaves();
     // A CORS refusal or a network error rejects the fetch with a TypeError.
@@ -167,6 +199,33 @@ describe("downloadVariant", () => {
     await downloadVariant(CDN, "f.mp4", () => {});
     expect(urls(fetchMock)).toEqual([CDN, PROXIED]);
     expect(saves).toHaveLength(1);
+    expect(await bytesOf(saves[0].blob)).toEqual([7, 8, 9, 10]);
+  });
+
+  test("a non-ok direct response has its unread body cancelled before the fallback", async () => {
+    captureSaves();
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const fetchMock = stubFetch(async () => new Response(body, { status: 403 }));
+    await downloadVariant(CDN, "f.mp4", () => {});
+    expect(cancelled).toBe(true);
+    expect(urls(fetchMock)).toEqual([CDN, PROXIED]);
+  });
+
+  test("a body cancel that fails cannot escape or stop the fallback", async () => {
+    const saves = captureSaves();
+    const body = new ReadableStream<Uint8Array>({
+      cancel() {
+        throw new Error("cancel failed");
+      },
+    });
+    const fetchMock = stubFetch(async () => new Response(body, { status: 403 }));
+    await downloadVariant(CDN, "f.mp4", () => {});
+    expect(urls(fetchMock)).toEqual([CDN, PROXIED]);
     expect(await bytesOf(saves[0].blob)).toEqual([7, 8, 9, 10]);
   });
 
