@@ -2,10 +2,12 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test, vi } from "vitest";
 import type { MediaItem } from "../lib/api";
+import { proxyUrl } from "../lib/download";
 import { PhotoGrid } from "./PhotoGrid";
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 
@@ -31,20 +33,39 @@ const AUDIO: MediaItem = {
   ],
 };
 
-// Mirror QualityButton.test.tsx: /api/proxy streams 3 bytes, everything else 204.
-function stubProxyAndBeacon() {
-  return vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
-    if (String(input).startsWith("/api/proxy")) {
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new Uint8Array([1, 2, 3]));
-          controller.close();
-        },
-      });
-      return new Response(stream, { status: 200, headers: { "content-length": "3" } });
-    }
-    return new Response(null, { status: 204 });
+function threeBytes(): Response {
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array([1, 2, 3]));
+      controller.close();
+    },
   });
+  return new Response(stream, { status: 200, headers: { "content-length": "3" } });
+}
+
+// Mirror QualityButton.test.tsx: the CDN streams 3 bytes straight to the
+// browser, everything else (the beacon) 204s.
+function stubCdnAndBeacon() {
+  return vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) =>
+    String(input).startsWith("https://") ? threeBytes() : new Response(null, { status: 204 }),
+  );
+}
+
+// Every fetch that is not the analytics beacon, in order.
+function downloads(fetchMock: ReturnType<typeof stubCdnAndBeacon>): string[] {
+  return fetchMock.mock.calls.map(([u]) => String(u)).filter((u) => u !== "/api/event");
+}
+
+// Records the filename of each save. Stubbing the link click also skips jsdom's
+// unimplemented navigation to blob: URLs.
+function captureSavedNames(): string[] {
+  const names: string[] = [];
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
+    names.push(this.download);
+  });
+  return names;
 }
 
 const PHOTOS = [photo(1), photo(2), photo(3)];
@@ -63,9 +84,10 @@ test("renders one img per photo and a Save all button; Sound only with audio", (
   expect(screen.getByRole("button", { name: /^sound$/i })).toBeInTheDocument();
 });
 
-test("tapping one photo fires exactly one photo beacon and one proxy fetch (photo_2.jpg)", async () => {
-  const fetchMock = stubProxyAndBeacon();
+test("tapping one photo fires exactly one photo beacon and one direct fetch (photo_2.jpg)", async () => {
+  const fetchMock = stubCdnAndBeacon();
   vi.stubGlobal("fetch", fetchMock);
+  const saved = captureSavedNames();
   render(<PhotoGrid photos={PHOTOS} audio={null} handle="ada" id="222" platform="tiktok" />);
 
   await userEvent.click(screen.getByRole("button", { name: /save photo 2/i }));
@@ -78,14 +100,13 @@ test("tapping one photo fires exactly one photo beacon and one proxy fetch (phot
     platform: "tiktok",
   });
 
-  const proxy = fetchMock.mock.calls.filter(([u]) => String(u).startsWith("/api/proxy"));
-  expect(proxy).toHaveLength(1);
-  expect(String(proxy[0]?.[0])).toContain("photo_2.jpg");
+  expect(downloads(fetchMock)).toEqual(["https://pbs.twimg.com/photo2.jpg"]);
+  expect(saved).toEqual(["ada_222_photo_2.jpg"]);
 });
 
-test("Save all fires exactly one album beacon and one proxy fetch per photo", async () => {
+test("Save all fires exactly one album beacon and one direct fetch per photo", async () => {
   vi.useFakeTimers();
-  const fetchMock = stubProxyAndBeacon();
+  const fetchMock = stubCdnAndBeacon();
   vi.stubGlobal("fetch", fetchMock);
   render(<PhotoGrid photos={PHOTOS} audio={null} handle="ada" id="222" platform="tiktok" />);
 
@@ -106,36 +127,31 @@ test("Save all fires exactly one album beacon and one proxy fetch per photo", as
     platform: "tiktok",
   });
 
-  const proxy = fetchMock.mock.calls.filter(([u]) => String(u).startsWith("/api/proxy"));
-  expect(proxy).toHaveLength(3);
+  expect(downloads(fetchMock)).toEqual([
+    "https://pbs.twimg.com/photo1.jpg",
+    "https://pbs.twimg.com/photo2.jpg",
+    "https://pbs.twimg.com/photo3.jpg",
+  ]);
 });
 
-// A proxy mock that streams 3 bytes normally but fails (500, empty body) for the
-// nth photo's filename; every non-proxy request 204s. Records proxy call order.
-function stubFailingProxy(failFilename: string, order: string[]) {
+// Photos stream 3 bytes straight from the CDN, except `failUrl`: the CDN refuses
+// it (403) and the proxy fallback fails too (500, empty body). The beacon 204s.
+// Records every download request (direct and proxy) in order.
+function stubFailingPhoto(failUrl: string, order: string[]) {
   return vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
     const url = String(input);
-    if (url.startsWith("/api/proxy")) {
-      order.push(url);
-      if (url.includes(failFilename)) {
-        return new Response(null, { status: 500 });
-      }
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new Uint8Array([1, 2, 3]));
-          controller.close();
-        },
-      });
-      return new Response(stream, { status: 200, headers: { "content-length": "3" } });
-    }
-    return new Response(null, { status: 204 });
+    if (url === "/api/event") return new Response(null, { status: 204 });
+    order.push(url);
+    if (url === failUrl) return new Response(null, { status: 403 });
+    if (url.startsWith("/api/proxy")) return new Response(null, { status: 500 });
+    return threeBytes();
   });
 }
 
 test("Save all: a failed photo is marked and the sweep continues sequentially, one album beacon", async () => {
   vi.useFakeTimers();
   const order: string[] = [];
-  const fetchMock = stubFailingProxy("photo_2.jpg", order);
+  const fetchMock = stubFailingPhoto("https://pbs.twimg.com/photo2.jpg", order);
   vi.stubGlobal("fetch", fetchMock);
   const { container } = render(
     <PhotoGrid photos={PHOTOS} audio={null} handle="ada" id="222" platform="tiktok" />,
@@ -147,15 +163,17 @@ test("Save all: a failed photo is marked and the sweep continues sequentially, o
     fireEvent.click(screen.getByRole("button", { name: /save all/i }));
     await vi.advanceTimersByTimeAsync(0);
   });
-  expect(order).toHaveLength(1);
-  expect(order[0]).toContain("photo_1.jpg");
+  expect(order).toEqual(["https://pbs.twimg.com/photo1.jpg"]);
 
-  // Advance past the first stagger: photo 2 starts (and fails), still nothing after it.
+  // Advance past the first stagger: photo 2 starts, is refused, falls back to the
+  // proxy (which fails too), and still nothing after it.
   await act(async () => {
     await vi.advanceTimersByTimeAsync(STAGGER_MS);
   });
-  expect(order).toHaveLength(2);
-  expect(order[1]).toContain("photo_2.jpg");
+  expect(order.slice(1)).toEqual([
+    "https://pbs.twimg.com/photo2.jpg",
+    proxyUrl("https://pbs.twimg.com/photo2.jpg", "ada_222_photo_2.jpg"),
+  ]);
 
   // Advance past the second stagger: photo 3 completes the sweep. Bounded advance
   // (not runAllTimersAsync) so motion's requestAnimationFrame loop can't spin the
@@ -163,8 +181,7 @@ test("Save all: a failed photo is marked and the sweep continues sequentially, o
   await act(async () => {
     await vi.advanceTimersByTimeAsync(STAGGER_MS * 4);
   });
-  expect(order).toHaveLength(3);
-  expect(order[2]).toContain("photo_3.jpg");
+  expect(order.slice(3)).toEqual(["https://pbs.twimg.com/photo3.jpg"]);
 
   // Photo 2's tile is marked failed; photos 1 and 3 saved.
   const tiles = container.querySelectorAll(".photo-tile");
@@ -181,14 +198,14 @@ test("Save all: a failed photo is marked and the sweep continues sequentially, o
     platform: "tiktok",
   });
 
-  // One proxy fetch per photo: the failure didn't retry or skip.
-  const proxy = fetchMock.mock.calls.filter(([u]) => String(u).startsWith("/api/proxy"));
-  expect(proxy).toHaveLength(3);
+  // One direct fetch per photo plus the failed one's single proxy fallback: the
+  // failure didn't retry or skip.
+  expect(order).toHaveLength(4);
 });
 
-test("a tile tap during Save all is ignored (no extra beacon or proxy fetch)", async () => {
+test("a tile tap during Save all is ignored (no extra beacon or download)", async () => {
   vi.useFakeTimers();
-  const fetchMock = stubProxyAndBeacon();
+  const fetchMock = stubCdnAndBeacon();
   vi.stubGlobal("fetch", fetchMock);
   render(<PhotoGrid photos={PHOTOS} audio={null} handle="ada" id="222" platform="tiktok" />);
 
@@ -215,14 +232,14 @@ test("a tile tap during Save all is ignored (no extra beacon or proxy fetch)", a
   expect(beacons).toHaveLength(1);
   expect(JSON.parse(String(beacons[0]?.[1]?.body))).toMatchObject({ quality: "album" });
 
-  // Exactly three proxy fetches (one per photo); photo 3 was not double-downloaded.
-  const proxy = fetchMock.mock.calls.filter(([u]) => String(u).startsWith("/api/proxy"));
-  expect(proxy).toHaveLength(3);
+  // Exactly three downloads (one per photo); photo 3 was not double-downloaded.
+  expect(downloads(fetchMock)).toHaveLength(3);
 });
 
-test("Sound fires one sound beacon and fetches sound.m4a", async () => {
-  const fetchMock = stubProxyAndBeacon();
+test("Sound fires one sound beacon and saves the track as sound.m4a", async () => {
+  const fetchMock = stubCdnAndBeacon();
   vi.stubGlobal("fetch", fetchMock);
+  const saved = captureSavedNames();
   render(<PhotoGrid photos={PHOTOS} audio={AUDIO} handle="ada" id="222" platform="tiktok" />);
 
   await userEvent.click(screen.getByRole("button", { name: /^sound$/i }));
@@ -235,7 +252,6 @@ test("Sound fires one sound beacon and fetches sound.m4a", async () => {
     platform: "tiktok",
   });
 
-  const proxy = fetchMock.mock.calls.filter(([u]) => String(u).startsWith("/api/proxy"));
-  expect(proxy).toHaveLength(1);
-  expect(String(proxy[0]?.[0])).toContain("sound.m4a");
+  expect(downloads(fetchMock)).toEqual(["https://sf16.tiktok.com/track.mp3"]);
+  expect(saved).toEqual(["ada_222_sound.m4a"]);
 });

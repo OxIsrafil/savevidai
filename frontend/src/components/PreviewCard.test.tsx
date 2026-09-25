@@ -96,7 +96,7 @@ test("GIF save buttons open the popup too", async () => {
 
 test("photo and sound buttons stay direct: no popup, the save starts at once", async () => {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
-    if (String(input).startsWith("/api/proxy")) {
+    if (String(input).startsWith("https://")) {
       const stream = new ReadableStream({
         start(controller) {
           controller.enqueue(new Uint8Array([1, 2, 3]));
@@ -127,13 +127,13 @@ test("photo and sound buttons stay direct: no popup, the save starts at once", a
     ],
   };
   render(<PreviewCard data={slideshow} platform="tiktok" />);
-  const proxied = () => fetchMock.mock.calls.filter(([url]) => String(url).startsWith("/api/proxy"));
+  const downloads = () => fetchMock.mock.calls.filter(([url]) => String(url) !== "/api/event");
 
   await userEvent.click(screen.getByRole("button", { name: "Save photo 1" }));
   expect(screen.queryByRole("dialog")).toBeNull();
-  expect(proxied()).toHaveLength(1);
+  expect(downloads()).toHaveLength(1);
 
   await userEvent.click(screen.getByRole("button", { name: "Sound" }));
   expect(screen.queryByRole("dialog")).toBeNull();
-  expect(proxied()).toHaveLength(2);
+  expect(downloads()).toHaveLength(2);
 });

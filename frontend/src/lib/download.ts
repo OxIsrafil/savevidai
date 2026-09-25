@@ -1,5 +1,9 @@
 export type Progress = { received: number; total: number | null };
 
+// How long the direct CDN attempt may wait for response headers before we fall
+// back to the proxy. The body read is never timed: a large video takes a while.
+const DIRECT_HEADERS_TIMEOUT_MS = 15_000;
+
 /**
  * `handle_id`, unless they are the same string. Instagram is metadata-light:
  * there is no author to report, so handle and id are both the shortcode, and a
@@ -39,8 +43,7 @@ export function proxyUrl(url: string, filename: string): string {
   return `/api/proxy?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
 }
 
-async function fetchBlob(url: string, onProgress: (p: Progress) => void): Promise<Blob> {
-  const res = await fetch(url);
+async function readBlob(res: Response, onProgress: (p: Progress) => void): Promise<Blob> {
   if (!res.ok || !res.body) throw new Error(`fetch failed: ${res.status}`);
   const total = Number(res.headers.get("content-length")) || null;
   const reader = res.body.getReader();
@@ -57,6 +60,23 @@ async function fetchBlob(url: string, onProgress: (p: Progress) => void): Promis
   return new Blob(chunks as BlobPart[], { type });
 }
 
+// Straight from the CDN, with no Referer (video.twimg.com refuses a third-party
+// one) and no cookies. Aborts if the response headers take too long.
+async function fetchDirect(url: string): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DIRECT_HEADERS_TIMEOUT_MS);
+  try {
+    return await fetch(url, {
+      referrerPolicy: "no-referrer",
+      credentials: "omit",
+      mode: "cors",
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function saveBlob(blob: Blob, filename: string): void {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -68,18 +88,34 @@ function saveBlob(blob: Blob, filename: string): void {
 }
 
 /**
- * Download a variant through the server proxy with streaming progress.
+ * Download a variant with streaming progress and save it under a clean name.
  *
- * We cannot fetch video.twimg.com directly from the browser: it responds 403
- * with no Access-Control-Allow-Origin, so a cross-origin fetch reads zero bytes.
- * The proxy re-streams the file (setting Content-Length), which is the only way
- * to read the bytes for an in-page progress bar and to save with a clean name.
+ * Direct first: the browser reads the file straight from the platform CDN.
+ * video.twimg.com allows that cross-origin read but refuses a third-party
+ * Referer, so the direct fetch sends no Referer. If the direct attempt fails in
+ * any way (refused, non-2xx, no body, a read error, or no headers in time), the
+ * server proxy re-streams the file as the fallback and progress starts again
+ * from zero. A partial direct download is never saved. Only absolute https URLs
+ * get the direct attempt: site-relative ones are our own endpoints (Reddit's
+ * /api/mux joins video and audio on the server) and are fetched from there.
+ * Nothing is stored on the server either way.
  */
 export async function downloadVariant(
   url: string,
   filename: string,
   onProgress: (p: Progress) => void,
 ): Promise<void> {
-  const blob = await fetchBlob(proxyUrl(url, filename), onProgress);
+  const fromServer = async () => readBlob(await fetch(proxyUrl(url, filename)), onProgress);
+  let blob: Blob;
+  if (url.startsWith("https://")) {
+    try {
+      blob = await readBlob(await fetchDirect(url), onProgress);
+    } catch {
+      onProgress({ received: 0, total: null });
+      blob = await fromServer();
+    }
+  } else {
+    blob = await fromServer();
+  }
   saveBlob(blob, filename);
 }
