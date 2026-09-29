@@ -13,3 +13,7 @@ coverage/
 backend/.env
 deploy/app.env
 assets/
+
+# server-only Caddy site blocks and hand-made backups (may hold other sites' config)
+sites/
+*.bak-*

@@ -12,3 +12,8 @@ savevidai.israfill.dev {
 		format json
 	}
 }
+
+# Other sites served by this Caddy keep their blocks in sites/*.caddy on the
+# server (gitignored). The folder is mounted as a directory, so `caddy reload`
+# always sees edits to it.
+import /etc/caddy/sites/*.caddy
